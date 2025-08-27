@@ -5,7 +5,7 @@ import axios from "axios";
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
 
-interface MessagesState {
+interface ChatState {
   messages: Message[];
   hasMore: boolean;
   loading: boolean;
@@ -16,7 +16,7 @@ interface FetchParams {
   beforeId?: string;
 }
 
-const initialState: MessagesState = {
+const initialState: ChatState = {
   messages: [],
   hasMore: true,
   loading: false,
@@ -39,7 +39,7 @@ const fetchMessages = createAsyncThunk(
   }
 );
 
-const messagesSlice = createSlice({
+const chatSlice = createSlice({
   name: "messages",
   initialState,
   reducers: {
@@ -75,8 +75,8 @@ const messagesSlice = createSlice({
   },
 });
 
-const messagesReducer = messagesSlice.reducer;
+const chatReducer = chatSlice.reducer;
 
-export default messagesReducer;
-export const { pushMessage } = messagesSlice.actions;
+export default chatReducer;
+export const { pushMessage } = chatSlice.actions;
 export { fetchMessages };

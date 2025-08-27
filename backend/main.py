@@ -19,16 +19,6 @@ from db.models import ChatHistory, EnglishWriting
 from workflows.supervisor import build_supervisor
 from workflows.states import SupervisorState
 
-testTitle = "The Snowman"
-testEssay = """whenever I try to make a snowman it alwats gets destroyed. 
-I don't know why? My dad says \"make a snow ball then pat more snow on it\". I put more snow on it, but it doesn't work. 
-Once he make one in front of me but I didn't understand. I was soooo confusing for me. And each day in the winter I beg my dad to go out and practice how to mak a snowman.
-And each day I go out to play with the snow I get better. And I tryed and I tryed until one time I gotherd up the snow and just made it round and I had make a snowman!
-I was soooo suprised that I had made a snowman! And then I just got a couple of sticks and I put them on and I screamed to my dad and said \"I MADE A SNOWMAM\" because he wasn't watching me and he huged me.
-"""
-
-testTitle1 = "My day at school"
-testEssay1 = "Today I had mandar lesson. I made snake because this year is the year of snake. At lunch playtime, I played my favourite game chase. It's my favourite game because I like running around. School is best!"
 
 
 @asynccontextmanager
@@ -67,54 +57,61 @@ class ChatRequest(BaseModel):
 
 @app.post("/chat")
 async def chat(request: ChatRequest):
+    """Main chat endpoint for processing user messages and form submissions"""
     print(">>>>>>>>>>enter /chat api")
     print(request)
 
-    # run graph
-    graph = build_supervisor()
-    graphDataParams = {
-        "role": request.role,
-        "userContent": request.content,
-        "type": request.type,
-    }
-    for field in ["formType", "payload"]:
-        value = getattr(request, field, None)
-        if value is not None:
-            graphDataParams[field] = value
-    graphData = SupervisorState(**graphDataParams)
-    result = graph.invoke(graphData)
+    try:
+        # Build and run supervisor workflow
+        graph = build_supervisor()
+        
+        # Prepare state parameters
+        graphDataParams = {
+            "role": request.role,
+            "userContent": request.content,
+            "type": request.type,
+        }
+        
+        # Add optional fields if present
+        for field in ["formType", "payload"]:
+            value = getattr(request, field, None)
+            if value is not None:
+                graphDataParams[field] = value
+        
+        # Execute workflow
+        graphData = SupervisorState(**graphDataParams)
+        result = graph.invoke(graphData)
 
-    print(">>>>>>>result")
-    print(result)
+        print(">>>>>>>workflow result")
+        print(result)
 
-    # construct the return data
-    returnData = {
-        "userMsgId": result.get("userMsgId"),
-        "AIMsg": {
-            "_id": result.get("AIMsgId"),
-            "role": ChatHistoryRole.AI,
-            "type": result.get("type"),
-            "content": result.get("AIContent"),
-        },
-    }
-    formType = result.get("formType", None)
-    if formType is not None:
-        returnData["AIMsg"]["formType"] = formType
-    payload = result.get("workflowResult", None)
-    if payload is not None:
-        returnData["AIMsg"]["payload"] = payload
+        # Construct return data
+        returnData = {
+            "userMsgId": result.get("userMsgId"),
+            "AIMsg": {
+                "_id": result.get("AIMsgId"),
+                "role": ChatHistoryRole.AI,
+                "type": result.get("type"),
+                "content": result.get("AIContent", "I'm having trouble processing your request. Please try again!"),
+            },
+        }
+        
+        # Add optional response fields
+        formType = result.get("formType")
+        if formType:
+            returnData["AIMsg"]["formType"] = formType
+            
+        payload = result.get("workflowResult")
+        if payload:
+            returnData["AIMsg"]["payload"] = payload
 
-    print(">>>>>>>>>>return data")
-    print(returnData)
-    # for field in ["formType", "payload"]:
-    #     value = getattr(result,field,None)
-    #     if value is not None:
-    #         returnDataParams[field] = value
-
-    # msg = ChatHistory(**returnDataParams)
-    # db[CollectionName.CHATHISTORY.value].insert_one(msg.model_dump())
-    # {chatHistory:{},}
-    return returnData
+        print(">>>>>>>>>>return data")
+        print(returnData)
+        return returnData
+        
+    except Exception as e:
+        print(f"Error in chat endpoint: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error processing your request")
 
 
 @app.get("/chats", response_model=List[ChatHistory])
@@ -153,15 +150,54 @@ def get_writings():
 
 @app.get("/writings/{id}", response_model=EnglishWriting)
 def get_writing_by_id(id: str):
+    """Get a specific writing by ID"""
     db = MongoDBClient.get_db()
     try:
         object_id = ObjectId(id)
     except:
-        # if ID is invalid，return 400 Bad Request
         raise HTTPException(status_code=400, detail="Invalid ObjectId format")
+    
     writing = db[CollectionName.ENG_WRITINGS.value].find_one({"_id": object_id})
     if writing:
         writing["_id"] = str(writing["_id"])
         return writing
     else:
         raise HTTPException(status_code=404, detail="Writing not found")
+
+
+@app.get("/analytics/summary")
+def get_analytics_summary():
+    """Get overall analytics summary for the student"""
+    db = MongoDBClient.get_db()
+    
+    try:
+        # Get writing statistics
+        writing_count = db[CollectionName.ENG_WRITINGS.value].count_documents({})
+        
+        # Get average score
+        pipeline = [
+            {"$match": {"overall_score": {"$exists": True, "$ne": None}}},
+            {"$group": {"_id": None, "avg_score": {"$avg": "$overall_score"}}}
+        ]
+        avg_result = list(db[CollectionName.ENG_WRITINGS.value].aggregate(pipeline))
+        avg_score = avg_result[0]["avg_score"] if avg_result else 0
+        
+        # Get recent activity count
+        recent_chats = db[CollectionName.CHATHISTORY.value].count_documents({})
+        
+        return {
+            "total_writings": writing_count,
+            "average_score": round(avg_score, 1),
+            "total_interactions": recent_chats,
+            "current_level": 1,  # Placeholder - would be calculated based on progress
+            "total_points": writing_count * 10  # Simple point system
+        }
+    except Exception as e:
+        print(f"Error getting analytics: {e}")
+        raise HTTPException(status_code=500, detail="Error retrieving analytics")
+
+
+@app.get("/health")
+def health_check():
+    """Health check endpoint"""
+    return {"status": "healthy", "service": "KidsProgress API"}

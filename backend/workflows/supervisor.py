@@ -1,5 +1,7 @@
 from workflows.workflow_general import build_general_workflow
 from workflows.workflow_writing import build_writing_workflow
+from workflows.workflow_analysis import build_analysis_workflow
+from workflows.workflow_math import math_workflow_placeholder
 from db.constants import (
     ChatHistoryRole,
     ChatHistoryType,
@@ -9,21 +11,51 @@ from db.constants import (
 from db.models import ChatHistory
 from db.client import MongoDBClient
 from workflows.states import GeneralWorkflowState, SupervisorState, WritingWorkflowState
+from workflows.workflow_analysis import AnalysisWorkflowState
 from langgraph.graph import StateGraph, END, START
+from llm.provider import LLMProvider
 
 mongodb = MongoDBClient.get_db()
+llm = LLMProvider.get_llm()
 
 
 def supervisor_router(state: SupervisorState):
+    """Main supervisor routing logic"""
     print(">>>>>>>>>>enter supervisor router")
     if state.get("type") == ChatHistoryType.FORM:
+        # Handle form submissions
         match state.get("formType"):
             case ChatHistoryFormType.WRITING:
-                return "writing"
+                return "writing_workflow"
+            case ChatHistoryFormType.MATH:
+                return "math_workflow"
             case _:
                 return "error"
+    
     if state.get("type") == ChatHistoryType.TEXT:
-        return "message"
+        # Handle text input with LLM classification
+        user_content = state.get("userContent", "")
+        
+        # Use LLM to classify the message
+        classification_prompt = f"""
+        Classify this user message into one of these categories:
+        1. "system_related" - Questions about writing skills, analysis, improvement, or anything related to this learning system
+        2. "general" - General conversation, greetings, or topics not related to the learning system
+        
+        User message: {user_content}
+        
+        Return only "system_related" or "general".
+        """
+        
+        response = llm.invoke(classification_prompt)
+        classification = str(response.content).strip().lower()
+        
+        if "system_related" in classification:
+            return "analysis_workflow"
+        else:
+            return "general_workflow"
+    
+    return "error"
 
 
 def writing_workflow(state: SupervisorState):
@@ -50,7 +82,39 @@ def writing_workflow(state: SupervisorState):
     }
 
 
+def analysis_workflow(state: SupervisorState):
+    """Handle system-related questions with analysis workflows"""
+    print(">>>>>analysis workflow entry point")
+    analysisState = AnalysisWorkflowState(
+        userContent=state.get("userContent", ""),
+        AIContent="",
+        analysis_type="",
+        question="",
+        tools_used=[],
+        analysis_result={},
+        suggestions=[]
+    )
+    subgraph = build_analysis_workflow()
+    analysisResult = subgraph.invoke(analysisState)
+    return {
+        "AIContent": analysisResult.get("AIContent"),
+        "workflowResult": {
+            "analysis_type": analysisResult.get("analysis_type"),
+            "tools_used": analysisResult.get("tools_used", []),
+            "analysis_result": analysisResult.get("analysis_result", {})
+        }
+    }
+
+
+def math_workflow(state: SupervisorState):
+    """Handle math form submissions - placeholder"""
+    print(">>>>>math workflow entry point")
+    return math_workflow_placeholder(state)
+
+
 def general_workflow(state: SupervisorState):
+    """Handle general conversation"""
+    print(">>>>>general workflow entry point")
     generalState = GeneralWorkflowState(userContent=state.get("userContent", ""))
     subgraph = build_general_workflow()
     generalWorkflowResult = subgraph.invoke(generalState)
@@ -97,22 +161,35 @@ def save_message_to_db(state: SupervisorState):
 
 
 def build_supervisor():
+    """Build the main supervisor workflow"""
     print(">>>>>>>>>>>enter build supervisor")
     builder = StateGraph(SupervisorState)
 
-    # builder.add_node("supervisor_router", supervisor_router)
+    # Add all workflow nodes
     builder.add_node("writing_workflow", writing_workflow)
+    builder.add_node("math_workflow", math_workflow)
+    builder.add_node("analysis_workflow", analysis_workflow)
     builder.add_node("general_workflow", general_workflow)
     builder.add_node("save_message", save_message_to_db)
 
-    # builder.set_entry_point("supervisor_router")
+    # Main routing from START
     builder.add_conditional_edges(
         START,
         supervisor_router,
-        {"writing": "writing_workflow", "error": END, "message": "general_workflow"},
+        {
+            "writing_workflow": "writing_workflow",
+            "math_workflow": "math_workflow",
+            "analysis_workflow": "analysis_workflow", 
+            "general_workflow": "general_workflow",
+            "error": END
+        }
     )
 
+    # All workflows go to save_message
     builder.add_edge("writing_workflow", "save_message")
+    builder.add_edge("math_workflow", "save_message")
+    builder.add_edge("analysis_workflow", "save_message")
     builder.add_edge("general_workflow", "save_message")
     builder.add_edge("save_message", END)
+    
     return builder.compile()

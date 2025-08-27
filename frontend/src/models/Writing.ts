@@ -1,8 +1,13 @@
-// type RubricScore = {
-//     rubric: string;
-//     score: number;
+interface CriterionScore {
+  criterion: string;
+  score: number;
+  reason: string;
+}
 
-// }
+interface WritingCriteriaDimension {
+  dimension: string;
+  criteria: CriterionScore[];
+}
 
 type WritingPreview = {
   _id: string;
@@ -17,8 +22,8 @@ type Writing = WritingPreview & {
   subjects?: string[];
   feedback_student?: string;
   feedback_parent?: string;
-  rubric_scores?: string;
+  rubric_scores?: WritingCriteriaDimension[];
   improved_text?: string;
 };
 
-export type { WritingPreview, Writing };
+export type { WritingPreview, Writing, CriterionScore, WritingCriteriaDimension };

@@ -4,6 +4,9 @@ from enum import Enum
 class CollectionName(str, Enum):
     ENG_WRITINGS = "englishWritings"
     WRITING_CRITERIA = "writingCriteria"
+    MATH_PROBLEMS = "mathProblems"
+    STUDENT_PROGRESS = "studentProgress"
+    ANALYSIS_RESULTS = "analysisResults"
     CHATHISTORY = "chatHistory"
 
 
@@ -24,3 +27,4 @@ class ChatHistoryRole(str, Enum):
 
 class ChatHistoryFormType(str, Enum):
     WRITING = "writing"
+    MATH = "math"

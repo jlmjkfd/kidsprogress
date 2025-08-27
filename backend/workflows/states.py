@@ -34,3 +34,13 @@ class WritingWorkflowState(TypedDict, total=False):
 class GeneralWorkflowState(TypedDict, total=False):
     userContent: str
     AIContent: str
+
+
+class AnalysisWorkflowState(TypedDict, total=False):
+    userContent: str
+    AIContent: str
+    analysis_type: str
+    question: str
+    tools_used: List[str]
+    analysis_result: dict
+    suggestions: List[str]
