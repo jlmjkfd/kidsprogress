@@ -3,26 +3,37 @@ import { useNavigate } from "react-router-dom";
 
 type MenuItem = {
   label: string;
+  icon?: string;
   path?: string;
   children?: MenuItem[];
 };
 type SidebarProps = {
   items: MenuItem[];
+  collapsed?: boolean;
 };
 
 type MenuItemProps = {
   item: MenuItem;
   depth?: number;
+  collapsed?: boolean;
 };
 
 function MenuItemComponent(props: MenuItemProps) {
-  const { item, depth = 0 } = props;
+  const { item, depth = 0, collapsed = false } = props;
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
 
   const hasChildren = item.children && item.children.length > 0;
 
   const handleClick = () => {
+    if (collapsed && depth === 0) {
+      // In collapsed mode, top-level items with children don't expand
+      if (!hasChildren && item.path) {
+        navigate(item.path);
+      }
+      return;
+    }
+    
     if (hasChildren) {
       setOpen(!open);
     } else if (item.path) {
@@ -31,6 +42,9 @@ function MenuItemComponent(props: MenuItemProps) {
   };
 
   const getItemStyles = () => {
+    if (collapsed && depth === 0) {
+      return "bg-gradient-to-r from-purple-100 to-pink-100 text-purple-800 font-bold text-sm shadow-sm border-l-4 border-purple-400 justify-center";
+    }
     if (depth === 0) {
       return "bg-gradient-to-r from-purple-100 to-pink-100 text-purple-800 font-bold text-lg shadow-sm border-l-4 border-purple-400";
     } else if (depth === 1) {
@@ -50,18 +64,32 @@ function MenuItemComponent(props: MenuItemProps) {
     }
   };
 
-  const getIconForItem = (label: string) => {
-    if (label.includes("Language") || label.includes("🎨")) return "🎨";
-    if (label.includes("English") || label.includes("🇺🇸")) return "🇺🇸";
-    if (label.includes("Writing") || label.includes("✏️")) return "✏️";
-    if (label.includes("Math") || label.includes("🔢")) return "🔢";
+  const getIcon = () => {
+    if (item.icon) return item.icon;
+    if (item.label.includes("Language") || item.label.includes("🎨")) return "🎨";
+    if (item.label.includes("English") || item.label.includes("🇺🇸")) return "🇺🇸";
+    if (item.label.includes("Writing") || item.label.includes("✏️")) return "✏️";
+    if (item.label.includes("Math") || item.label.includes("🔢")) return "🔢";
     return "📚";
   };
 
-  const hasEmoji = (text: string) => {
-    const emojiList = ['🎨', '🇺🇸', '✏️', '🔢', '📚', '🌟', '⭐', '🎯', '🏆'];
-    return emojiList.some(emoji => text.includes(emoji));
-  };
+  if (collapsed && depth === 0) {
+    return (
+      <li className="mb-2" title={item.label}>
+        <div
+          onClick={handleClick}
+          className={`
+            cursor-pointer px-3 py-4 rounded-xl transition-all duration-200
+            flex items-center justify-center
+            ${getItemStyles()}
+            ${getHoverStyles()}
+          `}
+        >
+          <span className="text-2xl">{getIcon()}</span>
+        </div>
+      </li>
+    );
+  }
 
   return (
     <li className="mb-2">
@@ -76,12 +104,10 @@ function MenuItemComponent(props: MenuItemProps) {
         `}
       >
         <div className="flex items-center space-x-3">
-          {!hasEmoji(item.label) && (
-            <span className="text-xl">{getIconForItem(item.label)}</span>
-          )}
+          <span className="text-xl">{getIcon()}</span>
           <span className="select-none">{item.label}</span>
         </div>
-        {hasChildren && (
+        {hasChildren && !collapsed && (
           <div
             className={`
             transition-transform duration-200 text-2xl
@@ -92,7 +118,7 @@ function MenuItemComponent(props: MenuItemProps) {
           </div>
         )}
       </div>
-      {hasChildren && (
+      {hasChildren && !collapsed && (
         <div
           className={`
           overflow-hidden transition-all duration-300 ease-in-out
@@ -100,7 +126,7 @@ function MenuItemComponent(props: MenuItemProps) {
         `}
         >
           <div className="bg-white/50 rounded-lg p-2 mx-2">
-            <Sidebar items={item.children!} depth={depth + 1} />
+            <Sidebar items={item.children!} depth={depth + 1} collapsed={collapsed} />
           </div>
         </div>
       )}
@@ -109,12 +135,12 @@ function MenuItemComponent(props: MenuItemProps) {
 }
 
 function Sidebar(props: SidebarProps & { depth?: number }) {
-  const { items, depth = 0 } = props;
+  const { items, depth = 0, collapsed = false } = props;
 
   return (
     <ul className={depth === 0 ? "space-y-1" : "space-y-2"}>
       {items.map((item, index) => (
-        <MenuItemComponent key={index} item={item} depth={depth} />
+        <MenuItemComponent key={index} item={item} depth={depth} collapsed={collapsed} />
       ))}
     </ul>
   );

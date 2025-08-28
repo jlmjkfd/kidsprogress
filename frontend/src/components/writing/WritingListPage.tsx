@@ -35,7 +35,7 @@ function WritingListPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-6">
+    <div className="w-full p-4 lg:p-6 space-y-6">
       {/* Header */}
       <div className="text-center mb-8">
         <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
@@ -45,8 +45,8 @@ function WritingListPage() {
       </div>
 
       {/* Controls */}
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-white rounded-2xl p-4 shadow-lg border-2 border-purple-100">
-        <div className="flex items-center space-x-2">
+      <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-4 bg-white rounded-2xl p-4 shadow-lg border-2 border-purple-100">
+        <div className="hidden lg:flex items-center space-x-2">
           <span className="text-sm font-semibold text-gray-700">View:</span>
           <div className="flex bg-purple-50 rounded-xl p-1">
             <button 
@@ -74,7 +74,7 @@ function WritingListPage() {
         
         <Link 
           to="/writing/create"
-          className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-6 py-3 rounded-2xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 flex items-center space-x-2"
+          className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-4 py-3 rounded-2xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 flex items-center justify-center space-x-2 text-sm w-full lg:w-auto lg:whitespace-nowrap"
         >
           <span>✨ Write New Story</span>
         </Link>
@@ -98,8 +98,8 @@ function WritingListPage() {
       {/* Writing List */}
       {writings.length > 0 && (
         <>
-          {viewMode === "grid" ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {(viewMode === "grid" || window.innerWidth < 1024) ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6">
               {writings.map((w) => (
                 <Link
                   key={w._id}
