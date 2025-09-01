@@ -1,5 +1,5 @@
 # Kids Progress 🌟
-
+（This project is still under development. Some features may not match the descriptions, and there are still bugs in some functions.）
 A comprehensive learning platform designed to help children track their progress in writing and mathematics through AI-powered feedback and interactive tools.
 
 ## 📖 Overview
