@@ -1,26 +1,30 @@
 import json
 import re
-import warnings
-from collections import defaultdict
-from typing import Tuple, List, Dict, Any, Optional, Callable
+from typing import Tuple, List, Optional, Dict, Any
+from workflows.interfaces import BaseWorkflowTool
 from db.client import MongoDBClient
 from db.models import EnglishWriting, WritingCriteriaDimension
 from db.constants import CollectionName
 from workflows.states import WritingWorkflowState
 
-# DEPRECATED: This file is deprecated. Please use workflow-specific modules instead.
-# See ARCHITECTURE-MIGRATION.md for migration instructions.
-warnings.warn(
-    "workflows.base_tools is deprecated. Use workflow-specific modules like "
-    "workflows.writing.tools or workflows.math.tools instead. "
-    "See ARCHITECTURE-MIGRATION.md for migration instructions.",
-    DeprecationWarning,
-    stacklevel=2
-)
 
-
-class JSONParser:
-    """Utility class for parsing JSON responses from LLM"""
+class WritingJSONParser(BaseWorkflowTool):
+    """Tool for parsing JSON responses from LLM for writing workflows"""
+    
+    def get_name(self) -> str:
+        return "writing_json_parser"
+    
+    def execute(self, **kwargs) -> Any:
+        """Generic execute method - delegates to specific parsing methods"""
+        text = kwargs.get('text', '')
+        parse_type = kwargs.get('type', 'evaluation')
+        
+        if parse_type == 'evaluation':
+            return self.parse_evaluation(text)
+        elif parse_type == 'genre_subject':
+            return self.parse_genre_subject(text)
+        else:
+            raise ValueError(f"Unknown parse type: {parse_type}")
     
     @staticmethod
     def remove_json_and_ticks(s: str) -> str:
@@ -66,15 +70,30 @@ class JSONParser:
         return overall_score, rubric_scores, feedback_student, feedback_parent, improved_text
 
 
-class DatabaseManager:
-    """Utility class for database operations"""
+class WritingDatabaseManager(BaseWorkflowTool):
+    """Tool for managing writing-related database operations"""
     
     def __init__(self):
         self.mongodb = MongoDBClient.get_db()
         self.mongoclient = MongoDBClient.get_client()
     
+    def get_name(self) -> str:
+        return "writing_database_manager"
+    
+    def execute(self, **kwargs) -> Any:
+        """Generic execute method for database operations"""
+        operation = kwargs.get('operation')
+        if operation == 'save_writing':
+            return self.save_writing(kwargs['state'])
+        elif operation == 'get_criteria':
+            return self.get_writing_criteria()
+        else:
+            raise ValueError(f"Unknown database operation: {operation}")
+    
     def get_writing_criteria(self) -> Dict[str, Any]:
         """Get all criteria for evaluating writing"""
+        from collections import defaultdict
+        
         documents = self.mongodb[CollectionName.WRITING_CRITERIA.value].find()
         
         dimension_map = defaultdict(list)
@@ -149,11 +168,27 @@ class DatabaseManager:
         return list(cursor)
 
 
-class AnalysisTools:
+class WritingAnalysisTools(BaseWorkflowTool):
     """Tools for analyzing writing performance"""
     
     def __init__(self):
-        self.db = DatabaseManager()
+        self.db = WritingDatabaseManager()
+    
+    def get_name(self) -> str:
+        return "writing_analysis_tools"
+    
+    def execute(self, **kwargs) -> Any:
+        """Generic execute method for analysis operations"""
+        operation = kwargs.get('operation')
+        
+        if operation == 'avg_score_by_type':
+            return self.get_avg_score_by_type(kwargs.get('essay_type'))
+        elif operation == 'common_weaknesses':
+            return self.get_common_weaknesses(kwargs.get('n', 5))
+        elif operation == 'single_writing_details':
+            return self.get_single_writing_details(kwargs['writing_id'])
+        else:
+            raise ValueError(f"Unknown analysis operation: {operation}")
     
     def get_avg_score_by_type(self, essay_type: str = None) -> float:
         """Get average score by writing type"""
@@ -230,67 +265,3 @@ class AnalysisTools:
                 suggestions.append("Practice organizing ideas with an outline before writing")
         
         return suggestions
-
-
-class LearningTools:
-    """Tools for generating learning content"""
-    
-    def suggest_practice_topics(self, weakness: str) -> List[str]:
-        """Suggest practice topics based on weakness"""
-        topic_mapping = {
-            "spelling": ["Common sight words", "Phonics patterns", "Word families"],
-            "grammar": ["Sentence structure", "Punctuation", "Parts of speech"],
-            "vocabulary": ["Descriptive words", "Action words", "Emotion words"],
-            "organization": ["Story structure", "Beginning-middle-end", "Topic sentences"],
-            "content": ["Personal experiences", "Descriptive writing", "Creative stories"]
-        }
-        
-        for key, topics in topic_mapping.items():
-            if key in weakness.lower():
-                return topics
-        
-        return ["General writing practice", "Reading comprehension", "Creative expression"]
-    
-    def create_writing_prompt(self, topic: str) -> str:
-        """Create a writing prompt based on topic"""
-        prompts = {
-            "personal experiences": "Write about your favorite day ever. What made it so special?",
-            "descriptive writing": "Describe your favorite animal. What does it look like, sound like, and how does it move?",
-            "creative stories": "Imagine you found a magic door in your backyard. Where does it lead?",
-            "school life": "Write about something fun you learned at school this week.",
-            "family": "Tell me about someone special in your family. What makes them awesome?",
-            "friends": "Write about playing with your best friend. What do you like to do together?",
-            "seasons": "What's your favorite season? What do you like to do during that time?",
-            "animals": "If you could have any pet, what would it be? Why would you choose that animal?"
-        }
-        
-        return prompts.get(topic.lower(), f"Write a story about {topic}. Use your imagination!")
-
-
-class WorkflowTools:
-    """Collection of all analysis and learning tools"""
-    
-    def __init__(self):
-        self.analysis = AnalysisTools()
-        self.learning = LearningTools()
-        self.db = DatabaseManager()
-    
-    def get_tools_dict(self) -> Dict[str, Callable]:
-        """Get dictionary of all available tools"""
-        return {
-            # Analysis tools
-            "get_recent_writings": self.analysis.db.get_recent_writings,
-            "get_avg_score_by_type": self.analysis.get_avg_score_by_type,
-            "get_common_weaknesses": self.analysis.get_common_weaknesses,
-            "get_single_writing_details": self.analysis.get_single_writing_details,
-            "get_top_weakness": self.analysis.get_top_weakness,
-            
-            # Data query tools
-            "search_writings_by_date": self.db.search_writings_by_date,
-            "search_writings_by_type": self.db.search_writings_by_type,
-            "get_writing_by_id": self.db.get_writing_by_id,
-            
-            # Learning tools
-            "suggest_practice_topics": self.learning.suggest_practice_topics,
-            "create_writing_prompt": self.learning.create_writing_prompt,
-        }

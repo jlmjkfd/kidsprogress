@@ -1,0 +1,115 @@
+<svg width="800" height="600" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
+  <!-- Dinosaur Theme Background -->
+  <defs>
+    <linearGradient id="sky-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#87CEEB" />
+      <stop offset="50%" stop-color="#98FB98" />
+      <stop offset="100%" stop-color="#90EE90" />
+    </linearGradient>
+    
+    <linearGradient id="mountain-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#8B7355" />
+      <stop offset="100%" stop-color="#A0522D" />
+    </linearGradient>
+    
+    <linearGradient id="ground-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#228B22" />
+      <stop offset="100%" stop-color="#006400" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Sky -->
+  <rect width="800" height="400" fill="url(#sky-gradient)"/>
+  
+  <!-- Sun -->
+  <circle cx="650" cy="100" r="40" fill="#FFD700" opacity="0.8">
+    <animate attributeName="r" values="40;45;40" dur="6s" repeatCount="indefinite"/>
+  </circle>
+  
+  <!-- Clouds -->
+  <ellipse cx="200" cy="80" rx="30" ry="15" fill="#FFFFFF" opacity="0.7">
+    <animate attributeName="cx" values="200;220;200" dur="8s" repeatCount="indefinite"/>
+  </ellipse>
+  <ellipse cx="180" cy="85" rx="25" ry="12" fill="#FFFFFF" opacity="0.7">
+    <animate attributeName="cx" values="180;200;180" dur="8s" repeatCount="indefinite"/>
+  </ellipse>
+  <ellipse cx="400" cy="60" rx="35" ry="18" fill="#FFFFFF" opacity="0.6">
+    <animate attributeName="cx" values="400;430;400" dur="10s" repeatCount="indefinite"/>
+  </ellipse>
+  <ellipse cx="370" cy="65" rx="28" ry="14" fill="#FFFFFF" opacity="0.6">
+    <animate attributeName="cx" values="370;400;370" dur="10s" repeatCount="indefinite"/>
+  </ellipse>
+  
+  <!-- Mountains -->
+  <polygon points="0,300 150,180 300,220 450,160 600,200 800,180 800,400 0,400" fill="url(#mountain-gradient)" opacity="0.8"/>
+  
+  <!-- Ground -->
+  <rect x="0" y="400" width="800" height="200" fill="url(#ground-gradient)"/>
+  
+  <!-- Trees -->
+  <g>
+    <!-- Tree 1 -->
+    <rect x="95" y="350" width="10" height="50" fill="#8B4513"/>
+    <ellipse cx="100" cy="340" rx="25" ry="30" fill="#228B22"/>
+    <ellipse cx="100" cy="335" rx="20" ry="25" fill="#32CD32"/>
+    
+    <!-- Tree 2 -->
+    <rect x="295" y="360" width="8" height="40" fill="#8B4513"/>
+    <ellipse cx="299" cy="350" rx="20" ry="25" fill="#228B22"/>
+    <ellipse cx="299" cy="345" rx="15" ry="20" fill="#32CD32"/>
+    
+    <!-- Tree 3 -->
+    <rect x="695" y="340" width="12" height="60" fill="#8B4513"/>
+    <ellipse cx="701" cy="330" rx="30" ry="35" fill="#228B22"/>
+    <ellipse cx="701" cy="325" rx="25" ry="30" fill="#32CD32"/>
+  </g>
+  
+  <!-- Dinosaur silhouettes -->
+  <g fill="#2F4F2F" opacity="0.6">
+    <!-- Brontosaurus -->
+    <ellipse cx="500" cy="380" rx="60" ry="25"/>
+    <ellipse cx="540" cy="375" rx="15" ry="8"/>
+    <ellipse cx="460" cy="375" rx="12" ry="6"/>
+    <ellipse cx="450" cy="360" rx="8" ry="20" transform="rotate(-30 450 360)"/>
+    <ellipse cx="520" cy="365" rx="6" ry="15" transform="rotate(-45 520 365)"/>
+    <ellipse cx="480" cy="390" rx="6" ry="12"/>
+    <ellipse cx="500" cy="390" rx="6" ry="12"/>
+    <ellipse cx="520" cy="390" rx="6" ry="12"/>
+    <ellipse cx="540" cy="390" rx="6" ry="12"/>
+    
+    <!-- T-Rex in distance -->
+    <ellipse cx="150" cy="320" rx="20" ry="12" opacity="0.4"/>
+    <ellipse cx="160" cy="315" rx="8" ry="6" opacity="0.4"/>
+    <ellipse cx="140" cy="315" rx="6" ry="4" opacity="0.4"/>
+    <ellipse cx="135" cy="300" rx="4" ry="12" opacity="0.4" transform="rotate(-20 135 300)"/>
+    <ellipse cx="145" cy="330" rx="4" ry="8" opacity="0.4"/>
+    <ellipse cx="155" cy="330" rx="4" ry="8" opacity="0.4"/>
+  </g>
+  
+  <!-- Pterodactyl in sky -->
+  <g fill="#4682B4" opacity="0.3" transform="translate(300, 150)">
+    <ellipse cx="0" cy="0" rx="15" ry="3"/>
+    <ellipse cx="-10" cy="0" rx="20" ry="2" transform="rotate(-15 -10 0)"/>
+    <ellipse cx="10" cy="0" rx="20" ry="2" transform="rotate(15 10 0)"/>
+    <ellipse cx="0" cy="5" rx="3" ry="8"/>
+    <animateTransform attributeName="transform" type="translate" values="300,150; 350,140; 300,150" dur="8s" repeatCount="indefinite"/>
+  </g>
+  
+  <!-- Grass details -->
+  <g stroke="#228B22" stroke-width="2" fill="none" opacity="0.6">
+    <path d="M50,400 Q55,395 60,400"/>
+    <path d="M120,400 Q125,395 130,400"/>
+    <path d="M200,400 Q205,395 210,400"/>
+    <path d="M350,400 Q355,395 360,400"/>
+    <path d="M450,400 Q455,395 460,400"/>
+    <path d="M550,400 Q555,395 560,400"/>
+    <path d="M650,400 Q655,395 660,400"/>
+    <path d="M750,400 Q755,395 760,400"/>
+  </g>
+  
+  <!-- Volcanic mountain in background -->
+  <polygon points="600,200 650,100 700,200" fill="#654321" opacity="0.5"/>
+  <ellipse cx="650" cy="100" rx="8" ry="4" fill="#FF4500" opacity="0.7">
+    <animate attributeName="opacity" values="0.7;1;0.7" dur="2s" repeatCount="indefinite"/>
+  </ellipse>
+</svg>

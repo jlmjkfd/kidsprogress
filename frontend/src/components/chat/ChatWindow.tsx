@@ -1,31 +1,46 @@
 import { useEffect, useRef, useState } from "react";
-import axios from "axios";
-// import { v4 as uuid } from "uuid";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../../store";
-import { pushMessage, fetchMessages } from "../../store/modules/chatSlice";
+import {
+  addMessage,
+  removeMessageByTempId,
+  fetchMessages,
+  sendMessage,
+} from "../../store/modules/chatSlice";
 import { ChatRole, ChatType } from "../../utils/constants";
 import { Message } from "../../models/Message";
-import { formMessageMap } from "./MessageComponentMap";
-import UserTextMessage from "./UserTextMessage";
-import AiTextMessage from "./AiTextMessage";
+import { generateTempId, MessageStatus } from "../../utils/messageUtils";
+import { ChatFormType } from "../../utils/constants";
+import AIThinkingAnimation from "./AIThinkingAnimation";
+import WritingProgressAnimation from "./WritingProgressAnimation";
+import MathProgressAnimation from "./MathProgressAnimation";
+import MessageRenderer from "./MessageRenderer";
+import { useTheme } from "../../contexts/ThemeContext";
 
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+//const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
 
 function ChatWindow() {
   const [input, setInput] = useState("");
-  const [isSending, setIsSending] = useState(false);
-  // const [messages, setMessages] = useState<Message[]>([]);
-  // const [hasMore, setHasMore] = useState(true);
-  // const [loading, setLoading] = useState(false);
+  const { currentTheme } = useTheme();
 
   const containerRef = useRef<HTMLDivElement>(null);
-  // const offsetRef = useRef(0);
 
   const dispatch = useDispatch<AppDispatch>();
   const { messages, hasMore, loading } = useSelector(
     (state: RootState) => state.messages
   );
+
+  // Check if any message is currently sending
+  const isSending = messages.some(
+    (msg) => msg.status === MessageStatus.SENDING
+  );
+
+  // Get the most recent sending message to determine animation type
+  const sendingMessage = messages.find(
+    (msg) => msg.status === MessageStatus.SENDING
+  );
+  const isWritingWorkflow = sendingMessage?.formType === ChatFormType.WRITING;
+  const isMathWorkflow = sendingMessage?.formType === ChatFormType.MATH;
 
   // const fetchMessages = async (initial = false) => {
   //   if (loading || (!hasMore && !initial)) return;
@@ -62,40 +77,67 @@ function ChatWindow() {
     }
   };
 
-  const sendMessage = async () => {
+  const handleSendMessage = async () => {
     if (!input.trim() || isSending) return;
 
+    // Generate temporary ID for optimistic UI
+    const tempId = generateTempId();
+
     const userMsg: Message = {
+      tempId,
       role: ChatRole.USER,
       content: input,
       type: ChatType.TEXT,
+      status: MessageStatus.SENDING,
+      date: new Date(),
     };
 
-    setIsSending(true);
-    dispatch(pushMessage(userMsg));
+    // Add message immediately to UI (optimistic update)
+    dispatch(addMessage(userMsg));
     setInput("");
 
-    try {
-      const res = await axios.post(`${apiBaseUrl}/chat`, userMsg);
-      console.log(res.data);
-      const aiMsg = res.data.AIMsg as Message;
-      console.log("aiMsg:", aiMsg);
-      dispatch(pushMessage(aiMsg));
-    } catch (error) {
-      console.error('Error sending message:', error);
-    } finally {
-      setIsSending(false);
-    }
+    // Send message to server with temp ID handling
+    dispatch(sendMessage({ tempId, message: userMsg }));
+  };
+
+  const handleRetryMessage = (tempId: string, originalMessage: Message) => {
+    // Remove failed message
+    dispatch(removeMessageByTempId(tempId));
+
+    // Generate new temp ID and resend
+    const newTempId = generateTempId();
+    const retryMessage: Message = {
+      ...originalMessage,
+      tempId: newTempId,
+      status: MessageStatus.SENDING,
+      error: undefined,
+      retryable: false,
+    };
+
+    dispatch(addMessage(retryMessage));
+    dispatch(sendMessage({ tempId: newTempId, message: retryMessage }));
   };
 
   useEffect(() => {
     dispatch(fetchMessages());
   }, [dispatch]);
 
+  // Auto-scroll to bottom when sending or when animations appear
+  useEffect(() => {
+    if (isSending && containerRef.current) {
+      setTimeout(() => {
+        containerRef.current?.scrollTo({
+          top: containerRef.current.scrollHeight,
+          behavior: "smooth",
+        });
+      }, 100);
+    }
+  }, [isSending]);
+
   return (
-    <div className="h-full flex flex-col bg-gradient-to-b from-indigo-50 via-purple-50 to-pink-50">
+    <div className={`h-full flex flex-col bg-gradient-to-b ${currentTheme.colors.gradients.background}`}>
       {/* Chat Header - Only show on mobile or when not embedded */}
-      <div className="xl:hidden bg-gradient-to-r from-purple-500 to-pink-500 text-white p-4 shadow-lg">
+      <div className={`xl:hidden bg-gradient-to-r ${currentTheme.colors.gradients.primary} text-white p-4 shadow-lg`}>
         <div className="flex items-center space-x-2">
           <span className="text-2xl">🤖</span>
           <div>
@@ -124,25 +166,38 @@ function ChatWindow() {
         )}
 
         {messages.map((msg: Message) => {
-          if (msg.type === ChatType.TEXT) {
-            return msg.role === ChatRole.USER ? (
-              <UserTextMessage key={msg._id} msg={msg} />
-            ) : (
-              <AiTextMessage key={msg._id} msg={msg} />
-            );
-          } else {
-            if (msg.role === ChatRole.USER) {
-              const FormComp = formMessageMap[msg.formType][msg.role];
-              return <FormComp key={msg._id} msg={msg} />;
-            } else {
-              const FormComp = formMessageMap[msg.formType][ChatRole.AI];
-              return <FormComp key={msg._id} msg={msg} />;
-            }
-          }
+          // Use tempId as fallback for key to handle optimistic updates
+          const messageKey = msg._id || msg.tempId || `msg-${Date.now()}`;
+
+          return (
+            <MessageRenderer
+              key={messageKey}
+              message={msg}
+              messageKey={messageKey}
+              onRetry={handleRetryMessage}
+            />
+          );
         })}
 
-        {loading && (
-          <div className="flex justify-center">
+        {/* Enhanced AI Thinking Animations */}
+        {isSending && (
+          <div className="my-6">
+            {isWritingWorkflow ? (
+              <WritingProgressAnimation />
+            ) : isMathWorkflow ? (
+              <MathProgressAnimation />
+            ) : (
+              <AIThinkingAnimation
+                workflowType="general"
+                formType={sendingMessage?.formType}
+              />
+            )}
+          </div>
+        )}
+
+        {/* Loading animation for fetching old messages */}
+        {loading && !isSending && (
+          <div className="flex justify-center my-4">
             <div className="bg-white rounded-full px-4 py-2 shadow-lg flex items-center space-x-2">
               <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce"></div>
               <div
@@ -154,7 +209,7 @@ function ChatWindow() {
                 style={{ animationDelay: "0.2s" }}
               ></div>
               <span className="text-sm text-gray-600 ml-2">
-                AI is thinking...
+                Loading messages...
               </span>
             </div>
           </div>
@@ -174,13 +229,13 @@ function ChatWindow() {
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
-                  sendMessage();
+                  handleSendMessage();
                 }
               }}
             />
           </div>
           <button
-            onClick={sendMessage}
+            onClick={handleSendMessage}
             disabled={!input.trim() || isSending}
             className={`
               px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200

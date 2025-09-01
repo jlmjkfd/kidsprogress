@@ -1,19 +1,14 @@
 from langchain_core.messages import AIMessage
 from langgraph.graph import StateGraph, END
-from workflows.states import GeneralWorkflowState
-from workflows.base_tools import WorkflowTools, AnalysisTools, LearningTools
+from workflows.states import AnalysisWorkflowState as AnalysisState
+from workflows.writing.tools import WritingAnalysisTools, WritingDatabaseManager
 from llm.provider import LLMProvider
 from typing import Dict, Any
 
 
-class AnalysisWorkflowState(GeneralWorkflowState):
-    """State for analysis workflows"""
-
-    analysis_type: str
-    question: str
-    tools_used: list
-    analysis_result: dict
-    suggestions: list
+# AnalysisWorkflowState is now defined in workflows/states.py
+# Using alias to match existing code
+AnalysisWorkflowState = AnalysisState
 
 
 class AnalysisWorkflow:
@@ -21,9 +16,8 @@ class AnalysisWorkflow:
 
     def __init__(self):
         self.llm = LLMProvider.get_llm()
-        self.tools = WorkflowTools()
-        self.analysis_tools = AnalysisTools()
-        self.learning_tools = LearningTools()
+        self.analysis_tools = WritingAnalysisTools()
+        self.db_manager = WritingDatabaseManager()
 
     def classify_question(self, state: AnalysisWorkflowState) -> Dict[str, Any]:
         """Classify the user question into analysis type"""
@@ -57,14 +51,14 @@ class AnalysisWorkflow:
 
         if "overall" in question.lower() or "general" in question.lower():
             # Get recent writings and average scores
-            recent_writings = self.analysis_tools.db.get_recent_writings(10)
-            avg_score = self.analysis_tools.get_avg_score_by_type()
+            recent_writings = self.db_manager.get_recent_writings(10)
+            avg_score = self.analysis_tools.execute(operation='avg_score_by_type')
             tools_to_use.extend(["get_recent_writings", "get_avg_score_by_type"])
             results.update({"recent_writings": recent_writings, "avg_score": avg_score})
 
         if "weakness" in question.lower() or "improve" in question.lower():
             # Get common weaknesses
-            weaknesses = self.analysis_tools.get_common_weaknesses()
+            weaknesses = self.analysis_tools.execute(operation='common_weaknesses')
             tools_to_use.append("get_common_weaknesses")
             results["common_weaknesses"] = weaknesses
 
@@ -93,13 +87,13 @@ class AnalysisWorkflow:
         question = state.get("question", "")
 
         # Get most recent writing for analysis
-        recent_writings = self.analysis_tools.db.get_recent_writings(1)
+        recent_writings = self.db_manager.get_recent_writings(1)
         tools_used = ["get_recent_writings"]
 
         if recent_writings:
             writing_id = str(recent_writings[0]["_id"])
             recent_writings[0]["_id"] = writing_id
-            writing_details = self.analysis_tools.get_single_writing_details(writing_id)
+            writing_details = self.analysis_tools.execute(operation='single_writing_details', writing_id=writing_id)
             tools_used.append("get_single_writing_details")
 
             analysis_prompt = f"""
@@ -133,10 +127,9 @@ class AnalysisWorkflow:
 
         # Get top weakness and generate advice
         top_weakness = self.analysis_tools.get_top_weakness()
-        practice_topics = self.learning_tools.suggest_practice_topics(top_weakness)
-        writing_prompt = self.learning_tools.create_writing_prompt(
-            practice_topics[0] if practice_topics else "creative writing"
-        )
+        # Simplified learning advice - would need dedicated learning tools module
+        practice_topics = ["Grammar and sentence structure", "Vocabulary expansion", "Organization and flow"]
+        writing_prompt = f"Write a short story about {top_weakness.replace('_', ' ')}"
 
         tools_used = [
             "get_top_weakness",
@@ -182,12 +175,12 @@ class AnalysisWorkflow:
 
         elif "type" in question.lower() or "genre" in question.lower():
             # Get all writings for now, in real implementation would extract type
-            recent_writings = self.analysis_tools.db.get_recent_writings(20)
+            recent_writings = self.db_manager.get_recent_writings(20)
             tools_used.extend(["get_recent_writings", "search_writings_by_type"])
             results["writings"] = recent_writings
 
         else:
-            recent_writings = self.analysis_tools.db.get_recent_writings(10)
+            recent_writings = self.db_manager.get_recent_writings(10)
             tools_used.append("get_recent_writings")
             results["writings"] = recent_writings
 

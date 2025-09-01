@@ -1,8 +1,19 @@
+import warnings
 from abc import ABC, abstractmethod
-from typing import Dict, Any
-from langchain_core.messages import AIMessage
+from typing import Dict, Any, Optional, Union
+from langchain_core.messages import AIMessage, BaseMessage
 from workflows.states import WritingWorkflowState
 from llm.provider import LLMProvider
+
+# DEPRECATED: This file is deprecated. Please use workflow-specific modules instead.
+# See ARCHITECTURE-MIGRATION.md for migration instructions.
+warnings.warn(
+    "workflows.base_nodes is deprecated. Use workflow-specific modules like "
+    "workflows.writing.base_nodes or workflows.math.base_nodes instead. "
+    "See ARCHITECTURE-MIGRATION.md for migration instructions.",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 
 class BaseWorkflowNode(ABC):
@@ -12,7 +23,7 @@ class BaseWorkflowNode(ABC):
         self.llm = llm or LLMProvider.get_llm()
     
     @abstractmethod
-    def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
+    def execute(self, state: Union[Dict[str, Any], WritingWorkflowState]) -> Dict[str, Any]:
         """Execute the node logic"""
         pass
 
@@ -20,7 +31,7 @@ class BaseWorkflowNode(ABC):
 class LLMNode(BaseWorkflowNode):
     """Base class for nodes that use LLM"""
     
-    def __init__(self, system_prompt: str = None, llm=None):
+    def __init__(self, system_prompt: Optional[str] = None, llm=None):
         super().__init__(llm)
         self.system_prompt = system_prompt
     
@@ -31,8 +42,17 @@ class LLMNode(BaseWorkflowNode):
                 {"role": "system", "content": self.system_prompt},
                 {"role": "user", "content": prompt}
             ]
-            return self.llm.invoke(messages)
-        return self.llm.invoke(prompt)
+            result = self.llm.invoke(messages)
+        else:
+            result = self.llm.invoke(prompt)
+        
+        # Ensure we return an AIMessage
+        if isinstance(result, AIMessage):
+            return result
+        elif hasattr(result, 'content'):
+            return AIMessage(content=str(result.content))
+        else:
+            return AIMessage(content=str(result))
 
 
 class MetadataExtractionNode(LLMNode):
@@ -41,7 +61,7 @@ class MetadataExtractionNode(LLMNode):
     def __init__(self, llm=None):
         super().__init__(llm=llm)
     
-    def execute(self, state: WritingWorkflowState) -> Dict[str, Any]:
+    def execute(self, state: Union[Dict[str, Any], WritingWorkflowState]) -> Dict[str, Any]:
         prompt = f"Please identify the genre and subject, return a json string (not quote in code block) like {{\"genre\":\"genre of the writing\", \"subjects\":[\"subject1\",\"subject2\"]}} \nTitle: {state.get('title')}\n Text: {state.get('text')}"
         msg = self.llm.invoke(prompt)
         
@@ -59,7 +79,7 @@ class EvaluationNode(LLMNode):
         system_prompt = "You are a kind, friendly and professional teacher of a 6-year-old boy. Your task is to improve the student's skills."
         super().__init__(system_prompt, llm)
     
-    def execute(self, state: WritingWorkflowState) -> Dict[str, Any]:
+    def execute(self, state: Union[Dict[str, Any], WritingWorkflowState]) -> Dict[str, Any]:
         prompt = (
             f"Evaluate the following writing based on these criteria (No need to use all, use applicable ones):{state.get('criteria')}.\n"
             f"Title: {state.get('title')}"
@@ -87,7 +107,7 @@ class EvaluationNode(LLMNode):
 class DatabaseSaveNode(BaseWorkflowNode):
     """Node for saving data to database"""
     
-    def execute(self, state: WritingWorkflowState) -> Dict[str, Any]:
+    def execute(self, state: Union[Dict[str, Any], WritingWorkflowState]) -> Dict[str, Any]:
         from workflows.base_tools import DatabaseManager
         db_manager = DatabaseManager()
         writing_id = db_manager.save_writing(state)
@@ -97,5 +117,9 @@ class DatabaseSaveNode(BaseWorkflowNode):
 class ResponsePreparationNode(BaseWorkflowNode):
     """Node for preparing final response"""
     
-    def execute(self, state: WritingWorkflowState) -> Dict[str, Any]:
-        return state
+    def execute(self, state: Union[Dict[str, Any], WritingWorkflowState]) -> Dict[str, Any]:
+        if isinstance(state, dict):
+            return state
+        else:
+            # Convert WritingWorkflowState to dict
+            return dict(state)

@@ -8,6 +8,7 @@ enum ChatType {
 }
 enum ChatFormType {
   WRITING = "writing",
+  MATH = "math",
 }
 
 export { ChatRole, ChatType, ChatFormType };

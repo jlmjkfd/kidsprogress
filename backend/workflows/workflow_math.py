@@ -1,27 +1,19 @@
 from langchain_core.messages import AIMessage
 from langgraph.graph import StateGraph, END
-from workflows.states import (
-    WritingWorkflowState,
-)  # Will be replaced with MathWorkflowState
-from workflows.base_nodes import BaseWorkflowNode
-from workflows.base_tools import DatabaseManager
+from workflows.states import MathWorkflowState
+from workflows.math.base_nodes import (
+    MathWorkflowNode,
+    ProblemSolverNode,
+    MathEvaluationNode,
+)
+from workflows.math.tools import MathDatabaseManager
 from db.models import MathProblem
 from db.constants import CollectionName
 from llm.provider import LLMProvider
 from typing import Dict, Any
 
 
-class MathWorkflowState(WritingWorkflowState):
-    """State for math workflow - extends base state"""
-
-    problem_text: str
-    problem_type: str
-    difficulty_level: str
-    correct_answer: str
-    student_answer: str
-    is_correct: bool
-    hints_used: list
-    time_spent: int
+# MathWorkflowState is now defined in workflows/states.py
 
 
 class MathWorkflow:
@@ -29,7 +21,7 @@ class MathWorkflow:
 
     def __init__(self):
         self.llm = LLMProvider.get_llm()
-        self.db_manager = DatabaseManager()
+        self.db_manager = MathDatabaseManager()
 
     def generate_math_problem(self, state: MathWorkflowState) -> Dict[str, Any]:
         """Generate a math problem based on difficulty level"""
@@ -74,10 +66,8 @@ class MathWorkflow:
             time_spent=state.get("time_spent", 0),
         )
 
-        result = self.db_manager.mongodb[CollectionName.MATH_PROBLEMS.value].insert_one(
-            data.model_dump()
-        )
-        return {"math_id": str(result.inserted_id)}
+        result = self.db_manager.save_math_problem(state)
+        return {"math_id": result}
 
 
 def build_math_workflow():

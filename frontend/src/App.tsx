@@ -9,12 +9,18 @@ import WritingDetailPage from "./components/writing/WritingDetailPage";
 import CreateWriting from "./components/writing/CreateWriting";
 import HomePage from "./pages/HomePage";
 import MathPage from "./pages/MathPage";
+import SettingsPage from "./components/settings/SettingsPage";
+import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
+import { getThemeClasses } from "./utils/themeUtils";
 
-function App() {
+function AppContent() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isChatMinimized, setIsChatMinimized] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const { currentTheme } = useTheme();
+
+  const themeClasses = getThemeClasses(currentTheme);
 
   const menuData: MenuItem[] = [
     {
@@ -39,11 +45,18 @@ function App() {
       icon: "🔢",
       path: "/math",
     },
+    {
+      label: "Settings",
+      icon: "⚙️",
+      path: "/settings",
+    },
   ];
 
   return (
     <Router>
-      <div className="h-screen flex flex-col bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
+      <div
+        className={`h-screen flex flex-col bg-gradient-to-br ${currentTheme.colors.gradients.background}`}
+      >
         <div className="flex-shrink-0">
           <Header />
         </div>
@@ -80,11 +93,13 @@ function App() {
                 onClick={() => setIsSidebarOpen(false)}
               />
               <div className="absolute left-0 top-16 bottom-0 w-80 bg-white rounded-r-3xl shadow-2xl overflow-hidden">
-                <div className="p-6 bg-gradient-to-r from-purple-400 to-pink-400">
+                <div
+                  className={`p-6 bg-gradient-to-r ${currentTheme.colors.gradients.primary}`}
+                >
                   <h2 className="text-2xl font-bold text-white mb-2">
-                    🌟 My Learning
+                    {currentTheme.emoji} My Learning
                   </h2>
-                  <p className="text-purple-100">Choose what to learn!</p>
+                  <p className="text-white/80">Choose what to learn!</p>
                 </div>
                 <div className="p-4 overflow-y-auto">
                   <Sidebar items={menuData} />
@@ -136,22 +151,26 @@ function App() {
           <aside
             className={`
             ${isSidebarCollapsed ? "w-20" : "w-80"} 
-            bg-white border-r border-purple-200 shadow-lg flex flex-col transition-all duration-300
+            bg-white border-r ${
+              themeClasses.primaryBorder
+            } shadow-lg flex flex-col transition-all duration-300
           `}
           >
             <div
               className={`
               ${isSidebarCollapsed ? "p-3" : "p-6"} 
-              bg-gradient-to-r from-purple-400 to-pink-400 flex-shrink-0 transition-all duration-300
+              bg-gradient-to-r ${
+                currentTheme.colors.gradients.primary
+              } flex-shrink-0 transition-all duration-300
             `}
             >
               <div className="flex items-center justify-between">
                 {!isSidebarCollapsed && (
                   <div>
                     <h2 className="text-2xl font-bold text-white mb-2">
-                      🌟 My Learning
+                      {currentTheme.emoji} My Learning
                     </h2>
-                    <p className="text-purple-100">Choose what to learn!</p>
+                    <p className="text-white/80">Choose what to learn!</p>
                   </div>
                 )}
                 <button
@@ -185,21 +204,26 @@ function App() {
                 <Route path="/writing/create" element={<CreateWriting />} />
                 <Route path="/writing/:id" element={<WritingDetailPage />} />
                 <Route path="/math" element={<MathPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
               </Routes>
             </div>
           </main>
 
           {/* Fixed Desktop Chat */}
           {!isChatMinimized ? (
-            <aside className="w-96 border-l border-purple-200 bg-white shadow-lg flex flex-col">
-              <div className="p-3 border-b border-gray-200 flex justify-between items-center bg-gradient-to-r from-blue-500 to-cyan-500 text-white flex-shrink-0">
+            <aside
+              className={`w-96 border-l ${themeClasses.primaryBorder} bg-white shadow-lg flex flex-col`}
+            >
+              <div
+                className={`p-3 border-b border-gray-200 flex justify-between items-center bg-gradient-to-r ${currentTheme.colors.gradients.secondary} text-white flex-shrink-0`}
+              >
                 <h3 className="font-semibold flex items-center space-x-2">
-                  <span>💬</span>
+                  <span>{currentTheme.name === "universe" ? "🤖" : "🦕"}</span>
                   <span>AI Teacher</span>
                 </h3>
                 <button
                   onClick={() => setIsChatMinimized(true)}
-                  className="text-blue-100 hover:text-white transition-colors duration-200"
+                  className="text-white/80 hover:text-white transition-colors duration-200"
                 >
                   ➖
                 </button>
@@ -213,10 +237,12 @@ function App() {
             <div className="fixed bottom-4 right-4 z-50">
               <button
                 onClick={() => setIsChatMinimized(false)}
-                className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white p-4 rounded-full shadow-xl transition-all duration-300 transform hover:scale-110 animate-pulse"
+                className={`bg-gradient-to-r ${currentTheme.colors.gradients.secondary} hover:brightness-110 text-white p-4 rounded-full shadow-xl transition-all duration-300 transform hover:scale-110 animate-pulse`}
               >
                 <div className="flex items-center space-x-2">
-                  <span className="text-xl">💬</span>
+                  <span className="text-xl">
+                    {currentTheme.name === "universe" ? "🤖" : "🦕"}
+                  </span>
                   <span className="text-sm font-semibold">Chat</span>
                 </div>
               </button>
@@ -225,6 +251,14 @@ function App() {
         </div>
       </div>
     </Router>
+  );
+}
+
+function App() {
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
   );
 }
 

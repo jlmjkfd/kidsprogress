@@ -1,0 +1,66 @@
+<svg width="800" height="600" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
+  <!-- Universe Space Theme Background -->
+  <defs>
+    <radialGradient id="space-bg" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" stop-color="#1e1b4b" />
+      <stop offset="50%" stop-color="#0f0f23" />
+      <stop offset="100%" stop-color="#000000" />
+    </radialGradient>
+    
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="800" height="600" fill="url(#space-bg)"/>
+  
+  <!-- Stars -->
+  <circle cx="100" cy="80" r="1.5" fill="#ffffff" opacity="0.8"/>
+  <circle cx="200" cy="120" r="1" fill="#e2e8f0" opacity="0.6"/>
+  <circle cx="350" cy="50" r="2" fill="#a78bfa" opacity="0.9" filter="url(#glow)"/>
+  <circle cx="450" cy="150" r="1" fill="#cbd5e1" opacity="0.7"/>
+  <circle cx="550" cy="90" r="1.5" fill="#ffffff" opacity="0.8"/>
+  <circle cx="650" cy="180" r="1" fill="#e2e8f0" opacity="0.6"/>
+  <circle cx="720" cy="60" r="2" fill="#7c3aed" opacity="0.8" filter="url(#glow)"/>
+  <circle cx="80" cy="250" r="1" fill="#cbd5e1" opacity="0.7"/>
+  <circle cx="180" cy="300" r="1.5" fill="#ffffff" opacity="0.8"/>
+  <circle cx="280" cy="220" r="1" fill="#e2e8f0" opacity="0.6"/>
+  <circle cx="380" cy="280" r="2" fill="#4c1d95" opacity="0.9" filter="url(#glow)"/>
+  <circle cx="480" cy="320" r="1" fill="#cbd5e1" opacity="0.7"/>
+  <circle cx="580" cy="250" r="1.5" fill="#ffffff" opacity="0.8"/>
+  <circle cx="680" cy="300" r="1" fill="#e2e8f0" opacity="0.6"/>
+  <circle cx="750" cy="280" r="2" fill="#a78bfa" opacity="0.8" filter="url(#glow)"/>
+  
+  <!-- Planets -->
+  <circle cx="150" cy="450" r="25" fill="#7c3aed" opacity="0.7" filter="url(#glow)"/>
+  <circle cx="600" cy="500" r="35" fill="#4c1d95" opacity="0.8">
+    <animate attributeName="cy" values="500;490;500" dur="6s" repeatCount="indefinite"/>
+  </circle>
+  
+  <!-- Nebula clouds -->
+  <ellipse cx="400" cy="400" rx="80" ry="40" fill="#7c3aed" opacity="0.2" transform="rotate(30 400 400)"/>
+  <ellipse cx="600" cy="350" rx="60" ry="30" fill="#a78bfa" opacity="0.15" transform="rotate(-20 600 350)"/>
+  
+  <!-- Shooting stars -->
+  <g opacity="0.6">
+    <line x1="50" y1="180" x2="80" y2="200" stroke="#ffffff" stroke-width="2" opacity="0.8">
+      <animate attributeName="opacity" values="0;0.8;0" dur="2s" repeatCount="indefinite"/>
+    </line>
+    <line x1="500" y1="80" x2="530" y2="100" stroke="#a78bfa" stroke-width="2" opacity="0.6">
+      <animate attributeName="opacity" values="0;0.6;0" dur="3s" repeatCount="indefinite"/>
+    </line>
+  </g>
+  
+  <!-- Cosmic particles -->
+  <circle cx="120" cy="200" r="0.5" fill="#7c3aed" opacity="0.5">
+    <animate attributeName="cy" values="200;180;200" dur="4s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="300" cy="350" r="0.5" fill="#a78bfa" opacity="0.6">
+    <animate attributeName="cx" values="300;320;300" dur="5s" repeatCount="indefinite"/>
+  </circle>
+</svg>

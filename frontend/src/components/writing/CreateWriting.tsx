@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { ChatFormType, ChatRole, ChatType } from "../../utils/constants";
-// import { v4 as uuid } from "uuid";
 //redux
 import { useDispatch } from "react-redux";
-import { pushMessage } from "../../store/modules/chatSlice";
+import { addMessage, sendMessage } from "../../store/modules/chatSlice";
 import { Message, WritingPayload_User } from "../../models/Message";
-import axios from "axios";
+import { generateTempId, MessageStatus } from "../../utils/messageUtils";
 import { Link } from "react-router-dom";
-
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+import { AppDispatch } from "../../store";
+import { useTheme } from "../../contexts/ThemeContext";
+import { getThemeClasses, getThemeIcons } from "../../utils/themeUtils";
 
 function CreateWriting() {
   const [title, setTitle] = useState("");
@@ -17,7 +17,10 @@ function CreateWriting() {
   const [submitted, setSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
+  const { currentTheme } = useTheme();
+  const themeClasses = getThemeClasses(currentTheme);
+  const themeIcons = getThemeIcons(currentTheme);
 
   const handleSubmit = async () => {
     if (!title.trim() || !text.trim()) {
@@ -29,23 +32,30 @@ function CreateWriting() {
     setError("");
 
     try {
+      // Generate temporary ID for optimistic UI
+      const tempId = generateTempId();
+
       const payload: WritingPayload_User = {
         title: title,
         text: text,
       };
 
       const userMsg: Message = {
+        tempId,
         role: ChatRole.USER,
         type: ChatType.FORM,
         formType: ChatFormType.WRITING,
-        content: "",
+        content: `Title: ${title}`, // Show title in content for better UX
         payload: payload,
+        status: MessageStatus.SENDING,
+        date: new Date(),
       };
 
-      const res = await axios.post(`${apiBaseUrl}/chat`, userMsg);
+      // Add message immediately to UI (optimistic update)
+      dispatch(addMessage(userMsg));
 
-      dispatch(pushMessage(userMsg));
-      dispatch(pushMessage(res.data.AIMsg));
+      // Send message to server with temp ID handling
+      await dispatch(sendMessage({ tempId, message: userMsg }));
 
       setSubmitted(true);
       setTimeout(() => {
@@ -62,11 +72,13 @@ function CreateWriting() {
   };
 
   return (
-    <div className="w-full p-4 lg:p-6 space-y-6">
+    <div
+      className={`w-full p-4 lg:p-6 space-y-6 min-h-screen bg-gradient-to-br ${currentTheme.colors.gradients.background}`}
+    >
       {/* Back Button */}
       <Link
         to="/writing"
-        className="inline-flex items-center space-x-2 text-purple-600 hover:text-purple-800 font-medium transition-colors duration-200 group"
+        className={`inline-flex items-center space-x-2 ${themeClasses.primaryText} hover:opacity-80 font-medium transition-colors duration-200 group`}
       >
         <span className="group-hover:-translate-x-1 transition-transform duration-200">
           ←
@@ -76,8 +88,10 @@ function CreateWriting() {
 
       {/* Header */}
       <div className="text-center mb-8">
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
-          ✏️ Write Your Amazing Story!
+        <h1
+          className={`text-4xl font-bold bg-gradient-to-r ${currentTheme.colors.gradients.primary} bg-clip-text text-transparent mb-2`}
+        >
+          {themeIcons.writing} Write Your Amazing Story!
         </h1>
         <p className="text-gray-600">
           Let your imagination flow and create something wonderful!
@@ -85,14 +99,16 @@ function CreateWriting() {
       </div>
 
       {/* Writing Form */}
-      <div className="bg-white rounded-3xl shadow-xl border-2 border-purple-100 overflow-hidden">
+      <div className={`${themeClasses.card} overflow-hidden`}>
         {/* Form Header */}
-        <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white p-6">
+        <div
+          className={`bg-gradient-to-r ${currentTheme.colors.gradients.primary} text-white p-6`}
+        >
           <div className="flex items-center space-x-3">
-            <span className="text-3xl">📝</span>
+            <span className="text-3xl">{themeIcons.writing}</span>
             <div>
               <h2 className="text-2xl font-bold">Story Creator</h2>
-              <p className="text-purple-100">
+              <p className="text-white/80">
                 Every great story starts with a single word!
               </p>
             </div>
@@ -112,7 +128,7 @@ function CreateWriting() {
               placeholder="What's your story about? (e.g., My Amazing Adventure)"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full border-2 border-purple-200 rounded-2xl p-4 text-lg focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-200 transition-all duration-200 placeholder-gray-400"
+              className={`w-full ${themeClasses.input} rounded-2xl p-4 text-lg focus:outline-none transition-all duration-200 placeholder-gray-400`}
               disabled={isLoading}
             />
             <p className="text-sm text-gray-500 ml-2">
@@ -132,7 +148,7 @@ function CreateWriting() {
                 placeholder="Once upon a time... Write your amazing story here! Remember to use describing words and tell us what happened, how you felt, and what you learned!"
                 value={text}
                 onChange={(e) => setText(e.target.value)}
-                className="w-full border-2 border-purple-200 rounded-2xl p-4 text-lg focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-200 transition-all duration-200 placeholder-gray-400 leading-relaxed resize-none"
+                className={`w-full ${themeClasses.input} rounded-2xl p-4 text-lg focus:outline-none transition-all duration-200 placeholder-gray-400 leading-relaxed resize-none`}
                 disabled={isLoading}
               />
               <div className="absolute bottom-4 right-4 text-sm text-gray-400">
@@ -140,14 +156,22 @@ function CreateWriting() {
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
-              <span className="text-sm text-gray-500">💡 Tips:</span>
-              <span className="text-xs bg-purple-50 text-purple-600 px-2 py-1 rounded-full">
+              <span className="text-sm text-gray-500">
+                {themeIcons.loading} Tips:
+              </span>
+              <span
+                className={`text-xs bg-gradient-to-r ${currentTheme.colors.gradients.background} ${themeClasses.primaryText} px-2 py-1 rounded-full`}
+              >
                 Use describing words
               </span>
-              <span className="text-xs bg-pink-50 text-pink-600 px-2 py-1 rounded-full">
+              <span
+                className={`text-xs bg-gradient-to-r ${currentTheme.colors.gradients.background} ${themeClasses.primaryText} px-2 py-1 rounded-full`}
+              >
                 Tell your feelings
               </span>
-              <span className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded-full">
+              <span
+                className={`text-xs bg-gradient-to-r ${currentTheme.colors.gradients.background} ${themeClasses.primaryText} px-2 py-1 rounded-full`}
+              >
                 What did you learn?
               </span>
             </div>
@@ -187,7 +211,7 @@ function CreateWriting() {
                 ${
                   isLoading || !title.trim() || !text.trim()
                     ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                    : "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
+                    : `bg-gradient-to-r ${currentTheme.colors.gradients.primary} text-white shadow-lg hover:shadow-xl hover:scale-105 active:scale-95`
                 }
               `}
             >
@@ -199,7 +223,9 @@ function CreateWriting() {
               ) : (
                 <>
                   <span>Submit My Story</span>
-                  <span className="text-xl">🚀</span>
+                  <span className="text-xl">
+                    {currentTheme.name === "universe" ? "🚀" : "🦕"}
+                  </span>
                 </>
               )}
             </button>
@@ -208,15 +234,17 @@ function CreateWriting() {
       </div>
 
       {/* Encouragement Box */}
-      <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-200 rounded-3xl p-6 text-center">
-        <div className="text-4xl mb-3">🌟</div>
-        <h3 className="text-xl font-bold text-orange-600 mb-2">
+      <div
+        className={`bg-gradient-to-r ${currentTheme.colors.gradients.background} border-2 ${themeClasses.primaryBorder} rounded-3xl p-6 text-center`}
+      >
+        <div className="text-4xl mb-3">{themeIcons.success}</div>
+        <h3 className={`text-xl font-bold ${themeClasses.primaryText} mb-2`}>
           You're doing great!
         </h3>
         <p className="text-gray-600">
           Every story you write makes you a better writer. Keep practicing and
           have fun! Remember, there's no such thing as a perfect story - just
-          YOUR unique story! 💝
+          YOUR unique story! {currentTheme.name === "universe" ? "💫" : "🌿"}
         </p>
       </div>
     </div>

@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTheme } from "../contexts/ThemeContext";
+import { getThemeClasses, getThemeIcons } from "../utils/themeUtils";
 
 type MenuItem = {
   label: string;
@@ -22,6 +24,9 @@ function MenuItemComponent(props: MenuItemProps) {
   const { item, depth = 0, collapsed = false } = props;
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
+  const { currentTheme } = useTheme();
+  const themeClasses = getThemeClasses(currentTheme);
+  const themeIcons = getThemeIcons(currentTheme);
 
   const hasChildren = item.children && item.children.length > 0;
 
@@ -33,7 +38,7 @@ function MenuItemComponent(props: MenuItemProps) {
       }
       return;
     }
-    
+
     if (hasChildren) {
       setOpen(!open);
     } else if (item.path) {
@@ -42,35 +47,44 @@ function MenuItemComponent(props: MenuItemProps) {
   };
 
   const getItemStyles = () => {
+    // const baseColor = currentTheme.name === 'universe' ? 'indigo' : 'green';
+    // const secondaryColor = currentTheme.name === 'universe' ? 'purple' : 'emerald';
+
     if (collapsed && depth === 0) {
-      return "bg-gradient-to-r from-purple-100 to-pink-100 text-purple-800 font-bold text-sm shadow-sm border-l-4 border-purple-400 justify-center";
+      return `bg-gradient-to-r ${currentTheme.colors.gradients.background} text-white font-bold text-sm shadow-lg border-l-4 border-white/30 justify-center`;
     }
     if (depth === 0) {
-      return "bg-gradient-to-r from-purple-100 to-pink-100 text-purple-800 font-bold text-lg shadow-sm border-l-4 border-purple-400";
+      return `bg-gradient-to-r ${currentTheme.colors.gradients.primary} text-white font-bold text-lg shadow-lg border-l-4 border-white/30`;
     } else if (depth === 1) {
-      return "bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 font-semibold ml-4 border-l-2 border-blue-300";
+      return `bg-gradient-to-r ${currentTheme.colors.gradients.background} ${themeClasses.primaryText} font-semibold ml-4 border-l-2 border-white/20`;
     } else {
-      return "bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 ml-8 hover:from-green-100 hover:to-emerald-100";
+      return `bg-white/80 ${themeClasses.primaryText} ml-8`;
     }
   };
 
   const getHoverStyles = () => {
     if (depth === 0) {
-      return "hover:from-purple-200 hover:to-pink-200 hover:shadow-md transform hover:scale-105";
+      return "hover:shadow-xl hover:scale-105 hover:brightness-110";
     } else if (depth === 1) {
-      return "hover:from-blue-100 hover:to-indigo-100 hover:shadow-sm";
+      return "hover:bg-white/90 hover:shadow-sm";
     } else {
-      return "hover:from-green-100 hover:to-emerald-100";
+      return "hover:bg-white/95";
     }
   };
 
   const getIcon = () => {
     if (item.icon) return item.icon;
-    if (item.label.includes("Language") || item.label.includes("🎨")) return "🎨";
-    if (item.label.includes("English") || item.label.includes("🇺🇸")) return "🇺🇸";
-    if (item.label.includes("Writing") || item.label.includes("✏️")) return "✏️";
-    if (item.label.includes("Math") || item.label.includes("🔢")) return "🔢";
-    return "📚";
+    if (item.label.includes("Language") || item.label.includes("🎨"))
+      return currentTheme.name === "universe" ? "🌟" : "🎨";
+    if (item.label.includes("English") || item.label.includes("🇺🇸"))
+      return "🇺🇸";
+    if (item.label.includes("Writing") || item.label.includes("✏️"))
+      return themeIcons.writing;
+    if (item.label.includes("Math") || item.label.includes("🔢"))
+      return themeIcons.math;
+    if (item.label.includes("Settings") || item.label.includes("⚙️"))
+      return themeIcons.settings;
+    return currentTheme.name === "universe" ? "🚀" : "📚";
   };
 
   if (collapsed && depth === 0) {
@@ -114,7 +128,9 @@ function MenuItemComponent(props: MenuItemProps) {
             ${open ? "rotate-45" : "rotate-0"}
           `}
           >
-            <span className="text-purple-500">✨</span>
+            <span className="text-white">
+              {currentTheme.name === "universe" ? "✨" : "🌿"}
+            </span>
           </div>
         )}
       </div>
@@ -126,7 +142,11 @@ function MenuItemComponent(props: MenuItemProps) {
         `}
         >
           <div className="bg-white/50 rounded-lg p-2 mx-2">
-            <Sidebar items={item.children!} depth={depth + 1} collapsed={collapsed} />
+            <Sidebar
+              items={item.children!}
+              depth={depth + 1}
+              collapsed={collapsed}
+            />
           </div>
         </div>
       )}
@@ -140,7 +160,12 @@ function Sidebar(props: SidebarProps & { depth?: number }) {
   return (
     <ul className={depth === 0 ? "space-y-1" : "space-y-2"}>
       {items.map((item, index) => (
-        <MenuItemComponent key={index} item={item} depth={depth} collapsed={collapsed} />
+        <MenuItemComponent
+          key={index}
+          item={item}
+          depth={depth}
+          collapsed={collapsed}
+        />
       ))}
     </ul>
   );
