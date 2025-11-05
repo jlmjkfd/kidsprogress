@@ -33,3 +33,7 @@ lerna-debug.log*
 # other
 process.md
 temp
+*.md
+!/README.md
+.*/
+docs/
