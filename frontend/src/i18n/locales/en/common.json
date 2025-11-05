@@ -1,0 +1,20 @@
+{
+  "buttons": {
+    "submit": "Submit",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "back": "Back",
+    "next": "Next",
+    "done": "Done",
+    "close": "Close"
+  },
+  "language": {
+    "english": "English",
+    "chinese": "中文"
+  },
+  "loading": "Loading...",
+  "welcome": "Welcome, {{name}}!",
+  "welcome_back": "Welcome Back!"
+}

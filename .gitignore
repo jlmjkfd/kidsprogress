@@ -1,17 +1,41 @@
-# backend 
-.venv
-.venv/*
-__pycache__
-config.ini
+# Environment Variables
+.env
+.env.local
+.env.*.local
+*.env
 
-# frontend
-node_modules
-dist
-dist-ssr
+# Python
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
+
+# Node / Frontend
+node_modules/
+dist/
+dist-ssr/
 *.local
+.cache/
+.parcel-cache/
+.next/
+out/
+build/
 
 # Logs
-logs
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -19,21 +43,42 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Editor directories and files
+# OS Files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDEs
 .vscode/*
 !.vscode/extensions.json
-.idea
-.DS_Store
+!.vscode/settings.json
+.idea/
+*.sublime-project
+*.sublime-workspace
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
-*.sw?
 
-# other
-process.md
-temp
+# Database
+*.db
+*.sqlite
+*.sqlite3
+data/
+
+# Temporary Files
+temp/
+tmp/
+*.tmp
+.temp/
+
+# others
+docs/
 *.md
 !/README.md
+config.ini
 .*/
-docs/
+*.backup
+*.sh

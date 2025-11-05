@@ -1,0 +1,13 @@
+{
+  "network_error": "Network error. Please check your connection.",
+  "server_error": "Server error. Please try again later.",
+  "invalid_credentials": "Invalid email or password",
+  "email_already_registered": "Email already registered or invalid input",
+  "validation": {
+    "required": "This field is required",
+    "email_invalid": "Please enter a valid email",
+    "password_min": "Password must be at least 6 characters",
+    "pin_invalid": "Invalid PIN",
+    "pin_length": "PIN must be {{length}} digits"
+  }
+}

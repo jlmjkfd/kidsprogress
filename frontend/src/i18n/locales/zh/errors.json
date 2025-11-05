@@ -1,0 +1,13 @@
+{
+  "network_error": "网络错误。请检查您的连接。",
+  "server_error": "服务器错误。请稍后再试。",
+  "invalid_credentials": "邮箱或密码无效",
+  "email_already_registered": "邮箱已被注册或输入无效",
+  "validation": {
+    "required": "此字段为必填项",
+    "email_invalid": "请输入有效的邮箱",
+    "password_min": "密码至少需要6个字符",
+    "pin_invalid": "密码无效",
+    "pin_length": "密码必须是{{length}}位数字"
+  }
+}
