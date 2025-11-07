@@ -7,6 +7,7 @@ from bson import ObjectId
 
 from backend.models.child import Child, ChildCreate, ChildInDB
 from backend.utils.datetime_utils import utcnow
+from backend.models.task_collection import TaskCollection
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -17,6 +18,7 @@ class ChildService:
     def __init__(self, db: AsyncIOMotorDatabase):
         self.db = db
         self.children_collection = db.children
+        self.task_collections_collection = db.task_collections
 
     def _hash_pin(self, pin: str) -> str:
         """Hash a 4-digit PIN."""
@@ -25,6 +27,29 @@ class ChildService:
     def _verify_pin(self, plain_pin: str, hashed_pin: str) -> bool:
         """Verify a PIN against its hash."""
         return pwd_context.verify(plain_pin, hashed_pin)
+
+    async def _create_default_task_collection(
+        self, child_id: ObjectId, parent_id: ObjectId
+    ) -> None:
+        """Create default task collection for a child.
+
+        Args:
+            child_id: Child's ObjectId
+            parent_id: Parent's ObjectId
+        """
+        default_collection = {
+            "child_id": child_id,
+            "parent_id": parent_id,
+            "name": "My Tasks",
+            "description": "Default task collection",
+            "color": "#3B82F6",  # Blue
+            "icon": "checkbox",
+            "is_default": True,
+            "is_archived": False,
+            "created_at": utcnow(),
+            "updated_at": utcnow(),
+        }
+        await self.task_collections_collection.insert_one(default_collection)
 
     async def create_child(self, parent_id: str, child_data: ChildCreate) -> Child:
         """Create a new child profile for a parent.
@@ -62,6 +87,12 @@ class ChildService:
         # Insert into database
         result = await self.children_collection.insert_one(child_doc)
         child_doc["_id"] = result.inserted_id
+
+        # Auto-create default TaskCollection for this child
+        await self._create_default_task_collection(
+            child_id=child_doc["_id"],
+            parent_id=child_doc["parent_id"]
+        )
 
         # Return Child model (without pin_hash)
         return Child(
