@@ -41,5 +41,50 @@
     "member_since": "加入时间",
     "last_updated": "最后更新",
     "activity_coming_soon": "活动追踪即将推出..."
+  },
+  "portals": {
+    "select_portal": "选择您的入口",
+    "select_portal_description": "您想进入哪个入口？",
+    "parent_portal": "家长入口",
+    "parent_portal_description": "管理孩子的档案、任务和设置",
+    "child_portal": "孩子入口",
+    "child_portal_description": "让您的孩子完成任务和学习",
+    "parent_features": {
+      "manage_children": "管理孩子信息",
+      "create_tasks": "创建和分配任务",
+      "view_analytics": "查看进度分析",
+      "configure_settings": "配置设置"
+    },
+    "child_features": {
+      "complete_tasks": "完成分配的任务",
+      "use_tools": "使用学习工具",
+      "chat_ai": "与AI助手聊天",
+      "see_progress": "查看你的进度"
+    }
+  },
+  "navigation": {
+    "children": "孩子",
+    "tasks": "任务",
+    "analytics": "分析",
+    "settings": "设置",
+    "my_tasks": "我的任务",
+    "tools": "工具",
+    "chat": "与AI聊天",
+    "progress": "我的进度",
+    "portal_selection": "入口选择"
+  },
+  "child_selection": {
+    "title": "你是谁？",
+    "subtitle": "选择您的档案",
+    "description": "选择您的名字开始学习和玩耍",
+    "no_children_title": "未找到孩子",
+    "no_children_description": "请让您的家长先添加您的档案",
+    "go_back": "返回",
+    "pin_required": "需要PIN码"
+  },
+  "child_portal": {
+    "welcome": "{{name}}的入口",
+    "subtitle": "让我们一起学习和玩耍！",
+    "back": "返回"
   }
 }

@@ -41,5 +41,50 @@
     "member_since": "Member Since",
     "last_updated": "Last Updated",
     "activity_coming_soon": "Activity tracking coming soon..."
+  },
+  "portals": {
+    "select_portal": "Choose Your Portal",
+    "select_portal_description": "Which portal would you like to enter?",
+    "parent_portal": "Parent Portal",
+    "parent_portal_description": "Manage your children's profiles, tasks, and settings",
+    "child_portal": "Child Portal",
+    "child_portal_description": "Let your children complete tasks and learn",
+    "parent_features": {
+      "manage_children": "Manage children information",
+      "create_tasks": "Create and assign tasks",
+      "view_analytics": "View progress analytics",
+      "configure_settings": "Configure settings"
+    },
+    "child_features": {
+      "complete_tasks": "Complete assigned tasks",
+      "use_tools": "Use learning tools",
+      "chat_ai": "Chat with AI helper",
+      "see_progress": "See your progress"
+    }
+  },
+  "navigation": {
+    "children": "Children",
+    "tasks": "Tasks",
+    "analytics": "Analytics",
+    "settings": "Settings",
+    "my_tasks": "My Tasks",
+    "tools": "Tools",
+    "chat": "Chat with AI",
+    "progress": "My Progress",
+    "portal_selection": "Portal Selection"
+  },
+  "child_selection": {
+    "title": "Who are you?",
+    "subtitle": "Select Your Profile",
+    "description": "Choose your name to start learning and playing",
+    "no_children_title": "No children found",
+    "no_children_description": "Ask your parent to add your profile first",
+    "go_back": "Go Back",
+    "pin_required": "PIN Required"
+  },
+  "child_portal": {
+    "welcome": "{{name}}'s Portal",
+    "subtitle": "Let's learn and play!",
+    "back": "Back"
   }
 }

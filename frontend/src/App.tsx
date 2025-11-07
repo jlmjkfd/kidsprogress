@@ -1,5 +1,10 @@
 /**
- * Main App component with routing
+ * Main App component with new portal-based routing structure
+ *
+ * Flow:
+ * 1. Parent Login → Portal Selection
+ * 2. Parent Portal → Manage children, tasks, settings
+ * 3. Child Selection → Child Portal → Do tasks, use tools, chat
  */
 import {
   Routes,
@@ -13,11 +18,24 @@ import { Provider } from "react-redux";
 import store from "@store";
 import { queryClient } from "@api/queryClient";
 import { useAppSelector } from "@store/hooks";
+
+// Auth pages
 import LoginPage from "@pages/login";
 import RegisterPage from "@pages/register";
-import DashboardPage from "@pages/dashboard";
+
+// Portal selection
+import PortalSelectionPage from "@pages/portal-selection";
+import ChildSelectionPage from "@pages/child-selection";
+
+// Parent Portal
+import ParentPortalLayout from "@pages/parent-portal/layout";
+import ManageChildrenPage from "@pages/parent-portal/children";
 import ChildProfilePage from "@pages/child-profile";
 import TaskListPage from "@pages/task-list";
+
+// Child Portal
+import ChildPortalLayout from "@pages/child-portal/layout";
+
 import "@i18n/config";
 import "./App.css";
 
@@ -36,56 +54,127 @@ function AppRoutes() {
 
   return (
     <Routes>
+      {/* Public Routes */}
       <Route
         path="/login"
         element={
-          isAuthenticated ? <Navigate to="/dashboard" replace /> : <LoginPage />
+          isAuthenticated ? <Navigate to="/portal-selection" replace /> : <LoginPage />
         }
       />
       <Route
         path="/register"
         element={
           isAuthenticated ? (
-            <Navigate to="/dashboard" replace />
+            <Navigate to="/portal-selection" replace />
           ) : (
             <RegisterPage />
           )
         }
       />
 
+      {/* Portal Selection - Landing after login */}
       <Route
-        path="/dashboard"
+        path="/portal-selection"
         element={
           <ProtectedRoute>
-            <DashboardPage />
+            <PortalSelectionPage />
           </ProtectedRoute>
         }
       />
 
+      {/* Child Selection - For children to pick themselves */}
       <Route
-        path="/child/:childId"
+        path="/child-selection"
         element={
           <ProtectedRoute>
-            <ChildProfilePage />
+            <ChildSelectionPage />
           </ProtectedRoute>
         }
       />
 
+      {/* Parent Portal - For parents to manage everything */}
       <Route
-        path="/child/:childId/tasks"
+        path="/parent-portal"
         element={
           <ProtectedRoute>
-            <TaskListPage />
+            <ParentPortalLayout />
           </ProtectedRoute>
         }
-      />
+      >
+        {/* Default: Manage Children */}
+        <Route index element={<ManageChildrenPage />} />
 
+        {/* Child Profile (view/edit single child) */}
+        <Route path="children/:childId" element={<ChildProfilePage />} />
+
+        {/* Task Management (for a specific child) */}
+        <Route path="children/:childId/tasks" element={<TaskListPage />} />
+
+        {/* TODO: Add more parent portal routes */}
+        <Route
+          path="tasks"
+          element={<div className="p-8">All Tasks View - Coming Soon</div>}
+        />
+        <Route
+          path="analytics"
+          element={<div className="p-8">Analytics - Coming Soon</div>}
+        />
+        <Route
+          path="settings"
+          element={<div className="p-8">Settings - Coming Soon</div>}
+        />
+      </Route>
+
+      {/* Child Portal - For children to use */}
+      <Route
+        path="/child-portal/:childId"
+        element={
+          <ProtectedRoute>
+            <ChildPortalLayout />
+          </ProtectedRoute>
+        }
+      >
+        {/* Default: redirect to tasks */}
+        <Route
+          index
+          element={<Navigate to="tasks" replace />}
+        />
+
+        {/* Child's Tasks */}
+        <Route
+          path="tasks"
+          element={<div className="p-8">Child Tasks View - Coming Soon</div>}
+        />
+
+        {/* Tools */}
+        <Route
+          path="tools"
+          element={<div className="p-8">Learning Tools - Coming Soon</div>}
+        />
+
+        {/* AI Chat */}
+        <Route
+          path="chat"
+          element={<div className="p-8">Chat with AI - Coming Soon</div>}
+        />
+
+        {/* Progress */}
+        <Route
+          path="progress"
+          element={<div className="p-8">My Progress - Coming Soon</div>}
+        />
+      </Route>
+
+      {/* Root redirect */}
       <Route
         path="/"
         element={
-          <Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />
+          <Navigate to={isAuthenticated ? "/portal-selection" : "/login"} replace />
         }
       />
+
+      {/* Catch all - redirect to root */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
