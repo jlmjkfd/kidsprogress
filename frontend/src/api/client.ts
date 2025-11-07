@@ -31,10 +31,15 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Clear auth state and redirect to login
-      localStorage.removeItem('auth_token');
-      window.location.href = '/login';
+    // Only redirect on 401 if user is already authenticated (has token)
+    // Don't redirect on login failures
+    if (error.response?.status === 401 && error.config?.url !== '/api/auth/login') {
+      const token = localStorage.getItem('auth_token');
+      if (token) {
+        // Clear auth state and redirect to login
+        localStorage.removeItem('auth_token');
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

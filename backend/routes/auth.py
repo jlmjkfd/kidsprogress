@@ -122,7 +122,7 @@ async def child_login(
         _id=child.id,
         parent_id=child.parent_id,
         name=child.name,
-        age=child.age,
+        date_of_birth=child.date_of_birth,
         avatar_url=child.avatar_url,
         pin_required=child.pin_required,
         created_at=child.created_at,

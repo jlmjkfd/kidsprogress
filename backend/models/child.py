@@ -1,7 +1,7 @@
 """Child models for parent-child authentication."""
 from pydantic import BaseModel, Field
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, date
 from bson import ObjectId
 from pydantic_core import core_schema
 from backend.utils.datetime_utils import utcnow
@@ -29,25 +29,25 @@ class PyObjectId(ObjectId):
 class ChildCreate(BaseModel):
     """Request model for creating a child profile."""
     name: str = Field(min_length=1, max_length=50)
-    age: int = Field(ge=3, le=18)
+    date_of_birth: date
     avatar_url: Optional[str] = None
     pin_required: bool = False
-    pin: Optional[str] = Field(None, min_length=4, max_length=4, pattern=r'^\d{4}$')
+    pin: Optional[str] = Field(None, min_length=4, max_length=6, pattern=r'^\d{4,6}$')
 
 class ChildUpdate(BaseModel):
     """Request model for updating a child profile."""
     name: Optional[str] = Field(None, min_length=1, max_length=50)
-    age: Optional[int] = Field(None, ge=3, le=18)
+    date_of_birth: Optional[date] = None
     avatar_url: Optional[str] = None
     pin_required: Optional[bool] = None
-    pin: Optional[str] = Field(None, min_length=4, max_length=4, pattern=r'^\d{4}$')
+    pin: Optional[str] = Field(None, min_length=4, max_length=6, pattern=r'^\d{4,6}$')
 
 class Child(BaseModel):
     """Child profile model (public view, no PIN hash)."""
     id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
     parent_id: PyObjectId
     name: str
-    age: int
+    date_of_birth: date
     avatar_url: Optional[str] = None
     pin_required: bool = False
     created_at: datetime = Field(default_factory=utcnow)

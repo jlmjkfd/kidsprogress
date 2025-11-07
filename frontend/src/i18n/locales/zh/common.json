@@ -8,7 +8,9 @@
     "back": "返回",
     "next": "下一步",
     "done": "完成",
-    "close": "关闭"
+    "close": "关闭",
+    "add": "添加",
+    "submitting": "提交中..."
   },
   "language": {
     "english": "English",
@@ -16,5 +18,28 @@
   },
   "loading": "加载中...",
   "welcome": "欢迎，{{name}}！",
-  "welcome_back": "欢迎回来！"
+  "welcome_back": "欢迎回来！",
+  "logout": "退出",
+  "select_child": "选择孩子",
+  "add_child": "添加孩子",
+  "add_first_child": "添加第一个孩子",
+  "no_children": "还没有孩子",
+  "no_children_description": "点击添加您的第一个孩子档案",
+  "age": "年龄",
+  "date_of_birth": "出生日期",
+  "child_name": "孩子姓名",
+  "child_name_placeholder": "输入孩子姓名",
+  "require_pin": "需要PIN码登录",
+  "pin": "PIN码",
+  "pin_placeholder": "输入4-6位PIN码",
+  "pin_hint": "4-6位数字用于保护孩子登录",
+  "back": "返回",
+  "back_to_dashboard": "返回主页",
+  "years_old": "岁",
+  "pin_protected": "PIN保护",
+  "profile": {
+    "member_since": "加入时间",
+    "last_updated": "最后更新",
+    "activity_coming_soon": "活动追踪即将推出..."
+  }
 }

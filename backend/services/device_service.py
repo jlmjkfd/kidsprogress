@@ -140,7 +140,7 @@ class DeviceService:
                     _id=doc["_id"],
                     parent_id=doc["parent_id"],
                     name=doc["name"],
-                    age=doc["age"],
+                    date_of_birth=doc["date_of_birth"],
                     avatar_url=doc.get("avatar_url"),
                     pin_required=doc.get("pin_required", False),
                     created_at=doc["created_at"],

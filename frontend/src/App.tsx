@@ -15,6 +15,8 @@ import { queryClient } from "@api/queryClient";
 import { useAppSelector } from "@store/hooks";
 import LoginPage from "@pages/login";
 import RegisterPage from "@pages/register";
+import DashboardPage from "@pages/dashboard";
+import ChildProfilePage from "@pages/child-profile";
 import "@i18n/config";
 import "./App.css";
 
@@ -54,9 +56,16 @@ function AppRoutes() {
         path="/dashboard"
         element={
           <ProtectedRoute>
-            <div className="flex min-h-screen items-center justify-center">
-              <h1 className="text-2xl font-bold">Dashboard (Coming Soon)</h1>
-            </div>
+            <DashboardPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/child/:childId"
+        element={
+          <ProtectedRoute>
+            <ChildProfilePage />
           </ProtectedRoute>
         }
       />

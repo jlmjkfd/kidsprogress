@@ -2,6 +2,7 @@
 import asyncio
 import sys
 from pathlib import Path
+from datetime import date
 from dotenv import load_dotenv
 
 # Add backend to path
@@ -49,40 +50,40 @@ async def seed_data():
 
     print("\n=== Creating Child Profiles ===")
 
-    # Child 1: Alice (with PIN)
+    # Child 1: Alice (age 8, with PIN)
     child1_data = ChildCreate(
         name="Alice",
-        age=8,
+        date_of_birth=date(2016, 3, 15),  # ~8 years old
         avatar_url="https://api.dicebear.com/7.x/avataaars/svg?seed=Alice",
         pin_required=True,
         pin="1234"
     )
     child1 = await child_service.create_child(str(parent.id), child1_data)
-    print(f"Created child: {child1.name} (Age: {child1.age}, PIN: 1234)")
+    print(f"Created child: {child1.name} (DOB: {child1.date_of_birth}, PIN: 1234)")
     print(f"  ID: {child1.id}")
 
-    # Child 2: Bob (no PIN)
+    # Child 2: Bob (age 10, no PIN)
     child2_data = ChildCreate(
         name="Bob",
-        age=10,
+        date_of_birth=date(2014, 7, 22),  # ~10 years old
         avatar_url="https://api.dicebear.com/7.x/avataaars/svg?seed=Bob",
         pin_required=False,
         pin=None
     )
     child2 = await child_service.create_child(str(parent.id), child2_data)
-    print(f"Created child: {child2.name} (Age: {child2.age}, No PIN)")
+    print(f"Created child: {child2.name} (DOB: {child2.date_of_birth}, No PIN)")
     print(f"  ID: {child2.id}")
 
-    # Child 3: Charlie (with PIN)
+    # Child 3: Charlie (age 6, with PIN)
     child3_data = ChildCreate(
         name="Charlie",
-        age=6,
+        date_of_birth=date(2018, 11, 8),  # ~6 years old
         avatar_url="https://api.dicebear.com/7.x/avataaars/svg?seed=Charlie",
         pin_required=True,
         pin="5678"
     )
     child3 = await child_service.create_child(str(parent.id), child3_data)
-    print(f"Created child: {child3.name} (Age: {child3.age}, PIN: 5678)")
+    print(f"Created child: {child3.name} (DOB: {child3.date_of_birth}, PIN: 5678)")
     print(f"  ID: {child3.id}")
 
     print("\n=== Creating Device Registration ===")
@@ -102,9 +103,9 @@ async def seed_data():
     print("\n=== Test Data Summary ===")
     print(f"Parent: parent@test.com / password123")
     print(f"Children:")
-    print(f"  - Alice (8) - PIN: 1234")
-    print(f"  - Bob (10) - No PIN")
-    print(f"  - Charlie (6) - PIN: 5678")
+    print(f"  - Alice (DOB: 2016-03-15, ~8 years) - PIN: 1234")
+    print(f"  - Bob (DOB: 2014-07-22, ~10 years) - No PIN")
+    print(f"  - Charlie (DOB: 2018-11-08, ~6 years) - PIN: 5678")
     print(f"Device Token: {device_token}")
 
     print("\n=== API Test URLs ===")

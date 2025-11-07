@@ -3,6 +3,8 @@
   "server_error": "Server error. Please try again later.",
   "invalid_credentials": "Invalid email or password",
   "email_already_registered": "Email already registered or invalid input",
+  "failed_to_create_child": "Failed to create child. Please try again.",
+  "failed_to_load_child": "Failed to load child profile. Please try again.",
   "validation": {
     "required": "This field is required",
     "email_invalid": "Please enter a valid email",

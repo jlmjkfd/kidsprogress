@@ -8,7 +8,9 @@
     "back": "Back",
     "next": "Next",
     "done": "Done",
-    "close": "Close"
+    "close": "Close",
+    "add": "Add",
+    "submitting": "Submitting..."
   },
   "language": {
     "english": "English",
@@ -16,5 +18,28 @@
   },
   "loading": "Loading...",
   "welcome": "Welcome, {{name}}!",
-  "welcome_back": "Welcome Back!"
+  "welcome_back": "Welcome Back!",
+  "logout": "Logout",
+  "select_child": "Select a Child",
+  "add_child": "Add Child",
+  "add_first_child": "Add Your First Child",
+  "no_children": "No children yet",
+  "no_children_description": "Get started by adding your first child profile",
+  "age": "Age",
+  "date_of_birth": "Date of Birth",
+  "child_name": "Child's Name",
+  "child_name_placeholder": "Enter child's name",
+  "require_pin": "Require PIN for login",
+  "pin": "PIN",
+  "pin_placeholder": "Enter 4-6 digit PIN",
+  "pin_hint": "4-6 digits for child login protection",
+  "back": "Back",
+  "back_to_dashboard": "Back to Dashboard",
+  "years_old": "years old",
+  "pin_protected": "PIN Protected",
+  "profile": {
+    "member_since": "Member Since",
+    "last_updated": "Last Updated",
+    "activity_coming_soon": "Activity tracking coming soon..."
+  }
 }

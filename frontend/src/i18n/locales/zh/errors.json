@@ -3,6 +3,8 @@
   "server_error": "服务器错误。请稍后再试。",
   "invalid_credentials": "邮箱或密码无效",
   "email_already_registered": "邮箱已被注册或输入无效",
+  "failed_to_create_child": "创建孩子档案失败。请重试。",
+  "failed_to_load_child": "加载孩子档案失败。请重试。",
   "validation": {
     "required": "此字段为必填项",
     "email_invalid": "请输入有效的邮箱",

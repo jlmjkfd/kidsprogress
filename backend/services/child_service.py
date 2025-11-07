@@ -46,7 +46,7 @@ class ChildService:
         child_doc = {
             "parent_id": ObjectId(parent_id),
             "name": child_data.name,
-            "age": child_data.age,
+            "date_of_birth": child_data.date_of_birth.isoformat(),  # Store as ISO string
             "avatar_url": child_data.avatar_url,
             "pin_required": child_data.pin_required,
             "created_at": utcnow(),
@@ -68,7 +68,7 @@ class ChildService:
             _id=child_doc["_id"],
             parent_id=child_doc["parent_id"],
             name=child_doc["name"],
-            age=child_doc["age"],
+            date_of_birth=child_doc["date_of_birth"],
             avatar_url=child_doc["avatar_url"],
             pin_required=child_doc["pin_required"],
             created_at=child_doc["created_at"],
@@ -96,7 +96,7 @@ class ChildService:
                     _id=doc["_id"],
                     parent_id=doc["parent_id"],
                     name=doc["name"],
-                    age=doc["age"],
+                    date_of_birth=doc["date_of_birth"],
                     avatar_url=doc.get("avatar_url"),
                     pin_required=doc.get("pin_required", False),
                     created_at=doc["created_at"],
@@ -126,7 +126,7 @@ class ChildService:
             _id=doc["_id"],
             parent_id=doc["parent_id"],
             name=doc["name"],
-            age=doc["age"],
+            date_of_birth=doc["date_of_birth"],
             avatar_url=doc.get("avatar_url"),
             pin_required=doc.get("pin_required", False),
             pin_hash=doc.get("pin_hash"),
@@ -160,7 +160,7 @@ class ChildService:
         # Prepare update document
         update_doc = {
             "name": child_data.name,
-            "age": child_data.age,
+            "date_of_birth": child_data.date_of_birth.isoformat(),  # Store as ISO string
             "avatar_url": child_data.avatar_url,
             "pin_required": child_data.pin_required,
             "updated_at": utcnow(),
@@ -186,7 +186,7 @@ class ChildService:
             _id=result["_id"],
             parent_id=result["parent_id"],
             name=result["name"],
-            age=result["age"],
+            date_of_birth=result["date_of_birth"],
             avatar_url=result.get("avatar_url"),
             pin_required=result.get("pin_required", False),
             created_at=result["created_at"],
