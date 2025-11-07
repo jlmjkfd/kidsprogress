@@ -11,7 +11,7 @@ env_path = Path(__file__).parent / ".env"
 load_dotenv(env_path)
 
 from backend.db.connection import db
-from backend.routes import auth, children, devices
+from backend.routes import auth, children, devices, task_metadata, task_collections, tasks
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -26,6 +26,17 @@ async def lifespan(app: FastAPI):
     await database.children.create_index([("parent_id", 1), ("name", 1)])
     await database.device_registrations.create_index("device_token", unique=True)
     await database.device_registrations.create_index("parent_id")
+
+    # Task management indexes
+    await database.task_type_definitions.create_index("code", unique=True)
+    await database.metric_type_definitions.create_index("code", unique=True)
+    await database.task_collections.create_index("child_id")
+    await database.task_collections.create_index([("child_id", 1), ("is_default", 1)])
+    await database.tasks.create_index("collection_id")
+    await database.tasks.create_index("child_id")
+    await database.tasks.create_index([("child_id", 1), ("status", 1)])
+    await database.active_task_sessions.create_index("child_id")
+    await database.active_task_sessions.create_index("task_id", unique=True)
 
     yield
 
@@ -53,6 +64,9 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(children.router)
 app.include_router(devices.router)
+app.include_router(task_metadata.router)
+app.include_router(task_collections.router)
+app.include_router(tasks.router)
 
 @app.get("/health")
 def health_check():
