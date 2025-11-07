@@ -46,10 +46,10 @@ export default function PortalSelectionPage() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center mb-12">
           <h2 className="text-4xl font-bold text-gray-900 mb-4">
-            Welcome! Choose Your Portal
+            {t("common:portals.select_portal")}
           </h2>
           <p className="text-lg text-gray-600">
-            Select the portal you want to access
+            {t("common:portals.select_portal_description")}
           </p>
         </div>
 
@@ -65,35 +65,35 @@ export default function PortalSelectionPage() {
               </div>
               <div>
                 <h3 className="text-2xl font-bold text-gray-900">
-                  Parent Portal
+                  {t("common:portals.parent_portal")}
                 </h3>
-                <p className="text-sm text-gray-600">Manage & Monitor</p>
+                <p className="text-sm text-gray-600">{t("common:portals.parent_portal_description")}</p>
               </div>
             </div>
 
             <div className="space-y-3 mb-6">
               <div className="flex items-center gap-3 text-gray-700">
                 <IconUsers className="w-5 h-5 text-blue-600" />
-                <span>Manage children profiles</span>
+                <span>{t("common:portals.parent_features.manage_children")}</span>
               </div>
               <div className="flex items-center gap-3 text-gray-700">
                 <IconChecklist className="w-5 h-5 text-blue-600" />
-                <span>Create and assign tasks</span>
+                <span>{t("common:portals.parent_features.create_tasks")}</span>
               </div>
               <div className="flex items-center gap-3 text-gray-700">
                 <IconChartBar className="w-5 h-5 text-blue-600" />
-                <span>View progress and analytics</span>
+                <span>{t("common:portals.parent_features.view_analytics")}</span>
               </div>
               <div className="flex items-center gap-3 text-gray-700">
                 <IconSettings className="w-5 h-5 text-blue-600" />
-                <span>Configure settings</span>
+                <span>{t("common:portals.parent_features.configure_settings")}</span>
               </div>
             </div>
 
             <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-500">For parents and guardians</span>
+              <span className="text-gray-500">{t("common:portals.parent_portal_description")}</span>
               <span className="text-blue-600 font-medium group-hover:translate-x-2 transition-transform">
-                Enter →
+                →
               </span>
             </div>
           </button>
@@ -109,35 +109,35 @@ export default function PortalSelectionPage() {
               </div>
               <div>
                 <h3 className="text-2xl font-bold text-gray-900">
-                  Child Portal
+                  {t("common:portals.child_portal")}
                 </h3>
-                <p className="text-sm text-gray-600">Learn & Play</p>
+                <p className="text-sm text-gray-600">{t("common:portals.child_portal_description")}</p>
               </div>
             </div>
 
             <div className="space-y-3 mb-6">
               <div className="flex items-center gap-3 text-gray-700">
                 <IconChecklist className="w-5 h-5 text-purple-600" />
-                <span>View and complete tasks</span>
+                <span>{t("common:portals.child_features.complete_tasks")}</span>
               </div>
               <div className="flex items-center gap-3 text-gray-700">
                 <IconSparkles className="w-5 h-5 text-purple-600" />
-                <span>Use learning tools</span>
+                <span>{t("common:portals.child_features.use_tools")}</span>
               </div>
               <div className="flex items-center gap-3 text-gray-700">
                 <IconMessageCircle className="w-5 h-5 text-purple-600" />
-                <span>Chat with AI teacher</span>
+                <span>{t("common:portals.child_features.chat_ai")}</span>
               </div>
               <div className="flex items-center gap-3 text-gray-700">
                 <IconChartBar className="w-5 h-5 text-purple-600" />
-                <span>See your progress</span>
+                <span>{t("common:portals.child_features.see_progress")}</span>
               </div>
             </div>
 
             <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-500">For children to use</span>
+              <span className="text-gray-500">{t("common:portals.child_portal_description")}</span>
               <span className="text-purple-600 font-medium group-hover:translate-x-2 transition-transform">
-                Enter →
+                →
               </span>
             </div>
           </button>

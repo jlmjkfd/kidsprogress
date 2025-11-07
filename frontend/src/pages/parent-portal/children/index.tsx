@@ -45,16 +45,16 @@ export default function ManageChildrenPage() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Manage Children
+            {t("common:manage_children")}
           </h1>
           <p className="text-gray-600">
-            Add, edit, and manage your children's profiles
+            {t("common:manage_children_description")}
           </p>
         </div>
 
         <div className="mb-6 flex items-center justify-between">
           <h2 className="text-xl font-semibold text-gray-900">
-            Children ({children?.length || 0})
+            {t("common:children_count")} ({children?.length || 0})
           </h2>
           <button
             onClick={handleAddChild}

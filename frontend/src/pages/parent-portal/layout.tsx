@@ -19,10 +19,10 @@ export default function ParentPortalLayout() {
   const { t } = useTranslation(["common"]);
 
   const navItems = [
-    { path: "/parent-portal", icon: IconUsers, label: "Children", exact: true },
-    { path: "/parent-portal/tasks", icon: IconChecklist, label: "Tasks" },
-    { path: "/parent-portal/analytics", icon: IconChartBar, label: "Analytics" },
-    { path: "/parent-portal/settings", icon: IconSettings, label: "Settings" },
+    { path: "/parent-portal", icon: IconUsers, label: t("common:navigation.children"), exact: true },
+    { path: "/parent-portal/tasks", icon: IconChecklist, label: t("common:navigation.tasks") },
+    { path: "/parent-portal/analytics", icon: IconChartBar, label: t("common:navigation.analytics") },
+    { path: "/parent-portal/settings", icon: IconSettings, label: t("common:navigation.settings") },
   ];
 
   const isActive = (path: string, exact?: boolean) => {
@@ -43,8 +43,8 @@ export default function ParentPortalLayout() {
       <div className="w-64 bg-white shadow-lg flex flex-col">
         {/* Logo/Header */}
         <div className="p-6 border-b">
-          <h1 className="text-xl font-bold text-gray-900">Parent Portal</h1>
-          <p className="text-sm text-gray-600 mt-1">Manage & Monitor</p>
+          <h1 className="text-xl font-bold text-gray-900">{t("common:portals.parent_portal")}</h1>
+          <p className="text-sm text-gray-600 mt-1">{t("common:portals.parent_portal_description")}</p>
         </div>
 
         {/* Navigation */}
@@ -79,7 +79,7 @@ export default function ParentPortalLayout() {
             className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
           >
             <IconHome size={20} />
-            <span>Portal Selection</span>
+            <span>{t("common:navigation.portal_selection")}</span>
           </button>
           <button
             onClick={handleLogout}

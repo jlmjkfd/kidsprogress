@@ -44,9 +44,9 @@ export default function ChildSelectionPage() {
               className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
             >
               <IconArrowLeft size={20} />
-              <span>Back</span>
+              <span>{t("common:back")}</span>
             </button>
-            <h1 className="text-2xl font-bold text-gray-900">Who are you?</h1>
+            <h1 className="text-2xl font-bold text-gray-900">{t("common:child_selection.title")}</h1>
             <LanguageSwitcher />
           </div>
         </div>
@@ -56,10 +56,10 @@ export default function ChildSelectionPage() {
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center mb-12">
           <h2 className="text-4xl font-bold text-gray-900 mb-4">
-            Select Your Profile
+            {t("common:child_selection.subtitle")}
           </h2>
           <p className="text-lg text-gray-600">
-            Choose your name to start learning and playing
+            {t("common:child_selection.description")}
           </p>
         </div>
 
@@ -100,7 +100,7 @@ export default function ChildSelectionPage() {
                 {child.pin_required && (
                   <div className="inline-flex items-center gap-2 px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm">
                     <IconLock size={14} />
-                    <span>PIN Required</span>
+                    <span>{t("common:child_selection.pin_required")}</span>
                   </div>
                 )}
               </button>
@@ -110,17 +110,17 @@ export default function ChildSelectionPage() {
           <div className="text-center py-12 bg-white rounded-3xl shadow-lg">
             <IconUser className="mx-auto h-24 w-24 text-gray-400 mb-4" />
             <h3 className="text-2xl font-bold text-gray-900 mb-2">
-              No children found
+              {t("common:child_selection.no_children_title")}
             </h3>
             <p className="text-gray-600 mb-6">
-              Ask your parent to add your profile first
+              {t("common:child_selection.no_children_description")}
             </p>
             <button
               onClick={() => navigate("/portal-selection")}
               className="inline-flex items-center gap-2 bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors"
             >
               <IconArrowLeft size={20} />
-              <span>Go Back</span>
+              <span>{t("common:child_selection.go_back")}</span>
             </button>
           </div>
         )}

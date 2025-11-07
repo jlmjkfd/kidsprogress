@@ -22,10 +22,10 @@ export default function ChildPortalLayout() {
   const { data: child } = useChild(childId || "");
 
   const navItems = [
-    { path: `/child-portal/${childId}/tasks`, icon: IconChecklist, label: "My Tasks" },
-    { path: `/child-portal/${childId}/tools`, icon: IconSparkles, label: "Tools" },
-    { path: `/child-portal/${childId}/chat`, icon: IconMessageCircle, label: "Chat with AI" },
-    { path: `/child-portal/${childId}/progress`, icon: IconChartBar, label: "My Progress" },
+    { path: `/child-portal/${childId}/tasks`, icon: IconChecklist, label: t("common:navigation.my_tasks") },
+    { path: `/child-portal/${childId}/tools`, icon: IconSparkles, label: t("common:navigation.tools") },
+    { path: `/child-portal/${childId}/chat`, icon: IconMessageCircle, label: t("common:navigation.chat") },
+    { path: `/child-portal/${childId}/progress`, icon: IconChartBar, label: t("common:navigation.progress") },
   ];
 
   const isActive = (path: string) => {
@@ -46,13 +46,13 @@ export default function ChildPortalLayout() {
             className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
           >
             <IconArrowLeft size={20} />
-            <span>Back</span>
+            <span>{t("common:back")}</span>
           </button>
 
           {child && (
             <div className="text-center">
-              <h1 className="text-xl font-bold text-gray-900">{child.name}'s Portal</h1>
-              <p className="text-sm text-gray-600">Let's learn and play!</p>
+              <h1 className="text-xl font-bold text-gray-900">{t("common:child_portal.welcome", { name: child.name })}</h1>
+              <p className="text-sm text-gray-600">{t("common:child_portal.subtitle")}</p>
             </div>
           )}
 
