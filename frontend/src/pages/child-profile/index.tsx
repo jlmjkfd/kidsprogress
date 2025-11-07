@@ -115,7 +115,8 @@ function ChildProfilePage() {
             <div>
               <h2 className="text-3xl font-bold text-gray-900">{child.name}</h2>
               <p className="mt-1 text-gray-600">
-                {t("common:age")}: {calculateAge(child.date_of_birth)} {t("common:years_old")}
+                {t("common:age")}: {calculateAge(child.date_of_birth)}{" "}
+                {t("common:years_old")}
               </p>
               {child.pin_required && (
                 <div className="mt-2 flex items-center text-sm text-gray-500">
@@ -148,7 +149,9 @@ function ChildProfilePage() {
 
           {/* Quick Actions */}
           <div className="mt-8">
-            <h3 className="mb-4 text-lg font-semibold text-gray-900">{t("tasks:quick_actions")}</h3>
+            <h3 className="mb-4 text-lg font-semibold text-gray-900">
+              {t("tasks:quick_actions")}
+            </h3>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <button
                 onClick={() => navigate(`/child/${childId}/tasks`)}
@@ -158,8 +161,12 @@ function ChildProfilePage() {
                   <IconChecklist className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <div className="font-semibold text-gray-900">{t("tasks:view_tasks")}</div>
-                  <div className="text-sm text-gray-600">{t("tasks:manage_tasks")}</div>
+                  <div className="font-semibold text-gray-900">
+                    {t("tasks:view_tasks")}
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    {t("tasks:manage_tasks")}
+                  </div>
                 </div>
               </button>
             </div>
