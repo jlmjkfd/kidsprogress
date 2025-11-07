@@ -17,6 +17,7 @@ import LoginPage from "@pages/login";
 import RegisterPage from "@pages/register";
 import DashboardPage from "@pages/dashboard";
 import ChildProfilePage from "@pages/child-profile";
+import TaskListPage from "@pages/task-list";
 import "@i18n/config";
 import "./App.css";
 
@@ -66,6 +67,15 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <ChildProfilePage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/child/:childId/tasks"
+        element={
+          <ProtectedRoute>
+            <TaskListPage />
           </ProtectedRoute>
         }
       />

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { IconLock } from "@tabler/icons-react";
+import { IconLock, IconChecklist } from "@tabler/icons-react";
 import { useChild } from "@/api/queries/useChild";
 import { useVerifyChildPin } from "@/api/mutations/useVerifyChildPin";
 import { calculateAge } from "@/types/child";
@@ -10,7 +10,7 @@ import PinVerificationModal from "./components/PinVerificationModal";
 function ChildProfilePage() {
   const { childId } = useParams<{ childId: string }>();
   const navigate = useNavigate();
-  const { t } = useTranslation(["common", "errors"]);
+  const { t } = useTranslation(["common", "errors", "tasks"]);
   const { data: child, isLoading, error } = useChild(childId || "");
   const verifyPinMutation = useVerifyChildPin();
   const [isPinVerified, setIsPinVerified] = useState(false);
@@ -146,11 +146,23 @@ function ChildProfilePage() {
             </div>
           </div>
 
-          {/* Placeholder for future features */}
-          <div className="mt-8 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 p-6">
-            <p className="text-center text-gray-500">
-              {t("common:profile.activity_coming_soon")}
-            </p>
+          {/* Quick Actions */}
+          <div className="mt-8">
+            <h3 className="mb-4 text-lg font-semibold text-gray-900">{t("tasks:quick_actions")}</h3>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <button
+                onClick={() => navigate(`/child/${childId}/tasks`)}
+                className="flex items-center gap-3 rounded-lg border-2 border-blue-200 bg-blue-50 p-4 text-left transition-colors hover:bg-blue-100"
+              >
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-600">
+                  <IconChecklist className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <div className="font-semibold text-gray-900">{t("tasks:view_tasks")}</div>
+                  <div className="text-sm text-gray-600">{t("tasks:manage_tasks")}</div>
+                </div>
+              </button>
+            </div>
           </div>
         </div>
       </main>
