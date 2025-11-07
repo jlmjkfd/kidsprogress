@@ -11,6 +11,7 @@ import {
   IconLogout,
   IconHome,
 } from "@tabler/icons-react";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 export default function ParentPortalLayout() {
   const navigate = useNavigate();
@@ -70,6 +71,9 @@ export default function ParentPortalLayout() {
 
         {/* Footer Actions */}
         <div className="p-4 border-t space-y-2">
+          <div className="flex justify-center mb-2">
+            <LanguageSwitcher />
+          </div>
           <button
             onClick={() => navigate("/portal-selection")}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"

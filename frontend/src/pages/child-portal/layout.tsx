@@ -12,6 +12,7 @@ import {
   IconArrowLeft,
 } from "@tabler/icons-react";
 import { useChild } from "@/api/queries/useChild";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 export default function ChildPortalLayout() {
   const navigate = useNavigate();
@@ -55,7 +56,7 @@ export default function ChildPortalLayout() {
             </div>
           )}
 
-          <div className="w-20"></div> {/* Spacer */}
+          <LanguageSwitcher />
         </div>
       </div>
 

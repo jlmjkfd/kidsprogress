@@ -13,6 +13,7 @@ import {
   IconSparkles,
   IconMessageCircle,
 } from "@tabler/icons-react";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 export default function PortalSelectionPage() {
   const navigate = useNavigate();
@@ -25,15 +26,18 @@ export default function PortalSelectionPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-gray-900">KidsProgress</h1>
-            <button
-              onClick={() => {
-                localStorage.removeItem("auth_token");
-                navigate("/login");
-              }}
-              className="text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              {t("common:logout")}
-            </button>
+            <div className="flex items-center gap-4">
+              <LanguageSwitcher />
+              <button
+                onClick={() => {
+                  localStorage.removeItem("auth_token");
+                  navigate("/login");
+                }}
+                className="text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                {t("common:logout")}
+              </button>
+            </div>
           </div>
         </div>
       </div>

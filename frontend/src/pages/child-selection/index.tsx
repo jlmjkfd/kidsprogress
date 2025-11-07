@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { IconUser, IconArrowLeft, IconLock } from "@tabler/icons-react";
 import { useChildren } from "@/api/queries/useChildren";
 import { calculateAge } from "@/types/child";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 export default function ChildSelectionPage() {
   const navigate = useNavigate();
@@ -46,7 +47,7 @@ export default function ChildSelectionPage() {
               <span>Back</span>
             </button>
             <h1 className="text-2xl font-bold text-gray-900">Who are you?</h1>
-            <div className="w-20"></div> {/* Spacer */}
+            <LanguageSwitcher />
           </div>
         </div>
       </div>
