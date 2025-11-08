@@ -3,11 +3,17 @@ import pytest
 import pytest_asyncio
 from fastapi.testclient import TestClient
 from motor.motor_asyncio import AsyncIOMotorClient
-from backend.main import app
-from backend.services.auth_service import AuthService
-from backend.models.user import UserCreate
-from backend.utils.datetime_utils import utcnow
 from bson import ObjectId
+import sys
+from pathlib import Path
+
+# Add backend to path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
+from main import app
+from services.auth_service import AuthService
+from models.user import UserCreate
+from utils.datetime_utils import utcnow
 
 
 @pytest_asyncio.fixture

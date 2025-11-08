@@ -5,9 +5,15 @@ from datetime import datetime, timedelta
 from jose import jwt
 from motor.motor_asyncio import AsyncIOMotorClient
 from bson import ObjectId
-from backend.services.auth_service import AuthService, SECRET_KEY, ALGORITHM
-from backend.models.user import UserCreate
-from backend.utils.datetime_utils import utcnow
+import sys
+from pathlib import Path
+
+# Add backend to path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
+from services.auth_service import AuthService, SECRET_KEY, ALGORITHM
+from models.user import UserCreate
+from utils.datetime_utils import utcnow
 
 
 @pytest_asyncio.fixture
@@ -106,8 +112,8 @@ class TestAccessTokenManagement:
         assert "exp" in payload
 
         # Check expiration is ~7 days from now
-        exp_time = datetime.fromtimestamp(payload["exp"])
-        expected_exp = utcnow() + timedelta(days=7)
+        exp_time = datetime.fromtimestamp(payload["exp"], tz=None)
+        expected_exp = utcnow().replace(tzinfo=None) + timedelta(days=7)
         assert abs((exp_time - expected_exp).total_seconds()) < 10
 
     def test_create_access_token_temporary_device(self, auth_service):
@@ -120,8 +126,8 @@ class TestAccessTokenManagement:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
 
         # Check expiration is ~30 minutes from now
-        exp_time = datetime.fromtimestamp(payload["exp"])
-        expected_exp = utcnow() + timedelta(minutes=30)
+        exp_time = datetime.fromtimestamp(payload["exp"], tz=None)
+        expected_exp = utcnow().replace(tzinfo=None) + timedelta(minutes=30)
         assert abs((exp_time - expected_exp).total_seconds()) < 10
 
     def test_create_access_token_includes_subject(self, auth_service):
@@ -170,8 +176,8 @@ class TestRefreshTokenManagement:
         assert payload["is_trusted"] is True
 
         # Check expiration is ~30 days
-        exp_time = datetime.fromtimestamp(payload["exp"])
-        expected_exp = utcnow() + timedelta(days=30)
+        exp_time = datetime.fromtimestamp(payload["exp"], tz=None)
+        expected_exp = utcnow().replace(tzinfo=None) + timedelta(days=30)
         assert abs((exp_time - expected_exp).total_seconds()) < 10
 
         # Verify token hash is stored in database
@@ -190,8 +196,8 @@ class TestRefreshTokenManagement:
         assert payload["is_trusted"] is False
 
         # Check expiration is ~7 days
-        exp_time = datetime.fromtimestamp(payload["exp"])
-        expected_exp = utcnow() + timedelta(days=7)
+        exp_time = datetime.fromtimestamp(payload["exp"], tz=None)
+        expected_exp = utcnow().replace(tzinfo=None) + timedelta(days=7)
         assert abs((exp_time - expected_exp).total_seconds()) < 10
 
     @pytest.mark.asyncio

@@ -3,8 +3,14 @@ import pytest
 import pytest_asyncio
 from motor.motor_asyncio import AsyncIOMotorClient
 from bson import ObjectId
-from backend.services.device_service import DeviceService
-from backend.utils.datetime_utils import utcnow
+import sys
+from pathlib import Path
+
+# Add backend to path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
+from services.device_service import DeviceService
+from utils.datetime_utils import utcnow
 
 
 @pytest_asyncio.fixture
