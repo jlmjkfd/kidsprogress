@@ -25,5 +25,7 @@
   "creating": "Creating...",
   "quick_actions": "Quick Actions",
   "view_tasks": "View Tasks",
-  "manage_tasks": "Manage tasks and activities"
+  "manage_tasks": "Manage tasks and activities",
+  "no_tasks_yet": "No tasks yet",
+  "create_first_task": "Create your first task to get started"
 }

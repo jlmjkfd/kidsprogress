@@ -3,15 +3,13 @@ import { render, RenderOptions } from '@testing-library/react'
 import { Provider } from 'react-redux'
 import { BrowserRouter } from 'react-router-dom'
 import { configureStore } from '@reduxjs/toolkit'
-import writingReducer from '../store/modules/writingSlice'
-import chatReducer from '../store/modules/chatSlice'
+import authReducer from '../store/slices/authSlice'
 
 // Create a custom render function that includes providers
 const createTestStore = (preloadedState = {}) => {
   return configureStore({
     reducer: {
-      writing: writingReducer,
-      chat: chatReducer
+      auth: authReducer
     },
     preloadedState
   })

@@ -8,6 +8,8 @@ export interface Child {
   date_of_birth: string; // ISO date string (YYYY-MM-DD)
   avatar_url?: string;
   pin_required: boolean;
+  pin_hash?: string;
+  language?: "en" | "zh" | null; // null means inherit from parent
   created_at: string;
   updated_at: string;
 }
@@ -18,6 +20,7 @@ export interface ChildCreate {
   avatar_url?: string;
   pin_required: boolean;
   pin?: string;
+  language?: "en" | "zh" | null;
 }
 
 /**

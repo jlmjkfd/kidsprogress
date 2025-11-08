@@ -194,3 +194,101 @@ class DeviceService:
             )
 
         return devices
+
+    async def update_device(
+        self,
+        device_token: str,
+        parent_id: str,
+        device_name: str | None = None,
+        child_ids: List[str] | None = None,
+    ) -> Optional[DeviceRegistration]:
+        """Update device information.
+
+        Args:
+            device_token: Device's unique token
+            parent_id: Parent's ObjectId as string (for authorization)
+            device_name: New device name (optional)
+            child_ids: New list of child IDs (optional)
+
+        Returns:
+            Updated device registration or None if not found/unauthorized
+        """
+        # Verify device exists and belongs to this parent
+        existing = await self.devices_collection.find_one({
+            "device_token": device_token,
+            "parent_id": ObjectId(parent_id)
+        })
+
+        if not existing:
+            return None
+
+        update_data = {}
+
+        if device_name is not None:
+            update_data["device_name"] = device_name
+
+        if child_ids is not None:
+            # Validate all child IDs
+            child_object_ids = []
+            for child_id in child_ids:
+                if not ObjectId.is_valid(child_id):
+                    raise ValueError(f"Invalid child_id: {child_id}")
+                child_object_ids.append(ObjectId(child_id))
+
+            # Verify all children belong to this parent
+            count = await self.children_collection.count_documents(
+                {"_id": {"$in": child_object_ids}, "parent_id": ObjectId(parent_id)}
+            )
+            if count != len(child_object_ids):
+                raise ValueError("One or more children do not belong to this parent")
+
+            update_data["child_ids"] = child_object_ids
+
+        if not update_data:
+            # No changes to make, return existing
+            return DeviceRegistration(
+                _id=existing["_id"],
+                device_token=existing["device_token"],
+                device_name=existing["device_name"],
+                parent_id=existing["parent_id"],
+                child_ids=existing["child_ids"],
+                registered_at=existing["registered_at"],
+                last_used_at=existing["last_used_at"],
+                is_active=existing.get("is_active", True),
+            )
+
+        # Update device
+        await self.devices_collection.update_one(
+            {"device_token": device_token},
+            {"$set": update_data}
+        )
+
+        # Fetch updated document
+        updated = await self.devices_collection.find_one({"device_token": device_token})
+
+        return DeviceRegistration(
+            _id=updated["_id"],
+            device_token=updated["device_token"],
+            device_name=updated["device_name"],
+            parent_id=updated["parent_id"],
+            child_ids=updated["child_ids"],
+            registered_at=updated["registered_at"],
+            last_used_at=updated["last_used_at"],
+            is_active=updated.get("is_active", True),
+        )
+
+    async def remove_device(self, device_token: str, parent_id: str) -> bool:
+        """Remove/deactivate a device registration.
+
+        Args:
+            device_token: Device's unique token
+            parent_id: Parent's ObjectId as string (for authorization)
+
+        Returns:
+            True if removed, False if not found/unauthorized
+        """
+        result = await self.devices_collection.update_one(
+            {"device_token": device_token, "parent_id": ObjectId(parent_id)},
+            {"$set": {"is_active": False}}
+        )
+        return result.modified_count > 0

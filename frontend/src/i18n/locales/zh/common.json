@@ -89,5 +89,67 @@
     "welcome": "{{name}}的入口",
     "subtitle": "让我们一起学习和玩耍！",
     "back": "返回"
+  },
+  "child_management": {
+    "basic_info": "基本信息",
+    "tasks": "任务",
+    "analysis": "分析",
+    "subtitle": "{{age}}岁"
+  },
+  "child_info": {
+    "name": "姓名",
+    "date_of_birth": "出生日期",
+    "years_old": "岁",
+    "pin_status": "PIN保护",
+    "pin_enabled": "已启用",
+    "pin_disabled": "未启用",
+    "preferred_language": "首选语言",
+    "inherit_parent": "与家长相同"
+  },
+  "languages": {
+    "en": "English",
+    "zh": "中文"
+  },
+  "edit_info": "编辑信息",
+  "add": "添加",
+  "child_not_found": "未找到孩子",
+  "no_data_yet": "暂无数据",
+  "analysis_description": "活动和进度数据将显示在这里",
+  "parent": "家长",
+  "child": "孩子",
+  "settings": {
+    "account_info": "账户信息",
+    "email": "邮箱",
+    "name": "姓名",
+    "language": "语言",
+    "language_hint": "要更改语言，请使用顶部导航栏中的语言切换器",
+    "parent_pin": "家长门户密码",
+    "parent_pin_description": "设置密码以快速从孩子页面访问家长门户，无需重新输入密码。",
+    "pin_is_set": "已设置密码",
+    "no_pin_set": "未设置密码",
+    "change_pin": "更改密码",
+    "remove_pin": "删除密码",
+    "set_pin": "设置密码",
+    "device_management": "设备管理",
+    "device_management_description": "管理设备注册，以便孩子无需家长登录即可访问门户。",
+    "coming_soon": "即将推出"
+  },
+  "device_list": {
+    "title": "已注册设备",
+    "no_devices": "没有已注册的设备",
+    "device_name": "设备名称",
+    "registered": "注册时间",
+    "last_used": "最后使用",
+    "children_access": "可访问的孩子",
+    "no_children": "无",
+    "edit": "编辑",
+    "remove": "删除",
+    "current_device": "当前设备",
+    "edit_device": "编辑设备",
+    "remove_device": "删除设备",
+    "remove_confirmation": "确定要删除设备 \"{{deviceName}}\" 吗？",
+    "remove_warning": "孩子将无法在此设备上访问他们的门户，除非家长重新登录。",
+    "removing": "删除中...",
+    "update_error": "更新设备失败"
   }
 }

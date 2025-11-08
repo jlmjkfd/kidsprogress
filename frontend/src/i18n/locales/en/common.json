@@ -89,5 +89,67 @@
     "welcome": "{{name}}'s Portal",
     "subtitle": "Let's learn and play!",
     "back": "Back"
+  },
+  "child_management": {
+    "basic_info": "Basic Info",
+    "tasks": "Tasks",
+    "analysis": "Analysis",
+    "subtitle": "{{age}} years old"
+  },
+  "child_info": {
+    "name": "Name",
+    "date_of_birth": "Date of Birth",
+    "years_old": "years old",
+    "pin_status": "PIN Protection",
+    "pin_enabled": "Enabled",
+    "pin_disabled": "Disabled",
+    "preferred_language": "Preferred Language",
+    "inherit_parent": "Same as parent"
+  },
+  "languages": {
+    "en": "English",
+    "zh": "中文"
+  },
+  "edit_info": "Edit Information",
+  "add": "Add",
+  "child_not_found": "Child not found",
+  "no_data_yet": "No data available yet",
+  "analysis_description": "Activity and progress data will appear here",
+  "parent": "Parent",
+  "child": "Child",
+  "settings": {
+    "account_info": "Account Information",
+    "email": "Email",
+    "name": "Name",
+    "language": "Language",
+    "language_hint": "To change language, use the language switcher in the top navigation",
+    "parent_pin": "Parent Portal PIN",
+    "parent_pin_description": "Set a PIN to quickly access the parent portal from child pages without re-entering your password.",
+    "pin_is_set": "PIN is set",
+    "no_pin_set": "No PIN set",
+    "change_pin": "Change PIN",
+    "remove_pin": "Remove PIN",
+    "set_pin": "Set PIN",
+    "device_management": "Device Management",
+    "device_management_description": "Manage device registration for child portal access without parent login.",
+    "coming_soon": "Coming Soon"
+  },
+  "device_list": {
+    "title": "Registered Devices",
+    "no_devices": "No devices registered",
+    "device_name": "Device Name",
+    "registered": "Registered",
+    "last_used": "Last Used",
+    "children_access": "Children with Access",
+    "no_children": "None",
+    "edit": "Edit",
+    "remove": "Remove",
+    "current_device": "This Device",
+    "edit_device": "Edit Device",
+    "remove_device": "Remove Device",
+    "remove_confirmation": "Are you sure you want to remove \"{{deviceName}}\"?",
+    "remove_warning": "Children will no longer be able to access their portal on this device without parent login.",
+    "removing": "Removing...",
+    "update_error": "Failed to update device"
   }
 }

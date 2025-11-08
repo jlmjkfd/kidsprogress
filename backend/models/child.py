@@ -1,6 +1,6 @@
 """Child models for parent-child authentication."""
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, Literal
 from datetime import datetime, date
 from bson import ObjectId
 from pydantic_core import core_schema
@@ -33,6 +33,7 @@ class ChildCreate(BaseModel):
     avatar_url: Optional[str] = None
     pin_required: bool = False
     pin: Optional[str] = Field(None, min_length=4, max_length=6, pattern=r'^\d{4,6}$')
+    language: Optional[Literal["en", "zh"]] = None  # None means inherit from parent
 
 class ChildUpdate(BaseModel):
     """Request model for updating a child profile."""
@@ -41,6 +42,7 @@ class ChildUpdate(BaseModel):
     avatar_url: Optional[str] = None
     pin_required: Optional[bool] = None
     pin: Optional[str] = Field(None, min_length=4, max_length=6, pattern=r'^\d{4,6}$')
+    language: Optional[Literal["en", "zh"]] = None
 
 class Child(BaseModel):
     """Child profile model (public view, no PIN hash)."""
@@ -50,6 +52,7 @@ class Child(BaseModel):
     date_of_birth: date
     avatar_url: Optional[str] = None
     pin_required: bool = False
+    language: Optional[Literal["en", "zh"]] = None  # None means inherit from parent
     created_at: datetime = Field(default_factory=utcnow)
     updated_at: datetime = Field(default_factory=utcnow)
 

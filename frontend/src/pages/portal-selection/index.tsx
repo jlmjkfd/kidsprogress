@@ -14,10 +14,38 @@ import {
   IconMessageCircle,
 } from "@tabler/icons-react";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { useLogout } from "@api/mutations/useLogout";
+import { useAppDispatch } from "@store/hooks";
+import { logout } from "@store/slices/authSlice";
+import { getDeviceToken } from "@/utils/deviceToken";
+import ParentPinModal from "@/components/ParentPinModal";
+import { useParentPortalAccess } from "@/hooks/useParentPortalAccess";
 
 export default function PortalSelectionPage() {
   const navigate = useNavigate();
   const { t } = useTranslation(["common"]);
+  const dispatch = useAppDispatch();
+  const logoutMutation = useLogout();
+  const { navigateToParentPortal, showPinModal, handlePinSuccess, handlePinCancel } = useParentPortalAccess();
+
+  const handleLogout = () => {
+    logoutMutation.mutate(undefined, {
+      onSettled: () => {
+        // Clear Redux state and localStorage
+        dispatch(logout());
+
+        // Redirect based on device registration
+        const deviceToken = getDeviceToken();
+        if (deviceToken) {
+          // Device is registered, go to child selection
+          navigate("/child-selection");
+        } else {
+          // No device registration, go to login
+          navigate("/login");
+        }
+      },
+    });
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
@@ -29,11 +57,9 @@ export default function PortalSelectionPage() {
             <div className="flex items-center gap-2 sm:gap-4">
               <LanguageSwitcher />
               <button
-                onClick={() => {
-                  localStorage.removeItem("auth_token");
-                  navigate("/login");
-                }}
-                className="text-sm md:text-base text-gray-600 hover:text-gray-900 transition-colors px-3 py-2 min-h-[44px]"
+                onClick={handleLogout}
+                disabled={logoutMutation.isPending}
+                className="text-sm md:text-base text-gray-600 hover:text-gray-900 transition-colors px-3 py-2 min-h-[44px] disabled:opacity-50"
               >
                 {t("common:logout")}
               </button>
@@ -56,7 +82,7 @@ export default function PortalSelectionPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
           {/* Parent Portal Card */}
           <button
-            onClick={() => navigate("/parent-portal")}
+            onClick={() => navigateToParentPortal()}
             className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 p-6 md:p-8 text-left border-2 border-transparent hover:border-blue-500 min-h-[44px]"
           >
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-4 md:mb-6">
@@ -136,6 +162,13 @@ export default function PortalSelectionPage() {
             </div>
           </button>
         </div>
+
+        {/* Parent PIN Modal */}
+        <ParentPinModal
+          isOpen={showPinModal}
+          onClose={handlePinCancel}
+          onSuccess={handlePinSuccess}
+        />
       </div>
     </div>
   );

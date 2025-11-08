@@ -10,6 +10,8 @@ import { useAppDispatch } from "@store/hooks";
 import { setCredentials } from "@store/slices/authSlice";
 import { useCurrentUser } from "@api/queries/useCurrentUser";
 import LanguageSwitcher from "@components/LanguageSwitcher";
+import DeviceRegistrationModal from "@components/DeviceRegistrationModal";
+import { hasDeviceToken } from "@/utils/deviceToken";
 
 function LoginPage() {
   const { t } = useTranslation(["auth", "errors"]);
@@ -17,6 +19,8 @@ function LoginPage() {
   const dispatch = useAppDispatch();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isTrustedDevice, setIsTrustedDevice] = useState(true);
+  const [showDeviceRegistration, setShowDeviceRegistration] = useState(false);
 
   const loginMutation = useLogin();
   const { refetch: fetchCurrentUser } = useCurrentUser(false);
@@ -25,11 +29,12 @@ function LoginPage() {
     e.preventDefault();
 
     loginMutation.mutate(
-      { email, password },
+      { email, password, is_trusted_device: isTrustedDevice },
       {
         onSuccess: async (tokenData) => {
-          // Store token in localStorage first so API client can use it
+          // Store tokens in localStorage
           localStorage.setItem("auth_token", tokenData.access_token);
+          localStorage.setItem("refresh_token", tokenData.refresh_token);
 
           // Fetch current user
           const { data: user } = await fetchCurrentUser();
@@ -37,7 +42,14 @@ function LoginPage() {
           if (user) {
             // Store credentials in Redux
             dispatch(setCredentials({ token: tokenData.access_token, user }));
-            navigate("/dashboard");
+
+            // Show device registration modal if trusted device and not already registered
+            if (isTrustedDevice && !hasDeviceToken()) {
+              setShowDeviceRegistration(true);
+            } else {
+              // Navigate to portal selection after login
+              navigate("/portal-selection");
+            }
           }
         },
         // onError: (error) => {
@@ -114,6 +126,27 @@ function LoginPage() {
               />
             </div>
 
+            <div className="space-y-1">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="trustedDevice"
+                  checked={isTrustedDevice}
+                  onChange={(e) => setIsTrustedDevice(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <label
+                  htmlFor="trustedDevice"
+                  className="ml-2 text-sm font-medium text-gray-700"
+                >
+                  {t("auth:login.trusted_device")}
+                </label>
+              </div>
+              <p className="ml-6 text-xs text-gray-500">
+                {t("auth:login.trusted_device_hint")}
+              </p>
+            </div>
+
             <button
               type="submit"
               disabled={loginMutation.isPending}
@@ -141,6 +174,16 @@ function LoginPage() {
           </div>
         </div>
       </div>
+
+      {/* Device Registration Modal */}
+      <DeviceRegistrationModal
+        isOpen={showDeviceRegistration}
+        onClose={() => {
+          setShowDeviceRegistration(false);
+          navigate("/portal-selection");
+        }}
+        isTrustedDevice={isTrustedDevice}
+      />
     </div>
   );
 }

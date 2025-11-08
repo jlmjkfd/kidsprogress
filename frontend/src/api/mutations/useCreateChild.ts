@@ -3,7 +3,7 @@
  */
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../client';
-import { Child, ChildCreate } from '@types/child';
+import { Child, ChildCreate } from '../../types/child';
 
 export function useCreateChild() {
   const queryClient = useQueryClient();

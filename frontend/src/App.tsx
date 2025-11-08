@@ -15,28 +15,31 @@ import {
 import { QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { Provider } from "react-redux";
-import store from "@store";
-import { queryClient } from "@api/queryClient";
-import { useAppSelector } from "@store/hooks";
+import store from "@/store";
+import { queryClient } from "@/api/queryClient";
+import { useAppSelector } from "@/store/hooks";
 
 // Auth pages
-import LoginPage from "@pages/login";
-import RegisterPage from "@pages/register";
+import LoginPage from "@/pages/login";
+import RegisterPage from "@/pages/register";
 
 // Portal selection
-import PortalSelectionPage from "@pages/portal-selection";
-import ChildSelectionPage from "@pages/child-selection";
+import PortalSelectionPage from "@/pages/portal-selection";
+import ChildSelectionPage from "@/pages/child-selection";
 
 // Parent Portal
-import ParentPortalLayout from "@pages/parent-portal/layout";
-import ManageChildrenPage from "@pages/parent-portal/children";
-import ChildProfilePage from "@pages/child-profile";
-import TaskListPage from "@pages/task-list";
+import ParentPortalLayout from "@/pages/parent-portal/layout";
+import ManageChildrenPage from "@/pages/parent-portal/children";
+import ChildManagementLayout from "@/pages/parent-portal/children/[id]/layout";
+import ChildBasicInfoPage from "@/pages/parent-portal/children/[id]/index";
+import ChildTasksPage from "@/pages/parent-portal/children/[id]/tasks";
+import ChildAnalysisPage from "@/pages/parent-portal/children/[id]/analysis";
+import ParentPortalSettings from "@/pages/parent-portal/settings";
 
 // Child Portal
-import ChildPortalLayout from "@pages/child-portal/layout";
+import ChildPortalLayout from "@/pages/child-portal/layout";
 
-import "@i18n/config";
+import "@/i18n/config";
 import "./App.css";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -101,28 +104,18 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       >
-        {/* Default: Manage Children */}
+        {/* Default: Manage Children List */}
         <Route index element={<ManageChildrenPage />} />
 
-        {/* Child Profile (view/edit single child) */}
-        <Route path="children/:childId" element={<ChildProfilePage />} />
+        {/* Child Management - Nested routes with tabs */}
+        <Route path="children/:childId" element={<ChildManagementLayout />}>
+          <Route index element={<ChildBasicInfoPage />} />
+          <Route path="tasks" element={<ChildTasksPage />} />
+          <Route path="analysis" element={<ChildAnalysisPage />} />
+        </Route>
 
-        {/* Task Management (for a specific child) */}
-        <Route path="children/:childId/tasks" element={<TaskListPage />} />
-
-        {/* TODO: Add more parent portal routes */}
-        <Route
-          path="tasks"
-          element={<div className="p-8">All Tasks View - Coming Soon</div>}
-        />
-        <Route
-          path="analytics"
-          element={<div className="p-8">Analytics - Coming Soon</div>}
-        />
-        <Route
-          path="settings"
-          element={<div className="p-8">Settings - Coming Soon</div>}
-        />
+        {/* Settings */}
+        <Route path="settings" element={<ParentPortalSettings />} />
       </Route>
 
       {/* Child Portal - For children to use */}

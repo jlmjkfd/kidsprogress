@@ -36,5 +36,11 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": [
+    "src/components/chat/**/*",
+    "src/components/writing/**/*",
+    "src/store/modules/chatSlice.ts",
+    "src/store/modules/writingSlice.ts"
+  ]
 }

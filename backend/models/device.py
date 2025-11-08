@@ -41,8 +41,26 @@ class DeviceRegistration(BaseModel):
     child_ids: List[PyObjectId]
     registered_at: datetime = Field(default_factory=utcnow)
     last_used_at: datetime = Field(default_factory=utcnow)
+    is_active: bool = True  # Soft delete flag
 
     class Config:
         populate_by_name = True
         arbitrary_types_allowed = True
         json_encoders = {ObjectId: str}
+
+
+class DeviceUpdateRequest(BaseModel):
+    """Request model for updating device information."""
+    device_name: str | None = None
+    child_ids: List[str] | None = None
+
+
+class DeviceResponse(BaseModel):
+    """Device information returned to client."""
+    _id: str
+    device_token: str
+    device_name: str
+    child_ids: List[str]
+    registered_at: str
+    last_used_at: str
+    is_active: bool

@@ -3,7 +3,7 @@
  */
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../client';
-import { Child } from '@types/child';
+import { Child } from '../../types/child';
 
 export function useChildren() {
   return useQuery({

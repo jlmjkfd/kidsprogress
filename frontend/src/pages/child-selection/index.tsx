@@ -3,15 +3,20 @@
  */
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { IconUser, IconArrowLeft, IconLock } from "@tabler/icons-react";
+import { IconUser, IconUserShield, IconLock, IconAlertCircle } from "@tabler/icons-react";
 import { useChildren } from "@/api/queries/useChildren";
 import { calculateAge } from "@/types/child";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import ParentPinModal from "@/components/ParentPinModal";
+import { useParentPortalAccess } from "@/hooks/useParentPortalAccess";
+import { hasDeviceToken } from "@/utils/deviceToken";
 
 export default function ChildSelectionPage() {
   const navigate = useNavigate();
-  const { t } = useTranslation(["common"]);
+  const { t } = useTranslation(["common", "auth"]);
   const { data: children, isLoading, isError } = useChildren();
+  const { navigateToParentPortal, showPinModal, handlePinSuccess, handlePinCancel } = useParentPortalAccess();
+  const isDeviceRegistered = hasDeviceToken();
 
   const handleSelectChild = (childId: string) => {
     navigate(`/child-portal/${childId}`);
@@ -39,18 +44,37 @@ export default function ChildSelectionPage() {
       <div className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
-            <button
-              onClick={() => navigate("/portal-selection")}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              <IconArrowLeft size={20} />
-              <span>{t("common:back")}</span>
-            </button>
             <h1 className="text-2xl font-bold text-gray-900">{t("common:child_selection.title")}</h1>
-            <LanguageSwitcher />
+            <div className="flex items-center gap-2 sm:gap-4">
+              <button
+                onClick={() => navigateToParentPortal()}
+                className="flex items-center gap-2 text-blue-600 hover:text-blue-700 transition-colors px-3 py-2 min-h-[44px]"
+              >
+                <IconUserShield size={20} />
+                <span className="hidden sm:inline">{t("common:parent")}</span>
+              </button>
+              <LanguageSwitcher />
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Untrusted Device Warning */}
+      {!isDeviceRegistered && (
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3">
+            <IconAlertCircle className="text-amber-600 flex-shrink-0 mt-0.5" size={20} />
+            <div className="flex-1">
+              <h3 className="font-semibold text-amber-900 mb-1">
+                {t("auth:device.untrusted_warning")}
+              </h3>
+              <p className="text-sm text-amber-800">
+                {t("auth:device.untrusted_description")}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Child Selection */}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -116,15 +140,22 @@ export default function ChildSelectionPage() {
               {t("common:child_selection.no_children_description")}
             </p>
             <button
-              onClick={() => navigate("/portal-selection")}
-              className="inline-flex items-center gap-2 bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors"
+              onClick={() => navigateToParentPortal()}
+              className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
             >
-              <IconArrowLeft size={20} />
-              <span>{t("common:child_selection.go_back")}</span>
+              <IconUserShield size={20} />
+              <span>{t("common:parent_portal")}</span>
             </button>
           </div>
         )}
       </div>
+
+      {/* Parent PIN Modal */}
+      <ParentPinModal
+        isOpen={showPinModal}
+        onClose={handlePinCancel}
+        onSuccess={handlePinSuccess}
+      />
     </div>
   );
 }

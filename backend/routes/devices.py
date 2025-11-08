@@ -2,7 +2,7 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from backend.models.device import DeviceRegisterRequest, DeviceRegistration
+from backend.models.device import DeviceRegisterRequest, DeviceRegistration, DeviceUpdateRequest, DeviceResponse
 from backend.models.child import Child
 from backend.services.device_service import DeviceService
 from backend.dependencies.database import get_db
@@ -84,7 +84,7 @@ async def get_device_children(
     return children
 
 
-@router.get("", response_model=List[DeviceRegistration])
+@router.get("", response_model=List[DeviceResponse])
 async def get_my_devices(
     current_user: User = Depends(get_current_user),
     device_service: DeviceService = Depends(get_device_service),
@@ -94,4 +94,82 @@ async def get_my_devices(
     Requires parent authentication.
     """
     devices = await device_service.get_parent_devices(str(current_user.id))
-    return devices
+    # Convert to response format
+    return [
+        DeviceResponse(
+            _id=str(device.id),
+            device_token=device.device_token,
+            device_name=device.device_name,
+            child_ids=[str(child_id) for child_id in device.child_ids],
+            registered_at=device.registered_at.isoformat(),
+            last_used_at=device.last_used_at.isoformat(),
+            is_active=device.is_active,
+        )
+        for device in devices
+    ]
+
+
+@router.put("/{device_token}", response_model=DeviceResponse)
+async def update_device(
+    device_token: str,
+    request: DeviceUpdateRequest,
+    current_user: User = Depends(get_current_user),
+    device_service: DeviceService = Depends(get_device_service),
+):
+    """Update device information.
+
+    Requires parent authentication.
+    Only the parent who registered the device can update it.
+    """
+    try:
+        device = await device_service.update_device(
+            device_token=device_token,
+            parent_id=str(current_user.id),
+            device_name=request.device_name,
+            child_ids=request.child_ids,
+        )
+
+        if not device:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Device not found or unauthorized",
+            )
+
+        return DeviceResponse(
+            _id=str(device.id),
+            device_token=device.device_token,
+            device_name=device.device_name,
+            child_ids=[str(child_id) for child_id in device.child_ids],
+            registered_at=device.registered_at.isoformat(),
+            last_used_at=device.last_used_at.isoformat(),
+            is_active=device.is_active,
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+        )
+
+
+@router.delete("/{device_token}", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_device(
+    device_token: str,
+    current_user: User = Depends(get_current_user),
+    device_service: DeviceService = Depends(get_device_service),
+):
+    """Remove/deactivate a device registration.
+
+    Requires parent authentication.
+    Only the parent who registered the device can remove it.
+    """
+    success = await device_service.remove_device(
+        device_token=device_token,
+        parent_id=str(current_user.id),
+    )
+
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Device not found or unauthorized",
+        )
+
+    return None

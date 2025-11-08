@@ -13,7 +13,7 @@ import { useCurrentUser } from '@api/queries/useCurrentUser';
 import LanguageSwitcher from '@components/LanguageSwitcher';
 
 function RegisterPage() {
-  const { t } = useTranslation(['auth', 'errors']);
+  const { t, i18n } = useTranslation(['auth', 'errors']);
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const [email, setEmail] = useState('');
@@ -28,11 +28,12 @@ function RegisterPage() {
     e.preventDefault();
 
     try {
-      // Register user
+      // Register user with current language
       await registerMutation.mutateAsync({
         email,
         password,
         full_name: fullName,
+        language: i18n.language as "en" | "zh",
       });
 
       // Auto-login after registration
