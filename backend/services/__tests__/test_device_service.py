@@ -172,7 +172,10 @@ class TestDeviceRegistration:
         assert updated_device.device_name == "Updated Device Name"
         assert len(updated_device.child_ids) == 1
         assert updated_device.child_ids[0] == sample_children[2]["_id"]
-        assert updated_device.registered_at == original_registered_at  # Preserved
+        # MongoDB truncates to milliseconds, so compare within 1 second
+        time_diff = abs((updated_device.registered_at.replace(tzinfo=None) -
+                        original_registered_at.replace(tzinfo=None)).total_seconds())
+        assert time_diff < 1  # Preserved within tolerance
 
 
 class TestDeviceRetrieval:
@@ -423,7 +426,10 @@ class TestDeviceUsageTracking:
 
         # Verify timestamp was updated
         updated_device = await device_service.get_device_registration(sample_device.device_token)
-        assert updated_device.last_used_at > original_last_used
+        # Strip timezone for comparison (MongoDB may return naive datetimes)
+        updated_time = updated_device.last_used_at.replace(tzinfo=None) if updated_device.last_used_at.tzinfo else updated_device.last_used_at
+        original_time = original_last_used.replace(tzinfo=None) if original_last_used.tzinfo else original_last_used
+        assert updated_time > original_time
 
     @pytest.mark.asyncio
     async def test_update_last_used_not_found(self, device_service):
@@ -438,14 +444,18 @@ class TestEdgeCases:
 
     @pytest.mark.asyncio
     async def test_device_with_no_children(self, device_service, sample_parent):
-        """Test registering device with empty child list."""
-        with pytest.raises(ValueError):
-            await device_service.register_device(
-                device_token="empty-children-device",
-                device_name="Device",
-                parent_id=str(sample_parent["_id"]),
-                child_ids=[],
-            )
+        """Test registering device with empty child list is allowed."""
+        # Empty child list should be allowed (parent can add children later)
+        device = await device_service.register_device(
+            device_token="empty-children-device",
+            device_name="Device",
+            parent_id=str(sample_parent["_id"]),
+            child_ids=[],
+        )
+
+        assert device is not None
+        assert device.child_ids == []
+        assert device.device_name == "Device"
 
     @pytest.mark.asyncio
     async def test_device_name_with_special_characters(
