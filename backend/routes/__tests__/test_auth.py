@@ -1,61 +1,15 @@
 """Integration tests for authentication routes."""
 import pytest
 import pytest_asyncio
-from fastapi.testclient import TestClient
-from motor.motor_asyncio import AsyncIOMotorClient
-from bson import ObjectId
 import sys
 from pathlib import Path
 
 # Add backend to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from main import app
 from services.auth_service import AuthService
-from models.user import UserCreate
-from utils.datetime_utils import utcnow
 
-
-@pytest_asyncio.fixture
-async def mongo_client():
-    """Create test MongoDB client."""
-    client = AsyncIOMotorClient("mongodb://localhost:27017")
-    yield client
-    client.close()
-
-
-@pytest_asyncio.fixture
-async def test_db(mongo_client):
-    """Create test database."""
-    db = mongo_client.test_kidsprogress_auth_routes
-    yield db
-    # Clean up after tests
-    await mongo_client.drop_database("test_kidsprogress_auth_routes")
-
-
-@pytest_asyncio.fixture
-async def auth_service(test_db):
-    """Create AuthService instance."""
-    return AuthService(test_db)
-
-
-@pytest_asyncio.fixture
-async def sample_user(auth_service):
-    """Create a sample user for testing."""
-    user_data = UserCreate(
-        email="test@example.com",
-        password="SecurePass123!",
-        full_name="Test User",
-        language="en"
-    )
-    user = await auth_service.create_user(user_data)
-    return user
-
-
-@pytest.fixture
-def client():
-    """Create FastAPI test client."""
-    return TestClient(app)
+# Note: client, test_db, sample_user fixtures are defined in conftest.py
 
 
 class TestRegistrationEndpoint:
@@ -73,6 +27,9 @@ class TestRegistrationEndpoint:
             }
         )
 
+        if response.status_code != 201:
+            print(f"\nResponse status: {response.status_code}")
+            print(f"Response body: {response.json()}")
         assert response.status_code == 201
         data = response.json()
         assert data["email"] == "newuser@example.com"
