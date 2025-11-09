@@ -16,7 +16,7 @@ from utils.datetime_utils import utcnow
 @pytest_asyncio.fixture
 async def mongo_client():
     """Create test MongoDB client."""
-    client = AsyncIOMotorClient("mongodb://localhost:27017")
+    client = AsyncIOMotorClient("mongodb://localhost:27016")
     yield client
     client.close()
 

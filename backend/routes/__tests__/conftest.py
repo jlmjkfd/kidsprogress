@@ -2,6 +2,7 @@
 import pytest
 import pytest_asyncio
 from fastapi.testclient import TestClient
+from httpx import AsyncClient
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 import sys
 from pathlib import Path
@@ -9,9 +10,9 @@ from pathlib import Path
 # Add backend to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from dependencies.database import get_db
-from dependencies.auth import get_current_user
-from models.user import User
+from backend.dependencies.database import get_db
+from backend.dependencies.auth import get_current_user
+from backend.models.user import User
 from bson import ObjectId
 
 
@@ -22,8 +23,15 @@ TEST_DB_NAME = "test_kidsprogress_routes"
 @pytest_asyncio.fixture(scope="function")
 async def test_db():
     """Create a test database for each test function."""
-    client = AsyncIOMotorClient("mongodb://localhost:27017")
+    client = AsyncIOMotorClient("mongodb://localhost:27016")
     db = client[TEST_DB_NAME]
+
+    # Create necessary indexes
+    await db.users.create_index("email", unique=True)
+    await db.children.create_index("parent_id")
+    await db.device_registrations.create_index("device_token", unique=True)
+    await db.device_registrations.create_index("parent_id")
+
     yield db
     # Clean up after test
     await client.drop_database(TEST_DB_NAME)
@@ -58,9 +66,9 @@ def test_app():
     return app
 
 
-@pytest.fixture
-def client(test_app, test_db):
-    """Create FastAPI test client with overridden dependencies."""
+@pytest_asyncio.fixture
+async def client(test_app, test_db):
+    """Create async HTTP client for testing with overridden dependencies."""
 
     # Override database dependency (must be async)
     async def override_get_db():
@@ -68,17 +76,17 @@ def client(test_app, test_db):
 
     test_app.dependency_overrides[get_db] = override_get_db
 
-    # Create client
-    with TestClient(test_app) as test_client:
-        yield test_client
+    # Create async client
+    async with AsyncClient(app=test_app, base_url="http://test") as async_client:
+        yield async_client
 
     # Clean up overrides
     test_app.dependency_overrides.clear()
 
 
-@pytest.fixture
-def authenticated_client(test_app, test_db, sample_user):
-    """Create authenticated test client with a logged-in user."""
+@pytest_asyncio.fixture
+async def authenticated_client(test_app, test_db, sample_user):
+    """Create authenticated async test client with a logged-in user."""
 
     # Override database dependency (must be async)
     async def override_get_db():
@@ -91,9 +99,9 @@ def authenticated_client(test_app, test_db, sample_user):
     test_app.dependency_overrides[get_db] = override_get_db
     test_app.dependency_overrides[get_current_user] = override_get_current_user
 
-    # Create client
-    with TestClient(test_app) as test_client:
-        yield test_client
+    # Create async client
+    async with AsyncClient(app=test_app, base_url="http://test") as async_client:
+        yield async_client
 
     # Clean up overrides
     test_app.dependency_overrides.clear()
@@ -152,3 +160,10 @@ async def sample_children(test_db, sample_parent):
         child_doc["_id"] = result.inserted_id
         children.append(child_doc)
     return children
+
+
+@pytest_asyncio.fixture
+async def auth_service(test_db):
+    """Create AuthService instance for testing."""
+    from backend.services.auth_service import AuthService
+    return AuthService(test_db)
