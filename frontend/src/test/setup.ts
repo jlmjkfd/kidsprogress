@@ -76,6 +76,11 @@ export const handlers = [
   http.get('http://localhost:8000/api/auth/parent-pin/status', () => {
     return HttpResponse.json({ has_pin: true })
   }),
+
+  // Children endpoints
+  http.get('http://localhost:8000/api/children', () => {
+    return HttpResponse.json([])
+  }),
 ]
 
 const server = setupServer(...handlers)
