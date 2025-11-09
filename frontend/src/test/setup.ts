@@ -50,6 +50,32 @@ export const handlers = [
       language: 'en'
     })
   }),
+
+  // Parent PIN endpoints
+  http.post('http://localhost:8000/api/auth/parent-pin/set', async ({ request }) => {
+    const body = await request.json() as any
+    if (body.pin && body.pin.length >= 4 && body.pin.length <= 6) {
+      return HttpResponse.json({ message: 'PIN set successfully' })
+    }
+    return new HttpResponse(
+      JSON.stringify({ detail: 'PIN must be 4-6 digits' }),
+      { status: 400 }
+    )
+  }),
+
+  http.post('http://localhost:8000/api/auth/parent-pin/verify', async ({ request }) => {
+    const body = await request.json() as any
+    // Mock: PIN '123456' is correct
+    return HttpResponse.json({ valid: body.pin === '123456' })
+  }),
+
+  http.post('http://localhost:8000/api/auth/parent-pin/remove', () => {
+    return HttpResponse.json({ message: 'PIN removed successfully' })
+  }),
+
+  http.get('http://localhost:8000/api/auth/parent-pin/status', () => {
+    return HttpResponse.json({ has_pin: true })
+  }),
 ]
 
 const server = setupServer(...handlers)
