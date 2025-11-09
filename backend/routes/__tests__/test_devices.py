@@ -13,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from main import app
 from services.device_service import DeviceService
 from services.auth_service import AuthService
+from models.user import UserCreate
 from utils.datetime_utils import utcnow
 
 
@@ -47,12 +48,13 @@ async def device_service(test_db):
 @pytest_asyncio.fixture
 async def test_parent(test_db, auth_service):
     """Create test parent user."""
-    parent = await auth_service.create_user(
+    user_data = UserCreate(
         email="parent@test.com",
         password="testpass123",
         full_name="Test Parent",
         language="en",
     )
+    parent = await auth_service.create_user(user_data)
     return parent
 
 
@@ -79,8 +81,8 @@ async def test_children(test_db, test_parent):
 async def auth_headers(auth_service, test_parent):
     """Create authentication headers for requests."""
     access_token = auth_service.create_access_token(
-        subject=test_parent.email,
-        is_trusted=True
+        {"sub": test_parent.email},
+        is_trusted_device=True
     )
     return {"Authorization": f"Bearer {access_token}"}
 
@@ -406,14 +408,15 @@ class TestUpdateDevice:
     ):
         """Test updating device owned by different parent."""
         # Create different parent
-        other_parent = await auth_service.create_user(
+        other_user_data = UserCreate(
             email="other@test.com",
             password="testpass123",
             full_name="Other Parent",
             language="en",
         )
+        other_parent = await auth_service.create_user(other_user_data)
         other_token = auth_service.create_access_token(
-            subject=other_parent.email, is_trusted=True
+            {"sub": other_parent.email}, is_trusted_device=True
         )
         other_headers = {"Authorization": f"Bearer {other_token}"}
 
@@ -484,14 +487,15 @@ class TestRemoveDevice:
         self, client, registered_device, auth_service
     ):
         """Test removing device owned by different parent."""
-        other_parent = await auth_service.create_user(
+        other_user_data = UserCreate(
             email="other2@test.com",
             password="testpass123",
             full_name="Other Parent 2",
             language="en",
         )
+        other_parent = await auth_service.create_user(other_user_data)
         other_token = auth_service.create_access_token(
-            subject=other_parent.email, is_trusted=True
+            {"sub": other_parent.email}, is_trusted_device=True
         )
         other_headers = {"Authorization": f"Bearer {other_token}"}
 
