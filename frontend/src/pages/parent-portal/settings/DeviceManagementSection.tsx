@@ -21,9 +21,9 @@ export default function DeviceManagementSection() {
   const [removingDevice, setRemovingDevice] = useState<string | null>(null);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
 
-  // Check if current device is registered
+  // Check if current device is registered AND active
   const currentDevice = devices?.find((d) => d.device_token === currentDeviceToken);
-  const isCurrentDeviceRegistered = !!currentDevice;
+  const isCurrentDeviceRegistered = !!currentDevice && currentDevice.is_active;
 
   const getChildrenNames = (childIds: string[]) => {
     if (!children) return "";
