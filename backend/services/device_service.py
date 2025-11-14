@@ -67,6 +67,7 @@ class DeviceService:
             "parent_id": ObjectId(parent_id),
             "child_ids": child_object_ids,
             "last_used_at": now,
+            "is_active": True,  # Add is_active field explicitly
         }
 
         if existing:
@@ -90,6 +91,7 @@ class DeviceService:
             child_ids=device_doc["child_ids"],
             registered_at=device_doc["registered_at"],
             last_used_at=device_doc["last_used_at"],
+            is_active=device_doc.get("is_active", True),
         )
 
     async def get_device_registration(
@@ -115,6 +117,7 @@ class DeviceService:
             child_ids=doc["child_ids"],
             registered_at=doc["registered_at"],
             last_used_at=doc["last_used_at"],
+            is_active=doc.get("is_active", True),
         )
 
     async def get_device_children(self, device_token: str) -> List[Child]:
@@ -190,6 +193,7 @@ class DeviceService:
                     child_ids=doc["child_ids"],
                     registered_at=doc["registered_at"],
                     last_used_at=doc["last_used_at"],
+                    is_active=doc.get("is_active", True),
                 )
             )
 
