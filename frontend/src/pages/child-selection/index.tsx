@@ -10,7 +10,7 @@ import { calculateAge } from "@/types/child";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import ParentPinModal from "@/components/ParentPinModal";
 import { useParentPortalAccess } from "@/hooks/useParentPortalAccess";
-import { getDeviceToken, hasDeviceToken } from "@/utils/deviceToken";
+import { getDeviceToken } from "@/utils/deviceToken";
 import { useAppSelector } from "@/store/hooks";
 
 export default function ChildSelectionPage() {
@@ -18,7 +18,6 @@ export default function ChildSelectionPage() {
   const { t } = useTranslation(["common", "auth"]);
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
   const deviceToken = getDeviceToken();
-  const isDeviceRegistered = hasDeviceToken();
 
   // Use parent auth if available, otherwise use device token
   const { data: authChildren, isLoading: authLoading, isError: authError } = useChildren();
@@ -28,6 +27,9 @@ export default function ChildSelectionPage() {
   const children = isAuthenticated ? authChildren : deviceChildren;
   const isLoading = isAuthenticated ? authLoading : deviceLoading;
   const isError = isAuthenticated ? authError : deviceError;
+
+  // Device is registered if: parent is logged in OR device fetch succeeded
+  const isDeviceRegistered = isAuthenticated || (!deviceError && !!deviceChildren);
 
   const { navigateToParentPortal, showPinModal, handlePinSuccess, handlePinCancel } = useParentPortalAccess();
 
