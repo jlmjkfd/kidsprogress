@@ -25,6 +25,10 @@ export default function DeviceManagementSection() {
   const currentDevice = devices?.find((d) => d.device_token === currentDeviceToken);
   const isCurrentDeviceRegistered = !!currentDevice && currentDevice.is_active;
 
+  // Check if user indicated this was a trusted device during login
+  const loginTrustedDevicePreference = localStorage.getItem("login_trusted_device_preference");
+  const wasTrustedDuringLogin = loginTrustedDevicePreference ? JSON.parse(loginTrustedDevicePreference) : true;
+
   const getChildrenNames = (childIds: string[]) => {
     if (!children) return "";
     const names = childIds
@@ -154,7 +158,7 @@ export default function DeviceManagementSection() {
       <DeviceRegistrationModal
         isOpen={showRegisterModal}
         onClose={() => setShowRegisterModal(false)}
-        isTrustedDevice={true}
+        isTrustedDevice={wasTrustedDuringLogin}
       />
 
       {/* Edit Device Modal */}

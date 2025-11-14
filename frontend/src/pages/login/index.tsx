@@ -9,9 +9,10 @@ import { useLogin } from "@api/mutations/useLogin";
 import { useAppDispatch } from "@store/hooks";
 import { setCredentials } from "@store/slices/authSlice";
 import { useCurrentUser } from "@api/queries/useCurrentUser";
+import { useDevices } from "@api/queries/useDevices";
 import LanguageSwitcher from "@components/LanguageSwitcher";
 import DeviceRegistrationModal from "@components/DeviceRegistrationModal";
-import { hasDeviceToken } from "@/utils/deviceToken";
+import { getDeviceToken } from "@/utils/deviceToken";
 
 function LoginPage() {
   const { t } = useTranslation(["auth", "errors"]);
@@ -19,11 +20,17 @@ function LoginPage() {
   const dispatch = useAppDispatch();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isTrustedDevice, setIsTrustedDevice] = useState(true);
+
+  // Initialize checkbox from localStorage, default to true if not set
+  const savedPreference = localStorage.getItem("login_trusted_device_preference");
+  const [isTrustedDevice, setIsTrustedDevice] = useState(
+    savedPreference !== null ? JSON.parse(savedPreference) : true
+  );
   const [showDeviceRegistration, setShowDeviceRegistration] = useState(false);
 
   const loginMutation = useLogin();
   const { refetch: fetchCurrentUser } = useCurrentUser(false);
+  const { refetch: fetchDevices } = useDevices();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,11 +50,22 @@ function LoginPage() {
             // Store credentials in Redux
             dispatch(setCredentials({ token: tokenData.access_token, user }));
 
-            // Show device registration modal if trusted device and not already registered
-            if (isTrustedDevice && !hasDeviceToken()) {
-              setShowDeviceRegistration(true);
+            // Check if current device is registered and active
+            if (isTrustedDevice) {
+              const currentDeviceToken = getDeviceToken();
+              const { data: devices } = await fetchDevices();
+              const currentDevice = devices?.find((d) => d.device_token === currentDeviceToken);
+              const isDeviceActivelyRegistered = currentDevice && currentDevice.is_active;
+
+              if (!isDeviceActivelyRegistered) {
+                // Show registration modal if device not registered or inactive
+                setShowDeviceRegistration(true);
+              } else {
+                // Navigate to portal selection if already registered
+                navigate("/portal-selection");
+              }
             } else {
-              // Navigate to portal selection after login
+              // Navigate directly if not trusted device
               navigate("/portal-selection");
             }
           }
@@ -132,7 +150,11 @@ function LoginPage() {
                   type="checkbox"
                   id="trustedDevice"
                   checked={isTrustedDevice}
-                  onChange={(e) => setIsTrustedDevice(e.target.checked)}
+                  onChange={(e) => {
+                    const newValue = e.target.checked;
+                    setIsTrustedDevice(newValue);
+                    localStorage.setItem("login_trusted_device_preference", JSON.stringify(newValue));
+                  }}
                   className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
                 <label
