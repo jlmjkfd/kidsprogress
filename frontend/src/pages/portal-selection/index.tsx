@@ -20,6 +20,9 @@ import { logout } from "@store/slices/authSlice";
 import { getDeviceToken } from "@/utils/deviceToken";
 import ParentPinModal from "@/components/ParentPinModal";
 import { useParentPortalAccess } from "@/hooks/useParentPortalAccess";
+import DeviceRegistrationModal from "@/components/DeviceRegistrationModal";
+import { useDevices } from "@api/queries/useDevices";
+import { useState, useEffect } from "react";
 
 export default function PortalSelectionPage() {
   const navigate = useNavigate();
@@ -27,6 +30,36 @@ export default function PortalSelectionPage() {
   const dispatch = useAppDispatch();
   const logoutMutation = useLogout();
   const { navigateToParentPortal, showPinModal, handlePinSuccess, handlePinCancel } = useParentPortalAccess();
+  const { data: devices } = useDevices();
+  const [showDeviceRegistration, setShowDeviceRegistration] = useState(false);
+
+  // Check if device should be registered on mount
+  useEffect(() => {
+    const checkDeviceRegistration = () => {
+      const loginPreference = localStorage.getItem("login_trusted_device_preference");
+      const wasTrustedDuringLogin = loginPreference ? JSON.parse(loginPreference) : false;
+
+      // Only show modal if user indicated trusted device during login
+      if (!wasTrustedDuringLogin) return;
+
+      const currentDeviceToken = getDeviceToken();
+      if (!currentDeviceToken) {
+        // No device token, show registration modal
+        setShowDeviceRegistration(true);
+      } else if (devices) {
+        // Check if device is registered and active
+        const currentDevice = devices.find((d) => d.device_token === currentDeviceToken);
+        const isDeviceActivelyRegistered = currentDevice && currentDevice.is_active;
+
+        if (!isDeviceActivelyRegistered) {
+          // Device not registered or inactive, show modal
+          setShowDeviceRegistration(true);
+        }
+      }
+    };
+
+    checkDeviceRegistration();
+  }, [devices]);
 
   const handleLogout = () => {
     logoutMutation.mutate(undefined, {
@@ -168,6 +201,13 @@ export default function PortalSelectionPage() {
           isOpen={showPinModal}
           onClose={handlePinCancel}
           onSuccess={handlePinSuccess}
+        />
+
+        {/* Device Registration Modal */}
+        <DeviceRegistrationModal
+          isOpen={showDeviceRegistration}
+          onClose={() => setShowDeviceRegistration(false)}
+          isTrustedDevice={true}
         />
       </div>
     </div>

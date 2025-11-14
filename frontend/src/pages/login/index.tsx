@@ -9,10 +9,7 @@ import { useLogin } from "@api/mutations/useLogin";
 import { useAppDispatch } from "@store/hooks";
 import { setCredentials } from "@store/slices/authSlice";
 import { useCurrentUser } from "@api/queries/useCurrentUser";
-import { useDevices } from "@api/queries/useDevices";
 import LanguageSwitcher from "@components/LanguageSwitcher";
-import DeviceRegistrationModal from "@components/DeviceRegistrationModal";
-import { getDeviceToken } from "@/utils/deviceToken";
 
 function LoginPage() {
   const { t } = useTranslation(["auth", "errors"]);
@@ -26,11 +23,9 @@ function LoginPage() {
   const [isTrustedDevice, setIsTrustedDevice] = useState(
     savedPreference !== null ? JSON.parse(savedPreference) : true
   );
-  const [showDeviceRegistration, setShowDeviceRegistration] = useState(false);
 
   const loginMutation = useLogin();
   const { refetch: fetchCurrentUser } = useCurrentUser(false);
-  const { refetch: fetchDevices } = useDevices();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,24 +45,8 @@ function LoginPage() {
             // Store credentials in Redux
             dispatch(setCredentials({ token: tokenData.access_token, user }));
 
-            // Check if current device is registered and active
-            if (isTrustedDevice) {
-              const currentDeviceToken = getDeviceToken();
-              const { data: devices } = await fetchDevices();
-              const currentDevice = devices?.find((d) => d.device_token === currentDeviceToken);
-              const isDeviceActivelyRegistered = currentDevice && currentDevice.is_active;
-
-              if (!isDeviceActivelyRegistered) {
-                // Show registration modal if device not registered or inactive
-                setShowDeviceRegistration(true);
-              } else {
-                // Navigate to portal selection if already registered
-                navigate("/portal-selection");
-              }
-            } else {
-              // Navigate directly if not trusted device
-              navigate("/portal-selection");
-            }
+            // Navigate to portal selection (modal will show there if needed)
+            navigate("/portal-selection");
           }
         },
         // onError: (error) => {
@@ -196,16 +175,6 @@ function LoginPage() {
           </div>
         </div>
       </div>
-
-      {/* Device Registration Modal */}
-      <DeviceRegistrationModal
-        isOpen={showDeviceRegistration}
-        onClose={() => {
-          setShowDeviceRegistration(false);
-          navigate("/portal-selection");
-        }}
-        isTrustedDevice={isTrustedDevice}
-      />
     </div>
   );
 }
