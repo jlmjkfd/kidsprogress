@@ -457,13 +457,6 @@
 - **Status**: ⚙️ In Development
 - **Note**: Find available time slots
 
-#### POST /api/schedule/ai-recommend
-- **Route**: `backend/routes/schedule_routes.py`
-- **Service**: `backend/workflows/ai_schedule_agent.py`
-- **Body**: `child_id`
-- **Used in**: Not yet implemented
-- **Status**: 🔄 Pending (Phase 2)
-- **Note**: AI "What should I do now?" recommendation
 
 ### Tools (Enhanced Task Management)
 
@@ -549,10 +542,44 @@
 - **Used in**: Not yet implemented
 - **Status**: ⚙️ In Development
 
+### AI-Powered Features
+
+#### POST /api/ai/schedule/recommend
+- **Route**: `backend/routes/ai_routes.py`
+- **Service**: `backend/ai/task_recommender.py`
+- **Body**: `child_id`
+- **Used in**: Not yet implemented
+- **Status**: ✓ Active
+- **Note**: AI "What should I do now?" recommendation based on current context
+
+#### POST /api/ai/schedule/plan-day
+- **Route**: `backend/routes/ai_routes.py`
+- **Service**: `backend/ai/task_recommender.py`
+- **Body**: `child_id`, `target_date` (optional)
+- **Used in**: Not yet implemented
+- **Status**: ✓ Active
+- **Note**: Generate complete daily schedule using AI
+
+#### POST /api/ai/schedule/replan
+- **Route**: `backend/routes/ai_routes.py`
+- **Service**: `backend/ai/task_recommender.py`
+- **Body**: `child_id`, `reason`, `completed_task_ids`
+- **Used in**: Not yet implemented
+- **Status**: ✓ Active
+- **Note**: Dynamic replanning when schedule changes
+
+#### GET /api/ai/schedule/explanation
+- **Route**: `backend/routes/ai_routes.py`
+- **Service**: `backend/ai/gemini_client.py`
+- **Query params**: `child_id`, `task_id`
+- **Used in**: Not yet implemented
+- **Status**: ✓ Active
+- **Note**: Get child-friendly explanation for task scheduling decision
+
 ## Statistics
-- Total endpoints: 83
+- Total endpoints: 86
 - Active in frontend: 7 (existing features)
 - Frontend hooks ready: 32 (task management Phase 1A)
 - In development: 37 (enhanced task management)
-- Backend only: 7
-- Pending (Phase 2): 1 (AI recommendation)
+- AI features: 4 (task planning)
+- Backend only: 6

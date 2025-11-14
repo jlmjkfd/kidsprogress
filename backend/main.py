@@ -25,6 +25,7 @@ from backend.routes import (
     schedule_routes,
     tool_routes,
     time_block_routes,
+    ai_routes,
 )
 from backend.jobs import init_scheduler, shutdown_scheduler
 
@@ -108,6 +109,9 @@ app.include_router(schedule_routes.router)
 app.include_router(tool_routes.router)
 app.include_router(time_block_routes.router)
 app.include_router(time_block_routes.day_type_router)
+
+# AI-powered features
+app.include_router(ai_routes.router)
 
 @app.get("/health")
 def health_check():
