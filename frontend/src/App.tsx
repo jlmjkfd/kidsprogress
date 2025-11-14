@@ -18,6 +18,7 @@ import { Provider } from "react-redux";
 import store from "@/store";
 import { queryClient } from "@/api/queryClient";
 import { useAppSelector } from "@/store/hooks";
+import { ChildPortalRoute } from "@/components/ChildPortalRoute";
 
 // Auth pages
 import LoginPage from "@/pages/login";
@@ -89,9 +90,9 @@ function AppRoutes() {
       <Route
         path="/child-selection"
         element={
-          <ProtectedRoute>
+          <ChildPortalRoute>
             <ChildSelectionPage />
-          </ProtectedRoute>
+          </ChildPortalRoute>
         }
       />
 
@@ -122,9 +123,9 @@ function AppRoutes() {
       <Route
         path="/child-portal/:childId"
         element={
-          <ProtectedRoute>
+          <ChildPortalRoute>
             <ChildPortalLayout />
-          </ProtectedRoute>
+          </ChildPortalRoute>
         }
       >
         {/* Default: redirect to tasks */}

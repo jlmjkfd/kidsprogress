@@ -5,18 +5,31 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { IconUser, IconUserShield, IconLock, IconAlertCircle } from "@tabler/icons-react";
 import { useChildren } from "@/api/queries/useChildren";
+import { useDeviceChildren } from "@/api/queries/useDeviceChildren";
 import { calculateAge } from "@/types/child";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import ParentPinModal from "@/components/ParentPinModal";
 import { useParentPortalAccess } from "@/hooks/useParentPortalAccess";
-import { hasDeviceToken } from "@/utils/deviceToken";
+import { getDeviceToken, hasDeviceToken } from "@/utils/deviceToken";
+import { useAppSelector } from "@/store/hooks";
 
 export default function ChildSelectionPage() {
   const navigate = useNavigate();
   const { t } = useTranslation(["common", "auth"]);
-  const { data: children, isLoading, isError } = useChildren();
-  const { navigateToParentPortal, showPinModal, handlePinSuccess, handlePinCancel } = useParentPortalAccess();
+  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
+  const deviceToken = getDeviceToken();
   const isDeviceRegistered = hasDeviceToken();
+
+  // Use parent auth if available, otherwise use device token
+  const { data: authChildren, isLoading: authLoading, isError: authError } = useChildren();
+  const { data: deviceChildren, isLoading: deviceLoading, isError: deviceError } = useDeviceChildren(deviceToken, !isAuthenticated);
+
+  // Determine which data source to use
+  const children = isAuthenticated ? authChildren : deviceChildren;
+  const isLoading = isAuthenticated ? authLoading : deviceLoading;
+  const isError = isAuthenticated ? authError : deviceError;
+
+  const { navigateToParentPortal, showPinModal, handlePinSuccess, handlePinCancel } = useParentPortalAccess();
 
   const handleSelectChild = (childId: string) => {
     navigate(`/child-portal/${childId}`);
