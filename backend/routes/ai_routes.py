@@ -4,7 +4,7 @@ from typing import Optional
 from datetime import datetime, date
 from pydantic import BaseModel, Field
 
-from backend.dependencies.database import get_database
+from backend.dependencies.database import get_db
 from backend.routes.auth import get_current_user
 from backend.ai.task_recommender import TaskRecommender
 
@@ -34,7 +34,7 @@ class ReplanRequest(BaseModel):
 async def recommend_now(
     request: RecommendNowRequest,
     current_user: dict = Depends(get_current_user),
-    db = Depends(get_database)
+    db = Depends(get_db)
 ):
     """Get AI recommendation for what task to do right now.
 
@@ -46,12 +46,13 @@ async def recommend_now(
     """
     # Verify child belongs to current user
     from bson import ObjectId
-    from backend.services.child_service import ChildService
 
-    child_service = ChildService(db)
-    child = await child_service.get_child_by_id(request.child_id, current_user["user_id"])
+    child_doc = await db.children.find_one({
+        "_id": ObjectId(request.child_id),
+        "parent_id": ObjectId(current_user["user_id"])
+    })
 
-    if not child:
+    if not child_doc:
         raise HTTPException(status_code=404, detail="Child not found")
 
     # Get AI recommendation
@@ -69,7 +70,7 @@ async def recommend_now(
 async def plan_day(
     request: PlanDayRequest,
     current_user: dict = Depends(get_current_user),
-    db = Depends(get_database)
+    db = Depends(get_db)
 ):
     """Generate complete daily schedule plan using AI.
 
@@ -81,12 +82,14 @@ async def plan_day(
     - Task priorities and deadlines
     """
     # Verify child belongs to current user
-    from backend.services.child_service import ChildService
+    from bson import ObjectId
 
-    child_service = ChildService(db)
-    child = await child_service.get_child_by_id(request.child_id)
+    child_doc = await db.children.find_one({
+        "_id": ObjectId(request.child_id),
+        "parent_id": ObjectId(current_user["user_id"])
+    })
 
-    if not child or str(child.parent_id) != current_user["user_id"]:
+    if not child_doc:
         raise HTTPException(status_code=404, detail="Child not found")
 
     # Parse target date
@@ -112,7 +115,7 @@ async def plan_day(
 async def replan_schedule(
     request: ReplanRequest,
     current_user: dict = Depends(get_current_user),
-    db = Depends(get_database)
+    db = Depends(get_db)
 ):
     """Dynamically replan schedule after changes.
 
@@ -123,12 +126,14 @@ async def replan_schedule(
     - Child needs a break
     """
     # Verify child belongs to current user
-    from backend.services.child_service import ChildService
+    from bson import ObjectId
 
-    child_service = ChildService(db)
-    child = await child_service.get_child_by_id(request.child_id)
+    child_doc = await db.children.find_one({
+        "_id": ObjectId(request.child_id),
+        "parent_id": ObjectId(current_user["user_id"])
+    })
 
-    if not child or str(child.parent_id) != current_user["user_id"]:
+    if not child_doc:
         raise HTTPException(status_code=404, detail="Child not found")
 
     # Get AI replan
@@ -152,28 +157,27 @@ async def get_scheduling_explanation(
     child_id: str = Query(...),
     task_id: str = Query(...),
     current_user: dict = Depends(get_current_user),
-    db = Depends(get_database)
+    db = Depends(get_db)
 ):
     """Get AI explanation for why a task is scheduled at a specific time.
 
     Provides child-friendly explanation of scheduling decisions.
     """
     # Verify child belongs to current user
-    from backend.services.child_service import ChildService
+    from bson import ObjectId
 
-    child_service = ChildService(db)
-    child = await child_service.get_child_by_id(child_id)
+    child_doc = await db.children.find_one({
+        "_id": ObjectId(child_id),
+        "parent_id": ObjectId(current_user["user_id"])
+    })
 
-    if not child or str(child.parent_id) != current_user["user_id"]:
+    if not child_doc:
         raise HTTPException(status_code=404, detail="Child not found")
 
     # Get task details
-    from backend.services.task_service import TaskService
+    task_doc = await db.tasks.find_one({"_id": ObjectId(task_id)})
 
-    task_service = TaskService(db)
-    task = await task_service.get_task_by_id(task_id)
-
-    if not task:
+    if not task_doc:
         raise HTTPException(status_code=404, detail="Task not found")
 
     # Build context and get explanation
@@ -181,12 +185,13 @@ async def get_scheduling_explanation(
 
     gemini = GeminiClient()
 
-    task_info = f"Task: {task.title}\n"
-    if task.scheduled_date:
-        task_info += f"Scheduled: {task.scheduled_date.strftime('%Y-%m-%d %H:%M')}\n"
-    if task.estimated_duration_minutes:
-        task_info += f"Duration: {task.estimated_duration_minutes} minutes\n"
-    task_info += f"Priority: {task.obligation_level.value}\n"
+    task_info = f"Task: {task_doc.get('title', 'Unknown')}\n"
+    if task_doc.get('scheduled_date'):
+        task_info += f"Scheduled: {task_doc['scheduled_date']}\n"
+    if task_doc.get('estimated_duration_minutes'):
+        task_info += f"Duration: {task_doc['estimated_duration_minutes']} minutes\n"
+    if task_doc.get('obligation_level'):
+        task_info += f"Priority: {task_doc['obligation_level']}\n"
 
     prompt = f"""Explain to a child why this task is scheduled at this time:
 
@@ -203,6 +208,6 @@ Provide a friendly, encouraging explanation in 2-3 sentences that a child can un
     return {
         "success": True,
         "task_id": task_id,
-        "task_title": task.title,
+        "task_title": task_doc.get('title', 'Unknown'),
         "explanation": explanation
     }

@@ -6,7 +6,7 @@ from bson import ObjectId
 
 from backend.models.activity import Activity, ActivityCreate, ActivityUpdate, ActivityAvailability
 from backend.services.activity_service import ActivityService
-from backend.dependencies.database import get_database
+from backend.dependencies.database import get_db
 from backend.routes.auth import get_current_user
 
 router = APIRouter(prefix="/api/activities", tags=["activities"])
@@ -16,7 +16,7 @@ router = APIRouter(prefix="/api/activities", tags=["activities"])
 async def create_activity(
     activity_data: ActivityCreate,
     current_user: dict = Depends(get_current_user),
-    db=Depends(get_database)
+    db=Depends(get_db)
 ):
     """Create a new activity in the pool."""
     service = ActivityService(db)
@@ -42,7 +42,7 @@ async def get_activities(
     child_id: str = Query(..., description="Child ID"),
     include_inactive: bool = Query(False, description="Include inactive activities"),
     current_user: dict = Depends(get_current_user),
-    db=Depends(get_database)
+    db=Depends(get_db)
 ):
     """Get all activities for a child."""
     # Verify child belongs to parent
@@ -66,7 +66,7 @@ async def get_activities(
 async def get_activity(
     activity_id: str,
     current_user: dict = Depends(get_current_user),
-    db=Depends(get_database)
+    db=Depends(get_db)
 ):
     """Get a specific activity."""
     service = ActivityService(db)
@@ -87,7 +87,7 @@ async def update_activity(
     activity_id: str,
     activity_data: ActivityUpdate,
     current_user: dict = Depends(get_current_user),
-    db=Depends(get_database)
+    db=Depends(get_db)
 ):
     """Update an activity."""
     service = ActivityService(db)
@@ -114,7 +114,7 @@ async def update_activity(
 async def delete_activity(
     activity_id: str,
     current_user: dict = Depends(get_current_user),
-    db=Depends(get_database)
+    db=Depends(get_db)
 ):
     """Delete (deactivate) an activity."""
     service = ActivityService(db)
@@ -139,7 +139,7 @@ async def get_available_activities(
     child_id: str = Query(..., description="Child ID"),
     target_date: date = Query(..., description="Date to check availability"),
     current_user: dict = Depends(get_current_user),
-    db=Depends(get_database)
+    db=Depends(get_db)
 ):
     """Check which activities are available based on usage rules."""
     # Verify child belongs to parent
@@ -164,7 +164,7 @@ async def create_task_from_activity(
     activity_id: str,
     scheduled_date: date,
     current_user: dict = Depends(get_current_user),
-    db=Depends(get_database)
+    db=Depends(get_db)
 ):
     """Create a task instance from an activity."""
     service = ActivityService(db)

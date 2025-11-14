@@ -4,7 +4,7 @@ from datetime import date
 from bson import ObjectId
 
 from backend.services.schedule_service import ScheduleService
-from backend.dependencies.database import get_database
+from backend.dependencies.database import get_db
 from backend.routes.auth import get_current_user
 
 router = APIRouter(prefix="/api/schedule", tags=["schedule"])
@@ -15,7 +15,7 @@ async def get_daily_schedule(
     child_id: str = Query(..., description="Child ID"),
     target_date: date = Query(..., description="Date to get schedule for"),
     current_user: dict = Depends(get_current_user),
-    db=Depends(get_database)
+    db=Depends(get_db)
 ):
     """Get complete daily schedule with tasks, blocks, and conflicts."""
     # Verify child belongs to parent
@@ -40,7 +40,7 @@ async def get_schedule_conflicts(
     child_id: str = Query(..., description="Child ID"),
     target_date: date = Query(..., description="Date to check conflicts"),
     current_user: dict = Depends(get_current_user),
-    db=Depends(get_database)
+    db=Depends(get_db)
 ):
     """Detect time conflicts for a specific date."""
     # Verify child belongs to parent
@@ -71,7 +71,7 @@ async def get_available_time_slots(
     target_date: date = Query(..., description="Date to find slots"),
     duration_minutes: int = Query(30, ge=15, le=240, description="Duration in minutes"),
     current_user: dict = Depends(get_current_user),
-    db=Depends(get_database)
+    db=Depends(get_db)
 ):
     """Find available time slots for a given duration."""
     # Verify child belongs to parent
@@ -101,7 +101,7 @@ async def get_available_time_slots(
 async def get_ai_recommendation(
     child_id: str = Query(..., description="Child ID"),
     current_user: dict = Depends(get_current_user),
-    db=Depends(get_database)
+    db=Depends(get_db)
 ):
     """Get AI recommendation for 'What should I do now?'"""
     # Verify child belongs to parent

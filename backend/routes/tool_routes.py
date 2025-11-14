@@ -5,7 +5,7 @@ from bson import ObjectId
 
 from backend.models.tool import Tool, ToolCreate, ToolUpdate, ToolApplicability
 from backend.services.tool_service import ToolService
-from backend.dependencies.database import get_database
+from backend.dependencies.database import get_db
 from backend.routes.auth import get_current_user
 
 router = APIRouter(prefix="/api/tools", tags=["tools"])
@@ -15,7 +15,7 @@ router = APIRouter(prefix="/api/tools", tags=["tools"])
 async def get_tools(
     include_inactive: bool = Query(False, description="Include inactive tools"),
     system_only: bool = Query(False, description="Show only system tools"),
-    db=Depends(get_database)
+    db=Depends(get_db)
 ):
     """Get all tools."""
     service = ToolService(db)
@@ -31,7 +31,7 @@ async def get_tools(
 @router.get("/{tool_id}", response_model=dict)
 async def get_tool(
     tool_id: str,
-    db=Depends(get_database)
+    db=Depends(get_db)
 ):
     """Get a specific tool."""
     service = ToolService(db)
@@ -47,7 +47,7 @@ async def get_tool(
 async def create_tool(
     tool_data: ToolCreate,
     current_user: dict = Depends(get_current_user),
-    db=Depends(get_database)
+    db=Depends(get_db)
 ):
     """Create a custom tool (parent only)."""
     service = ToolService(db)
@@ -68,7 +68,7 @@ async def update_tool(
     tool_id: str,
     tool_data: ToolUpdate,
     current_user: dict = Depends(get_current_user),
-    db=Depends(get_database)
+    db=Depends(get_db)
 ):
     """Update a tool (custom tools only)."""
     service = ToolService(db)
@@ -99,7 +99,7 @@ async def update_tool(
 async def delete_tool(
     tool_id: str,
     current_user: dict = Depends(get_current_user),
-    db=Depends(get_database)
+    db=Depends(get_db)
 ):
     """Delete a tool (custom tools only)."""
     service = ToolService(db)
@@ -129,7 +129,7 @@ async def delete_tool(
 @router.get("/applicable", response_model=List[ToolApplicability])
 async def get_applicable_tools(
     task_id: str = Query(..., description="Task ID"),
-    db=Depends(get_database)
+    db=Depends(get_db)
 ):
     """Get all applicable tools for a specific task."""
     service = ToolService(db)

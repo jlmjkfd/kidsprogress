@@ -6,7 +6,7 @@ from bson import ObjectId
 
 from backend.models.routine import Routine, RoutineCreate, RoutineUpdate
 from backend.services.routine_service import RoutineService
-from backend.dependencies.database import get_database
+from backend.dependencies.database import get_db
 from backend.routes.auth import get_current_user
 
 router = APIRouter(prefix="/api/routines", tags=["routines"])
@@ -16,7 +16,7 @@ router = APIRouter(prefix="/api/routines", tags=["routines"])
 async def create_routine(
     routine_data: RoutineCreate,
     current_user: dict = Depends(get_current_user),
-    db=Depends(get_database)
+    db=Depends(get_db)
 ):
     """Create a new recurring task routine."""
     service = RoutineService(db)
@@ -45,7 +45,7 @@ async def get_routines(
     child_id: str = Query(..., description="Child ID"),
     include_inactive: bool = Query(False, description="Include inactive routines"),
     current_user: dict = Depends(get_current_user),
-    db=Depends(get_database)
+    db=Depends(get_db)
 ):
     """Get all routines for a child."""
     # Verify child belongs to parent
@@ -75,7 +75,7 @@ async def get_routines(
 async def get_routine(
     routine_id: str,
     current_user: dict = Depends(get_current_user),
-    db=Depends(get_database)
+    db=Depends(get_db)
 ):
     """Get a specific routine."""
     service = RoutineService(db)
@@ -99,7 +99,7 @@ async def update_routine(
     routine_id: str,
     routine_data: RoutineUpdate,
     current_user: dict = Depends(get_current_user),
-    db=Depends(get_database)
+    db=Depends(get_db)
 ):
     """Update a routine."""
     service = RoutineService(db)
@@ -129,7 +129,7 @@ async def update_routine(
 async def delete_routine(
     routine_id: str,
     current_user: dict = Depends(get_current_user),
-    db=Depends(get_database)
+    db=Depends(get_db)
 ):
     """Delete (deactivate) a routine."""
     service = RoutineService(db)
@@ -154,7 +154,7 @@ async def generate_routine_tasks(
     routine_id: str,
     target_date: date = Query(..., description="Date to generate task for"),
     current_user: dict = Depends(get_current_user),
-    db=Depends(get_database)
+    db=Depends(get_db)
 ):
     """Generate task instance from routine for specific date."""
     service = RoutineService(db)
@@ -182,7 +182,7 @@ async def cancel_routine_instance(
     routine_id: str,
     skip_date: date,
     current_user: dict = Depends(get_current_user),
-    db=Depends(get_database)
+    db=Depends(get_db)
 ):
     """Cancel routine instance for a specific date."""
     service = RoutineService(db)
@@ -207,7 +207,7 @@ async def preview_routine_occurrences(
     routine_id: str,
     count: int = Query(10, ge=1, le=50, description="Number of occurrences to preview"),
     current_user: dict = Depends(get_current_user),
-    db=Depends(get_database)
+    db=Depends(get_db)
 ):
     """Preview next N occurrences of routine."""
     service = RoutineService(db)

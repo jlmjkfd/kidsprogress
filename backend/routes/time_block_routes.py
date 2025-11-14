@@ -13,7 +13,7 @@ from backend.models.time_block import (
     DayTypeUpdate,
 )
 from backend.services.time_block_service import TimeBlockService
-from backend.dependencies.database import get_database
+from backend.dependencies.database import get_db
 from backend.routes.auth import get_current_user
 
 router = APIRouter(prefix="/api/time-blocks", tags=["time_blocks"])
@@ -23,7 +23,7 @@ router = APIRouter(prefix="/api/time-blocks", tags=["time_blocks"])
 async def create_time_block(
     block_data: TimeBlockCreate,
     current_user: dict = Depends(get_current_user),
-    db=Depends(get_database)
+    db=Depends(get_db)
 ):
     """Create a new time block or special event."""
     service = TimeBlockService(db)
@@ -51,7 +51,7 @@ async def get_time_blocks(
     start_date: Optional[date] = Query(None, description="Start date for range"),
     end_date: Optional[date] = Query(None, description="End date for range"),
     current_user: dict = Depends(get_current_user),
-    db=Depends(get_database)
+    db=Depends(get_db)
 ):
     """Get time blocks for a child."""
     # Verify child belongs to parent
@@ -91,7 +91,7 @@ async def update_time_block(
     block_id: str,
     block_data: TimeBlockUpdate,
     current_user: dict = Depends(get_current_user),
-    db=Depends(get_database)
+    db=Depends(get_db)
 ):
     """Update a time block."""
     service = TimeBlockService(db)
@@ -118,7 +118,7 @@ async def update_time_block(
 async def delete_time_block(
     block_id: str,
     current_user: dict = Depends(get_current_user),
-    db=Depends(get_database)
+    db=Depends(get_db)
 ):
     """Delete a time block."""
     service = TimeBlockService(db)
@@ -146,7 +146,7 @@ day_type_router = APIRouter(prefix="/api/day-types", tags=["day_types"])
 async def create_day_type(
     day_type_data: DayTypeCreate,
     current_user: dict = Depends(get_current_user),
-    db=Depends(get_database)
+    db=Depends(get_db)
 ):
     """Set day type for a specific date."""
     service = TimeBlockService(db)
@@ -174,7 +174,7 @@ async def get_day_types(
     start_date: Optional[date] = Query(None, description="Start date for range"),
     end_date: Optional[date] = Query(None, description="End date for range"),
     current_user: dict = Depends(get_current_user),
-    db=Depends(get_database)
+    db=Depends(get_db)
 ):
     """Get day types for a child."""
     # Verify child belongs to parent
