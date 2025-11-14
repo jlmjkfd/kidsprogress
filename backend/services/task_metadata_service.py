@@ -1,5 +1,5 @@
 """Task metadata service for managing task types and metric types."""
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from bson import ObjectId
 
@@ -67,7 +67,7 @@ class TaskMetadataService:
         Returns:
             List of task type definitions
         """
-        query = {"active": True} if active_only else {}
+        query: Dict[str, Any] = {"active": True} if active_only else {}
         cursor = self.task_types_collection.find(query)
         task_types = []
 
@@ -112,7 +112,7 @@ class TaskMetadataService:
         if existing.get("is_system", False):
             raise ValueError("Cannot modify system task types")
 
-        update_doc = {"updated_at": utcnow()}
+        update_doc: Dict[str, Any] = {"updated_at": utcnow()}
         if task_type_data.display_name is not None:
             update_doc["display_name"] = task_type_data.display_name
         if task_type_data.description is not None:
@@ -208,7 +208,7 @@ class TaskMetadataService:
         Returns:
             List of metric type definitions
         """
-        query = {"active": True} if active_only else {}
+        query: Dict[str, Any] = {"active": True} if active_only else {}
         cursor = self.metric_types_collection.find(query)
         metric_types = []
 
@@ -253,7 +253,7 @@ class TaskMetadataService:
         if existing.get("is_system", False):
             raise ValueError("Cannot modify system metric types")
 
-        update_doc = {"updated_at": utcnow()}
+        update_doc: Dict[str, Any] = {"updated_at": utcnow()}
         if metric_type_data.display_name is not None:
             update_doc["display_name"] = metric_type_data.display_name
         if metric_type_data.description is not None:

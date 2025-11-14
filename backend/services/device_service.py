@@ -258,23 +258,24 @@ class DeviceService:
             )
 
         # Update device
-        await self.devices_collection.update_one(
+        result = await self.devices_collection.find_one_and_update(
             {"device_token": device_token},
-            {"$set": update_data}
+            {"$set": update_data},
+            return_document=True
         )
 
-        # Fetch updated document
-        updated = await self.devices_collection.find_one({"device_token": device_token})
+        if not result:
+            raise ValueError("Device not found after update")
 
         return DeviceRegistration(
-            _id=updated["_id"],
-            device_token=updated["device_token"],
-            device_name=updated["device_name"],
-            parent_id=updated["parent_id"],
-            child_ids=updated["child_ids"],
-            registered_at=updated["registered_at"],
-            last_used_at=updated["last_used_at"],
-            is_active=updated.get("is_active", True),
+            _id=result["_id"],
+            device_token=result["device_token"],
+            device_name=result["device_name"],
+            parent_id=result["parent_id"],
+            child_ids=result["child_ids"],
+            registered_at=result["registered_at"],
+            last_used_at=result["last_used_at"],
+            is_active=result.get("is_active", True),
         )
 
     async def remove_device(self, device_token: str, parent_id: str) -> bool:

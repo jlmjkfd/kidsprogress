@@ -4,27 +4,8 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime
 from enum import Enum
 from bson import ObjectId
-from pydantic_core import core_schema
+from backend.models.common import PyObjectId
 from backend.utils.datetime_utils import utcnow
-
-
-class PyObjectId(ObjectId):
-    """Custom type for handling MongoDB ObjectIds in Pydantic v2."""
-
-    @classmethod
-    def __get_pydantic_core_schema__(cls, source_type, handler):
-        return core_schema.union_schema([
-            core_schema.is_instance_schema(ObjectId),
-            core_schema.no_info_plain_validator_function(cls.validate),
-        ])
-
-    @classmethod
-    def validate(cls, v):
-        if isinstance(v, ObjectId):
-            return v
-        if isinstance(v, str) and ObjectId.is_valid(v):
-            return ObjectId(v)
-        raise ValueError("Invalid ObjectId")
 
 
 # Enums
@@ -37,6 +18,26 @@ class TaskStatus(str, Enum):
     COMPLETED = "completed"  # Finished
     CANCELLED = "cancelled"  # Cancelled by parent or child
     ARCHIVED = "archived"  # Completed and archived
+
+
+class TaskSource(str, Enum):
+    """Source of task creation."""
+    ONE_TIME = "one_time"  # Single task created by parent
+    ROUTINE = "routine"  # Generated from recurring routine
+    ACTIVITY = "activity"  # Created from activity pool
+
+
+class SchedulingType(str, Enum):
+    """How the task is scheduled."""
+    FLEXIBLE = "flexible"  # AI can move to optimal time
+    FIXED_TIME = "fixed_time"  # Locked to specific time slot
+
+
+class ObligationLevel(str, Enum):
+    """Task importance level."""
+    MUST_DO = "must_do"  # Required, will rollover if incomplete
+    SHOULD_DO = "should_do"  # Recommended
+    OPTIONAL = "optional"  # Nice to have
 
 
 class ActivationType(str, Enum):
@@ -62,6 +63,20 @@ class EvaluationMethod(str, Enum):
 
 
 # Sub-models
+class TimeSlot(BaseModel):
+    """Time slot for scheduling."""
+    start: str  # HH:MM format
+    end: str  # HH:MM format
+
+
+class TaskSourceMetadata(BaseModel):
+    """Rich metadata about task source."""
+    source_name: Optional[str] = None  # Routine/Activity name
+    source_description: Optional[str] = None
+    generation_date: Optional[datetime] = None
+    recurrence_info: Optional[str] = None  # Human-readable recurrence
+
+
 class ActivationRule(BaseModel):
     """Rules for when task becomes available."""
     activation_type: ActivationType
@@ -163,6 +178,31 @@ class Task(BaseModel):
     # Task Type (from TaskTypeDefinition)
     task_type_code: Optional[str] = None  # Optional for flexibility
 
+    # Source tracking (Enhanced)
+    task_source: TaskSource = TaskSource.ONE_TIME
+    source_id: Optional[PyObjectId] = None  # Routine ID or Activity ID
+    source_metadata: Optional[TaskSourceMetadata] = None
+
+    # Scheduling (Enhanced)
+    scheduling_type: SchedulingType = SchedulingType.FLEXIBLE
+    scheduled_date: Optional[datetime] = None  # Date for this task
+    fixed_time_slot: Optional[TimeSlot] = None  # For FIXED_TIME tasks
+    preferred_time_slot: Optional[TimeSlot] = None  # Soft constraint for FLEXIBLE
+
+    # Rollover tracking (Enhanced)
+    original_date: Optional[datetime] = None  # Original scheduled date
+    rollover_count: int = 0
+    is_in_backlog: bool = False
+    is_delayed: bool = False
+
+    # Concurrent task support (Enhanced)
+    concurrent_allowed: bool = False
+    concurrent_compatible_with: List[str] = []  # Task type codes
+
+    # Priority (Enhanced)
+    priority_boost: int = Field(default=0, ge=-5, le=5)  # Manual priority adjustment
+    obligation_level: ObligationLevel = ObligationLevel.OPTIONAL
+
     # Lifecycle
     status: TaskStatus = TaskStatus.DRAFT
     activation_rule: Optional[ActivationRule] = None
@@ -195,6 +235,37 @@ class Task(BaseModel):
 
     # Points & Rewards
     points_earned: Optional[int] = None
+
+    @property
+    def scheduling_priority(self) -> float:
+        """Calculate scheduling priority for AI recommendations."""
+        base = 0.0
+
+        # 1. Obligation level (biggest factor)
+        if self.obligation_level == ObligationLevel.MUST_DO:
+            base += 100
+        elif self.obligation_level == ObligationLevel.SHOULD_DO:
+            base += 50
+
+        # 2. Has preferred time slot
+        if self.preferred_time_slot:
+            base += 30
+
+        # 3. Deadline proximity
+        if self.constraints and self.constraints.must_complete_by:
+            hours_until = (self.constraints.must_complete_by - utcnow()).total_seconds() / 3600
+            if hours_until < 24:
+                base += 40
+            elif hours_until < 48:
+                base += 20
+
+        # 4. Rollover penalty
+        base -= (self.rollover_count * 10)
+
+        # 5. Manual boost
+        base += (self.priority_boost * 5)
+
+        return base
 
     class Config:
         populate_by_name = True

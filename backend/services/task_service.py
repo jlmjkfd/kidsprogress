@@ -1,5 +1,5 @@
 """Task service for managing tasks with full lifecycle support."""
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from bson import ObjectId
 from datetime import datetime
@@ -105,7 +105,7 @@ class TaskService:
         if not ObjectId.is_valid(collection_id) or not ObjectId.is_valid(parent_id):
             raise ValueError("Invalid collection_id or parent_id")
 
-        query = {"collection_id": ObjectId(collection_id), "parent_id": ObjectId(parent_id)}
+        query: Dict[str, Any] = {"collection_id": ObjectId(collection_id), "parent_id": ObjectId(parent_id)}
         if status:
             query["status"] = status.value
 
@@ -133,7 +133,7 @@ class TaskService:
         if not ObjectId.is_valid(child_id) or not ObjectId.is_valid(parent_id):
             raise ValueError("Invalid child_id or parent_id")
 
-        query = {"child_id": ObjectId(child_id), "parent_id": ObjectId(parent_id)}
+        query: Dict[str, Any] = {"child_id": ObjectId(child_id), "parent_id": ObjectId(parent_id)}
         if status:
             query["status"] = status.value
 
@@ -188,7 +188,7 @@ class TaskService:
         if not existing:
             return None
 
-        update_doc = {"updated_at": utcnow()}
+        update_doc: Dict[str, Any] = {"updated_at": utcnow()}
         if task_data.title is not None:
             update_doc["title"] = task_data.title
         if task_data.description is not None:
@@ -332,6 +332,9 @@ class TaskService:
             return_document=True,
         )
 
+        if not result:
+            raise ValueError("Task not found or could not be started")
+
         # Create active session
         await self._create_active_session(task_id, child_id)
 
@@ -405,12 +408,12 @@ class TaskService:
             raise ValueError("Can only resume tasks in PAUSED status")
 
         # Update current pause record with resume time
+        pause_history = existing.get("pause_history", [])
         current_pause = existing.get("current_pause")
         if current_pause:
             current_pause["resumed_at"] = utcnow().isoformat()
 
             # Update last pause in history
-            pause_history = existing.get("pause_history", [])
             if pause_history:
                 pause_history[-1]["resumed_at"] = utcnow().isoformat()
 
@@ -563,3 +566,110 @@ class TaskService:
                 )
 
         return active_tasks
+
+    # ==================== Enhanced Task Management ====================
+
+    async def rollover_task(self, task_id: str, new_date: datetime) -> Optional[Task]:
+        """Rollover an incomplete task to a new date.
+
+        Args:
+            task_id: Task's ObjectId as string
+            new_date: New scheduled date
+
+        Returns:
+            Updated task or None if not found
+        """
+        if not ObjectId.is_valid(task_id):
+            return None
+
+        existing = await self.tasks_collection.find_one({"_id": ObjectId(task_id)})
+        if not existing:
+            return None
+
+        # Set original_date if first rollover
+        original_date = existing.get("original_date")
+        if not original_date:
+            original_date = existing.get("scheduled_date")
+
+        rollover_count = existing.get("rollover_count", 0) + 1
+
+        result = await self.tasks_collection.find_one_and_update(
+            {"_id": ObjectId(task_id)},
+            {
+                "$set": {
+                    "scheduled_date": new_date,
+                    "original_date": original_date,
+                    "rollover_count": rollover_count,
+                    "is_delayed": True,
+                    "updated_at": utcnow(),
+                }
+            },
+            return_document=True,
+        )
+
+        return Task(**result) if result else None
+
+    async def move_to_backlog(self, task_id: str) -> Optional[Task]:
+        """Move a task to backlog after too many rollovers.
+
+        Args:
+            task_id: Task's ObjectId as string
+
+        Returns:
+            Updated task or None if not found
+        """
+        if not ObjectId.is_valid(task_id):
+            return None
+
+        result = await self.tasks_collection.find_one_and_update(
+            {"_id": ObjectId(task_id)},
+            {
+                "$set": {
+                    "is_in_backlog": True,
+                    "status": TaskStatus.SCHEDULED.value,  # Keep scheduled for later activation
+                    "updated_at": utcnow(),
+                }
+            },
+            return_document=True,
+        )
+
+        return Task(**result) if result else None
+
+    async def validate_concurrent_tasks(self, task: Task, child_id: ObjectId) -> dict:
+        """Validate if task can run concurrently with active tasks.
+
+        Args:
+            task: Task to validate
+            child_id: Child's ObjectId
+
+        Returns:
+            Dict with is_valid flag and warnings
+        """
+        if task.concurrent_allowed:
+            return {"is_valid": True, "warnings": []}
+
+        # Get active sessions
+        sessions = await self._get_active_sessions(str(child_id))
+        if not sessions:
+            return {"is_valid": True, "warnings": []}
+
+        warnings = []
+        for session in sessions:
+            active_task_doc = await self.tasks_collection.find_one({"_id": session["task_id"]})
+            if active_task_doc:
+                active_task = Task(**active_task_doc)
+
+                # Check if compatible
+                if task.task_type_code in active_task.concurrent_compatible_with:
+                    continue
+
+                warnings.append({
+                    "task_id": str(active_task.id),
+                    "title": active_task.title,
+                    "message": f"Task '{active_task.title}' is currently in progress"
+                })
+
+        return {
+            "is_valid": len(warnings) == 0,
+            "warnings": warnings
+        }

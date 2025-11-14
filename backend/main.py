@@ -11,7 +11,22 @@ env_path = Path(__file__).parent / ".env"
 load_dotenv(env_path)
 
 from backend.db.connection import db
-from backend.routes import auth, children, devices, task_metadata, task_collections, tasks
+from backend.routes import (
+    auth,
+    children,
+    devices,
+    task_metadata,
+    task_collections,
+    tasks,
+)
+from backend.routes import (
+    routine_routes,
+    activity_routes,
+    schedule_routes,
+    tool_routes,
+    time_block_routes,
+)
+from backend.jobs import init_scheduler, shutdown_scheduler
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -38,9 +53,27 @@ async def lifespan(app: FastAPI):
     await database.active_task_sessions.create_index("child_id")
     await database.active_task_sessions.create_index("task_id", unique=True)
 
+    # Enhanced task management indexes
+    await database.tasks.create_index([("task_source", 1), ("source_id", 1)])
+    await database.tasks.create_index([("child_id", 1), ("scheduled_date", 1)])
+    await database.tasks.create_index([("child_id", 1), ("obligation_level", 1)])
+    await database.routines.create_index([("child_id", 1), ("is_active", 1)])
+    await database.activities.create_index([("child_id", 1), ("is_active", 1)])
+    await database.activities.create_index([("child_id", 1), ("activity_type", 1)])
+    await database.activity_usage.create_index([("activity_id", 1), ("usage_date", 1)])
+    await database.time_blocks.create_index([("child_id", 1), ("date", 1)])
+    await database.day_types.create_index([("child_id", 1), ("date", 1)], unique=True)
+    await database.tools.create_index("code", unique=True)
+    await database.tools.create_index([("is_system", 1), ("is_active", 1)])
+
+    # Initialize cron job scheduler
+    init_scheduler(database)
+    print("Cron job scheduler initialized")
+
     yield
 
     print("FastAPI shutting down...")
+    shutdown_scheduler()
     await db.close_db()
 
 app = FastAPI(
@@ -67,6 +100,14 @@ app.include_router(devices.router)
 app.include_router(task_metadata.router)
 app.include_router(task_collections.router)
 app.include_router(tasks.router)
+
+# Enhanced task management routers
+app.include_router(routine_routes.router)
+app.include_router(activity_routes.router)
+app.include_router(schedule_routes.router)
+app.include_router(tool_routes.router)
+app.include_router(time_block_routes.router)
+app.include_router(time_block_routes.day_type_router)
 
 @app.get("/health")
 def health_check():

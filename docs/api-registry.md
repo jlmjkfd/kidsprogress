@@ -1,7 +1,7 @@
 # API Registry
 
 > Manually updated after feature implementation
-> Last updated: 2025-11-07
+> Last updated: 2025-11-10
 
 ## Endpoints
 
@@ -308,9 +308,251 @@
 - **Status**: ✓ Active (frontend hooks ready)
 - **Note**: For concurrent task warning UI
 
+#### POST /api/tasks/{task_id}/rollover
+- **Route**: `backend/routes/tasks.py`
+- **Service**: `backend/services/task_service.py`
+- **Used in**: Not yet implemented
+- **Status**: ✓ Active (backend only)
+- **Note**: Enhanced task management - rollover incomplete task to new date
+
+#### POST /api/tasks/{task_id}/backlog
+- **Route**: `backend/routes/tasks.py`
+- **Service**: `backend/services/task_service.py`
+- **Used in**: Not yet implemented
+- **Status**: ✓ Active (backend only)
+- **Note**: Enhanced task management - move task to backlog after 3 rollovers
+
+### Routines (Enhanced Task Management)
+
+#### POST /api/routines
+- **Route**: `backend/routes/routine_routes.py`
+- **Service**: `backend/services/routine_service.py`
+- **Used in**: Not yet implemented
+- **Status**: ⚙️ In Development
+- **Note**: Create recurring task template with RRULE pattern
+
+#### GET /api/routines
+- **Route**: `backend/routes/routine_routes.py`
+- **Service**: `backend/services/routine_service.py`
+- **Query params**: `child_id`, `include_inactive`
+- **Used in**: Not yet implemented
+- **Status**: ⚙️ In Development
+
+#### GET /api/routines/{routine_id}
+- **Route**: `backend/routes/routine_routes.py`
+- **Service**: `backend/services/routine_service.py`
+- **Used in**: Not yet implemented
+- **Status**: ⚙️ In Development
+
+#### PUT /api/routines/{routine_id}
+- **Route**: `backend/routes/routine_routes.py`
+- **Service**: `backend/services/routine_service.py`
+- **Used in**: Not yet implemented
+- **Status**: ⚙️ In Development
+
+#### DELETE /api/routines/{routine_id}
+- **Route**: `backend/routes/routine_routes.py`
+- **Service**: `backend/services/routine_service.py`
+- **Used in**: Not yet implemented
+- **Status**: ⚙️ In Development
+- **Note**: Soft delete (sets is_active=false)
+
+#### POST /api/routines/{routine_id}/generate
+- **Route**: `backend/routes/routine_routes.py`
+- **Service**: `backend/services/routine_service.py`
+- **Query params**: `date` (generate task for specific date)
+- **Used in**: Not yet implemented
+- **Status**: ⚙️ In Development
+- **Note**: Generate task instance from routine
+
+#### POST /api/routines/{routine_id}/cancel
+- **Route**: `backend/routes/routine_routes.py`
+- **Service**: `backend/services/routine_service.py`
+- **Body**: `skip_date`
+- **Used in**: Not yet implemented
+- **Status**: ⚙️ In Development
+- **Note**: Cancel routine instance for specific date
+
+#### GET /api/routines/{routine_id}/preview
+- **Route**: `backend/routes/routine_routes.py`
+- **Service**: `backend/services/routine_service.py`
+- **Query params**: `count` (default 10)
+- **Used in**: Not yet implemented
+- **Status**: ⚙️ In Development
+- **Note**: Preview next N occurrences
+
+### Activities (Enhanced Task Management)
+
+#### POST /api/activities
+- **Route**: `backend/routes/activity_routes.py`
+- **Service**: `backend/services/activity_service.py`
+- **Used in**: Not yet implemented
+- **Status**: ⚙️ In Development
+- **Note**: Create activity in optional pool
+
+#### GET /api/activities
+- **Route**: `backend/routes/activity_routes.py`
+- **Service**: `backend/services/activity_service.py`
+- **Query params**: `child_id`, `include_inactive`
+- **Used in**: Not yet implemented
+- **Status**: ⚙️ In Development
+
+#### GET /api/activities/{activity_id}
+- **Route**: `backend/routes/activity_routes.py`
+- **Service**: `backend/services/activity_service.py`
+- **Used in**: Not yet implemented
+- **Status**: ⚙️ In Development
+
+#### PUT /api/activities/{activity_id}
+- **Route**: `backend/routes/activity_routes.py`
+- **Service**: `backend/services/activity_service.py`
+- **Used in**: Not yet implemented
+- **Status**: ⚙️ In Development
+
+#### DELETE /api/activities/{activity_id}
+- **Route**: `backend/routes/activity_routes.py`
+- **Service**: `backend/services/activity_service.py`
+- **Used in**: Not yet implemented
+- **Status**: ⚙️ In Development
+
+#### GET /api/activities/available
+- **Route**: `backend/routes/activity_routes.py`
+- **Service**: `backend/services/activity_service.py`
+- **Query params**: `child_id`, `date`
+- **Used in**: Not yet implemented
+- **Status**: ⚙️ In Development
+- **Note**: Check activity availability based on usage rules
+
+#### POST /api/activities/{activity_id}/create-task
+- **Route**: `backend/routes/activity_routes.py`
+- **Service**: `backend/services/activity_service.py`
+- **Body**: `scheduled_date`
+- **Used in**: Not yet implemented
+- **Status**: ⚙️ In Development
+- **Note**: Create task instance from activity
+
+### Schedule (Enhanced Task Management)
+
+#### GET /api/schedule/daily
+- **Route**: `backend/routes/schedule_routes.py`
+- **Service**: `backend/services/schedule_service.py`
+- **Query params**: `child_id`, `date`
+- **Used in**: Not yet implemented
+- **Status**: ⚙️ In Development
+- **Note**: Get complete daily schedule with tasks, blocks, conflicts
+
+#### GET /api/schedule/conflicts
+- **Route**: `backend/routes/schedule_routes.py`
+- **Service**: `backend/services/schedule_service.py`
+- **Query params**: `child_id`, `date`
+- **Used in**: Not yet implemented
+- **Status**: ⚙️ In Development
+- **Note**: Detect time conflicts for specific date
+
+#### GET /api/schedule/available-slots
+- **Route**: `backend/routes/schedule_routes.py`
+- **Service**: `backend/services/schedule_service.py`
+- **Query params**: `child_id`, `date`, `duration_minutes`
+- **Used in**: Not yet implemented
+- **Status**: ⚙️ In Development
+- **Note**: Find available time slots
+
+#### POST /api/schedule/ai-recommend
+- **Route**: `backend/routes/schedule_routes.py`
+- **Service**: `backend/workflows/ai_schedule_agent.py`
+- **Body**: `child_id`
+- **Used in**: Not yet implemented
+- **Status**: 🔄 Pending (Phase 2)
+- **Note**: AI "What should I do now?" recommendation
+
+### Tools (Enhanced Task Management)
+
+#### GET /api/tools
+- **Route**: `backend/routes/tool_routes.py`
+- **Service**: `backend/services/tool_service.py`
+- **Query params**: `include_inactive`, `system_only`
+- **Used in**: Not yet implemented
+- **Status**: ⚙️ In Development
+
+#### GET /api/tools/{tool_id}
+- **Route**: `backend/routes/tool_routes.py`
+- **Service**: `backend/services/tool_service.py`
+- **Used in**: Not yet implemented
+- **Status**: ⚙️ In Development
+
+#### POST /api/tools
+- **Route**: `backend/routes/tool_routes.py`
+- **Service**: `backend/services/tool_service.py`
+- **Used in**: Not yet implemented
+- **Status**: ⚙️ In Development
+- **Note**: Create custom tool (parent only)
+
+#### PUT /api/tools/{tool_id}
+- **Route**: `backend/routes/tool_routes.py`
+- **Service**: `backend/services/tool_service.py`
+- **Used in**: Not yet implemented
+- **Status**: ⚙️ In Development
+
+#### DELETE /api/tools/{tool_id}
+- **Route**: `backend/routes/tool_routes.py`
+- **Service**: `backend/services/tool_service.py`
+- **Used in**: Not yet implemented
+- **Status**: ⚙️ In Development
+
+#### GET /api/tools/applicable
+- **Route**: `backend/routes/tool_routes.py`
+- **Service**: `backend/services/tool_service.py`
+- **Query params**: `task_id`
+- **Used in**: Not yet implemented
+- **Status**: ⚙️ In Development
+- **Note**: Get applicable tools for specific task
+
+### Time Blocks (Enhanced Task Management)
+
+#### POST /api/time-blocks
+- **Route**: `backend/routes/time_block_routes.py`
+- **Service**: `backend/services/time_block_service.py`
+- **Used in**: Not yet implemented
+- **Status**: ⚙️ In Development
+- **Note**: Create calendar time block or special event
+
+#### GET /api/time-blocks
+- **Route**: `backend/routes/time_block_routes.py`
+- **Service**: `backend/services/time_block_service.py`
+- **Query params**: `child_id`, `date` or `date_range`
+- **Used in**: Not yet implemented
+- **Status**: ⚙️ In Development
+
+#### PUT /api/time-blocks/{block_id}
+- **Route**: `backend/routes/time_block_routes.py`
+- **Service**: `backend/services/time_block_service.py`
+- **Used in**: Not yet implemented
+- **Status**: ⚙️ In Development
+
+#### DELETE /api/time-blocks/{block_id}
+- **Route**: `backend/routes/time_block_routes.py`
+- **Service**: `backend/services/time_block_service.py`
+- **Used in**: Not yet implemented
+- **Status**: ⚙️ In Development
+
+#### POST /api/day-types
+- **Route**: `backend/routes/time_block_routes.py`
+- **Service**: `backend/services/time_block_service.py`
+- **Used in**: Not yet implemented
+- **Status**: ⚙️ In Development
+- **Note**: Set day type (school_day, weekend, holiday, special_event)
+
+#### GET /api/day-types
+- **Route**: `backend/routes/time_block_routes.py`
+- **Service**: `backend/services/time_block_service.py`
+- **Query params**: `child_id`, `date` or `date_range`
+- **Used in**: Not yet implemented
+- **Status**: ⚙️ In Development
+
 ## Statistics
-- Total endpoints: 44
+- Total endpoints: 83
 - Active in frontend: 7 (existing features)
-- Frontend hooks ready: 32 (task management)
-- Backend only (ready for frontend): 5
-- Unused endpoints: 0
+- Frontend hooks ready: 32 (task management Phase 1A)
+- In development: 37 (enhanced task management)
+- Backend only: 7
+- Pending (Phase 2): 1 (AI recommendation)

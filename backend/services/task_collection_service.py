@@ -1,5 +1,5 @@
 """Task collection service for managing task collections/folders."""
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from bson import ObjectId
 
@@ -77,7 +77,7 @@ class TaskCollectionService:
         if not ObjectId.is_valid(child_id):
             raise ValueError("Invalid child_id")
 
-        query = {"child_id": ObjectId(child_id)}
+        query: Dict[str, Any] = {"child_id": ObjectId(child_id)}
         if not include_archived:
             query["is_archived"] = False
 
@@ -155,7 +155,7 @@ class TaskCollectionService:
         if not existing:
             return None
 
-        update_doc = {"updated_at": utcnow()}
+        update_doc: Dict[str, Any] = {"updated_at": utcnow()}
         if collection_data.name is not None:
             update_doc["name"] = collection_data.name
         if collection_data.description is not None:

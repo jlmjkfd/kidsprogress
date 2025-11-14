@@ -17,6 +17,10 @@ python-multipart==0.0.20
 # AI (Gemini API)
 google-generativeai==0.8.3
 
+# Scheduling & Recurrence
+apscheduler==3.10.4
+python-dateutil==2.9.0
+
 # Testing
 pytest==8.3.0
 pytest-asyncio==0.25.0
