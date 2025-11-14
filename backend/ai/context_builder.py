@@ -175,7 +175,7 @@ class ContextBuilder:
         for routine in routines:
             # Check if routine should occur on target_date
             occurrences = self.routine_service.get_next_occurrences(
-                routine.recurrence, count=5, start_date=target_date
+                routine.recurrence, count=5
             )
 
             if occurrences and occurrences[0].date() == target_date:

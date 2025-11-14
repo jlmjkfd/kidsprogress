@@ -5,8 +5,8 @@ from bson import ObjectId
 
 from backend.models.tool import Tool, ToolCreate, ToolUpdate, ToolApplicability
 from backend.services.tool_service import ToolService
-from backend.database import get_database
-from backend.middleware.auth import get_current_user
+from backend.dependencies.database import get_database
+from backend.routes.auth import get_current_user
 
 router = APIRouter(prefix="/api/tools", tags=["tools"])
 
@@ -88,6 +88,9 @@ async def update_tool(
         tool_id=ObjectId(tool_id),
         data=tool_data
     )
+
+    if not tool:
+        raise HTTPException(status_code=500, detail="Failed to update tool")
 
     return tool.model_dump(by_alias=True, mode="json")
 

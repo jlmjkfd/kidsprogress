@@ -91,6 +91,8 @@ class ScheduleService:
 
         # Check task-timeblock conflicts
         for task in fixed_tasks:
+            if not task.fixed_time_slot:
+                continue
             for block in time_blocks:
                 if block.blocks_scheduling and self.time_slots_overlap(task.fixed_time_slot, block.time_slot):
                     conflicts.append({

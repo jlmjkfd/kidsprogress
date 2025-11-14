@@ -161,9 +161,10 @@ class TaskRecommender:
 
         completed_tasks = []
         for task_id in completed_task_ids:
-            task = await task_service.get_task(task_id)
-            if task:
-                completed_tasks.append(task.title)
+            from bson import ObjectId
+            doc = await self.db.tasks.find_one({"_id": ObjectId(task_id)})
+            if doc:
+                completed_tasks.append(doc.get("title", "Unknown task"))
 
         # Format prompt
         prompt = prompts.REPLAN_PROMPT.format(

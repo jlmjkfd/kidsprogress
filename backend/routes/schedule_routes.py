@@ -4,8 +4,8 @@ from datetime import date
 from bson import ObjectId
 
 from backend.services.schedule_service import ScheduleService
-from backend.database import get_database
-from backend.middleware.auth import get_current_user
+from backend.dependencies.database import get_database
+from backend.routes.auth import get_current_user
 
 router = APIRouter(prefix="/api/schedule", tags=["schedule"])
 

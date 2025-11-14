@@ -6,8 +6,8 @@ from bson import ObjectId
 
 from backend.models.activity import Activity, ActivityCreate, ActivityUpdate, ActivityAvailability
 from backend.services.activity_service import ActivityService
-from backend.database import get_database
-from backend.middleware.auth import get_current_user
+from backend.dependencies.database import get_database
+from backend.routes.auth import get_current_user
 
 router = APIRouter(prefix="/api/activities", tags=["activities"])
 
@@ -103,6 +103,9 @@ async def update_activity(
         activity_id=ObjectId(activity_id),
         data=activity_data
     )
+
+    if not activity:
+        raise HTTPException(status_code=500, detail="Failed to update activity")
 
     return activity.model_dump(by_alias=True, mode="json")
 

@@ -6,8 +6,8 @@ from bson import ObjectId
 
 from backend.models.routine import Routine, RoutineCreate, RoutineUpdate
 from backend.services.routine_service import RoutineService
-from backend.database import get_database
-from backend.middleware.auth import get_current_user
+from backend.dependencies.database import get_database
+from backend.routes.auth import get_current_user
 
 router = APIRouter(prefix="/api/routines", tags=["routines"])
 
@@ -115,6 +115,9 @@ async def update_routine(
         routine_id=ObjectId(routine_id),
         data=routine_data
     )
+
+    if not routine:
+        raise HTTPException(status_code=500, detail="Failed to update routine")
 
     return {
         **routine.model_dump(by_alias=True, mode="json"),

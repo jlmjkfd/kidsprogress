@@ -7,11 +7,10 @@ from pydantic_settings import BaseSettings
 
 class GeminiSettings(BaseSettings):
     """Gemini API settings from environment."""
-    gemini_api_key: str
+    gemini_api_key: str = ""
     gemini_model: str = "gemini-1.5-flash"
 
-    class Config:
-        env_file = ".env"
+    model_config = {"env_file": ".env"}
 
 
 class GeminiClient:
@@ -20,6 +19,8 @@ class GeminiClient:
     def __init__(self):
         """Initialize Gemini client with API key from environment."""
         self.settings = GeminiSettings()
+        if not self.settings.gemini_api_key:
+            raise ValueError("GEMINI_API_KEY not found in environment")
         genai.configure(api_key=self.settings.gemini_api_key)
         self.model = genai.GenerativeModel(self.settings.gemini_model)
 
@@ -41,11 +42,13 @@ class GeminiClient:
         Returns:
             Generated text response
         """
-        generation_config = {
-            "temperature": temperature,
-        }
+        from google.generativeai.types import GenerationConfig
+
+        config_dict: Dict[str, Any] = {"temperature": temperature}
         if max_tokens:
-            generation_config["max_output_tokens"] = max_tokens
+            config_dict["max_output_tokens"] = max_tokens
+
+        generation_config = GenerationConfig(**config_dict)
 
         # If system instruction provided, create new model instance
         if system_instruction:

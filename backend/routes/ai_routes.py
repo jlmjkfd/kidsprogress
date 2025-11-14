@@ -49,9 +49,9 @@ async def recommend_now(
     from backend.services.child_service import ChildService
 
     child_service = ChildService(db)
-    child = await child_service.get_child(request.child_id)
+    child = await child_service.get_child_by_id(request.child_id, current_user["user_id"])
 
-    if not child or str(child.parent_id) != current_user["user_id"]:
+    if not child:
         raise HTTPException(status_code=404, detail="Child not found")
 
     # Get AI recommendation
@@ -84,7 +84,7 @@ async def plan_day(
     from backend.services.child_service import ChildService
 
     child_service = ChildService(db)
-    child = await child_service.get_child(request.child_id)
+    child = await child_service.get_child_by_id(request.child_id)
 
     if not child or str(child.parent_id) != current_user["user_id"]:
         raise HTTPException(status_code=404, detail="Child not found")
@@ -126,7 +126,7 @@ async def replan_schedule(
     from backend.services.child_service import ChildService
 
     child_service = ChildService(db)
-    child = await child_service.get_child(request.child_id)
+    child = await child_service.get_child_by_id(request.child_id)
 
     if not child or str(child.parent_id) != current_user["user_id"]:
         raise HTTPException(status_code=404, detail="Child not found")
@@ -162,7 +162,7 @@ async def get_scheduling_explanation(
     from backend.services.child_service import ChildService
 
     child_service = ChildService(db)
-    child = await child_service.get_child(child_id)
+    child = await child_service.get_child_by_id(child_id)
 
     if not child or str(child.parent_id) != current_user["user_id"]:
         raise HTTPException(status_code=404, detail="Child not found")
@@ -171,7 +171,7 @@ async def get_scheduling_explanation(
     from backend.services.task_service import TaskService
 
     task_service = TaskService(db)
-    task = await task_service.get_task(task_id)
+    task = await task_service.get_task_by_id(task_id)
 
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")

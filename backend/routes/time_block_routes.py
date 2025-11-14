@@ -13,8 +13,8 @@ from backend.models.time_block import (
     DayTypeUpdate,
 )
 from backend.services.time_block_service import TimeBlockService
-from backend.database import get_database
-from backend.middleware.auth import get_current_user
+from backend.dependencies.database import get_database
+from backend.routes.auth import get_current_user
 
 router = APIRouter(prefix="/api/time-blocks", tags=["time_blocks"])
 
@@ -107,6 +107,9 @@ async def update_time_block(
         block_id=ObjectId(block_id),
         data=block_data
     )
+
+    if not time_block:
+        raise HTTPException(status_code=500, detail="Failed to update time block")
 
     return time_block.model_dump(by_alias=True, mode="json")
 
