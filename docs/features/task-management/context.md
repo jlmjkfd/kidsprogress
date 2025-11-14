@@ -1,9 +1,9 @@
 # Context: Enhanced Task Management System
 
-**Version**: 4.0
+**Version**: 5.0
 **Date**: 2025-11-14
-**Status**: Backend + AI Complete ✅ - Frontend Pending
-**Replaces**: Version 3.0 (backend only)
+**Status**: Backend + AI Complete ✅ | Frontend API Hooks Complete ✅
+**Replaces**: Version 4.0
 
 ## Current State
 
@@ -48,9 +48,18 @@ backend/scripts/
 - ✅ Dynamic replanning
 - ✅ 4 AI routes
 
+**✅ Phase 3 Frontend API Hooks - COMPLETED**:
+- ✅ AI hooks (3 files: recommendations, explanations)
+- ✅ Routine hooks (2 files: queries + mutations)
+- ✅ Activity hooks (2 files: queries + mutations)
+- ✅ Time Block hooks (2 files: queries + mutations)
+- ✅ Schedule hooks (1 file: queries)
+- ✅ Tool hooks (2 files: queries + mutations)
+- ✅ TypeScript types (2 files: ai.ts, enhanced-tasks.ts)
+
 **❌ NOT Yet Implemented**:
-- Frontend components & API hooks (Phase 3)
-- Testing (Phase 4)
+- Frontend UI components (Phase 4)
+- Testing (Phase 5)
 
 ### Backend Files Created (Phase 1)
 
@@ -116,6 +125,55 @@ backend/routes/
     - POST /api/ai/schedule/plan-day       # Full day planning
     - POST /api/ai/schedule/replan         # Dynamic replanning
     - GET /api/ai/schedule/explanation     # Task explanations
+```
+
+### Frontend Files Created (Phase 3)
+
+**Types**:
+```
+frontend/src/types/
+  ai.ts                   # AI types (54 lines) ✅
+    - TaskRecommendation, DailyPlan, ScheduleItem
+    - Request types for all AI endpoints
+
+  enhanced-tasks.ts       # Task management types (230 lines) ✅
+    - Routine: RecurrencePattern, Frequency, Weekday
+    - Activity: UsageRule, UsageDays, UsageFrequency
+    - TimeBlock: DayType, TimeSlot
+    - Schedule: DailySchedule, ScheduleConflict
+    - Tool: ToolCreate, ToolUpdate
+```
+
+**Query Hooks**:
+```
+frontend/src/api/queries/
+  useAIRecommendations.ts     # ❌ (mutations only)
+  useTaskExplanation.ts       # AI explanation query ✅
+  useRoutines.ts              # 3 routine queries ✅
+  useActivities.ts            # 3 activity queries ✅
+  useTimeBlocks.ts            # 3 time block queries ✅
+  useSchedule.ts              # 2 schedule queries ✅
+  useTools.ts                 # 2 tool queries ✅
+```
+
+**Mutation Hooks**:
+```
+frontend/src/api/mutations/
+  useAIRecommendations.ts     # 3 AI mutations ✅
+    - useRecommendNow(), usePlanDay(), useReplanSchedule()
+
+  useRoutineMutations.ts      # 5 routine mutations ✅
+    - useCreateRoutine(), useUpdateRoutine(), useDeleteRoutine()
+    - useGenerateRoutineTask(), useCancelRoutine()
+
+  useActivityMutations.ts     # 3 activity mutations ✅
+    - useCreateActivity(), useUpdateActivity(), useDeleteActivity()
+
+  useTimeBlockMutations.ts    # 3 time block mutations ✅
+    - useCreateTimeBlock(), useUpdateTimeBlock(), useDeleteTimeBlock()
+
+  useToolMutations.ts         # 3 tool mutations ✅
+    - useCreateTool(), useUpdateTool(), useDeleteTool()
 ```
 
 ## Available Resources
