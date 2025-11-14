@@ -154,7 +154,7 @@ export default function DeviceManagementSection() {
       <DeviceRegistrationModal
         isOpen={showRegisterModal}
         onClose={() => setShowRegisterModal(false)}
-        isTrustedDevice={false}
+        isTrustedDevice={true}
       />
 
       {/* Edit Device Modal */}
