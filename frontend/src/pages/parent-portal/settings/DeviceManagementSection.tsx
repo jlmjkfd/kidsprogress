@@ -3,13 +3,13 @@
  */
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { IconDevices, IconEdit, IconTrash, IconAlertCircle } from "@tabler/icons-react";
+import { IconDevices, IconEdit, IconTrash, IconAlertCircle, IconPlus } from "@tabler/icons-react";
 import { useDevices } from "@api/queries/useDevices";
 import { useChildren } from "@api/queries/useChildren";
-import { useRemoveDevice } from "@api/mutations/useRemoveDevice";
 import { getDeviceToken } from "@/utils/deviceToken";
 import DeviceEditModal from "./DeviceEditModal";
 import DeviceRemoveModal from "./DeviceRemoveModal";
+import DeviceRegistrationModal from "@/components/DeviceRegistrationModal";
 
 export default function DeviceManagementSection() {
   const { t } = useTranslation(["common"]);
@@ -19,6 +19,11 @@ export default function DeviceManagementSection() {
 
   const [editingDevice, setEditingDevice] = useState<string | null>(null);
   const [removingDevice, setRemovingDevice] = useState<string | null>(null);
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
+
+  // Check if current device is registered
+  const currentDevice = devices?.find((d) => d.device_token === currentDeviceToken);
+  const isCurrentDeviceRegistered = !!currentDevice;
 
   const getChildrenNames = (childIds: string[]) => {
     if (!children) return "";
@@ -49,10 +54,38 @@ export default function DeviceManagementSection() {
   return (
     <>
       <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <IconDevices className="text-blue-600" size={24} />
-          <h2 className="text-xl font-semibold text-gray-900">{t("common:settings.device_management")}</h2>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <IconDevices className="text-blue-600" size={24} />
+            <h2 className="text-xl font-semibold text-gray-900">{t("common:settings.device_management")}</h2>
+          </div>
+          {!isCurrentDeviceRegistered && (
+            <button
+              onClick={() => setShowRegisterModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            >
+              <IconPlus size={20} />
+              <span className="hidden sm:inline">{t("common:device_list.register_this_device")}</span>
+              <span className="sm:hidden">{t("common:device_list.register")}</span>
+            </button>
+          )}
         </div>
+
+        {/* Current Device Status */}
+        {!isCurrentDeviceRegistered && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4 flex items-start gap-3">
+            <IconAlertCircle className="text-amber-600 flex-shrink-0 mt-0.5" size={20} />
+            <div className="flex-1">
+              <h3 className="font-semibold text-amber-900 mb-1">
+                {t("common:device_list.current_device_not_registered")}
+              </h3>
+              <p className="text-sm text-amber-800">
+                {t("common:device_list.register_device_description")}
+              </p>
+            </div>
+          </div>
+        )}
+
         <p className="text-gray-600 mb-4">
           {t("common:settings.device_management_description")}
         </p>
@@ -117,19 +150,26 @@ export default function DeviceManagementSection() {
         )}
       </div>
 
+      {/* Register Device Modal */}
+      <DeviceRegistrationModal
+        isOpen={showRegisterModal}
+        onClose={() => setShowRegisterModal(false)}
+        isTrustedDevice={false}
+      />
+
       {/* Edit Device Modal */}
-      {editingDevice && (
+      {editingDevice && devices && (
         <DeviceEditModal
-          isOpen={!!editingDevice}
+          isOpen={true}
           onClose={() => setEditingDevice(null)}
-          device={devices?.find((d) => d.device_token === editingDevice)!}
+          device={devices.find((d) => d.device_token === editingDevice)!}
         />
       )}
 
       {/* Remove Device Modal */}
       {removingDevice && (
         <DeviceRemoveModal
-          isOpen={!!removingDevice}
+          isOpen={true}
           onClose={() => setRemovingDevice(null)}
           deviceToken={removingDevice}
           deviceName={devices?.find((d) => d.device_token === removingDevice)?.device_name || ""}

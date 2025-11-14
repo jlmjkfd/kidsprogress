@@ -150,6 +150,10 @@
     "remove_confirmation": "确定要删除设备 \"{{deviceName}}\" 吗？",
     "remove_warning": "孩子将无法在此设备上访问他们的门户，除非家长重新登录。",
     "removing": "删除中...",
-    "update_error": "更新设备失败"
+    "update_error": "更新设备失败",
+    "register_this_device": "注册此设备",
+    "register": "注册",
+    "current_device_not_registered": "当前设备未注册",
+    "register_device_description": "将此设备注册为受信任设备，让孩子无需家长登录即可访问他们的门户。"
   }
 }

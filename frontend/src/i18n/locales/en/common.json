@@ -150,6 +150,10 @@
     "remove_confirmation": "Are you sure you want to remove \"{{deviceName}}\"?",
     "remove_warning": "Children will no longer be able to access their portal on this device without parent login.",
     "removing": "Removing...",
-    "update_error": "Failed to update device"
+    "update_error": "Failed to update device",
+    "register_this_device": "Register This Device",
+    "register": "Register",
+    "current_device_not_registered": "Current Device Not Registered",
+    "register_device_description": "Register this device as trusted so children can access their portal without requiring parent login."
   }
 }
