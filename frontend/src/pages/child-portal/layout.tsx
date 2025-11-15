@@ -16,13 +16,16 @@ import {
 } from "@tabler/icons-react";
 import { useChild } from "@/api/queries/useChild";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { useAppSelector } from "@/store/hooks";
 
 export default function ChildPortalLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { childId } = useParams<{ childId: string }>();
   const { t } = useTranslation(["common"]);
-  const { data: child } = useChild(childId || "");
+  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
+  // Only fetch child if authenticated (device token users won't have child details displayed)
+  const { data: child } = useChild(childId || "", isAuthenticated);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navItems = [
