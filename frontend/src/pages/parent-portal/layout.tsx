@@ -85,6 +85,15 @@ export default function ParentPortalLayout() {
 
           <div className="flex items-center gap-2">
             <LanguageSwitcher />
+            {/* Desktop logout button */}
+            <button
+              onClick={handleLogout}
+              className="hidden md:flex items-center gap-2 px-3 py-2 rounded-lg text-red-600 hover:bg-red-50 transition-colors text-sm min-h-[44px]"
+            >
+              <IconLogout size={18} />
+              <span>{t("common:logout")}</span>
+            </button>
+            {/* Mobile menu toggle */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="md:hidden p-2 text-gray-600 hover:text-gray-900 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
@@ -153,16 +162,6 @@ export default function ParentPortalLayout() {
 
       {/* Main Content */}
       <div className="flex-1 overflow-auto">
-        {/* Desktop-only logout button */}
-        <div className="hidden md:block absolute top-4 right-20">
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-red-600 hover:bg-red-50 transition-colors text-sm"
-          >
-            <IconLogout size={18} />
-            <span>{t("common:logout")}</span>
-          </button>
-        </div>
         <Outlet />
       </div>
     </div>
