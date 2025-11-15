@@ -3,6 +3,7 @@
  */
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { RemoveScroll } from "react-remove-scroll";
 import { IconX, IconCalendar, IconClock, IconRepeat } from "@tabler/icons-react";
 import { Routine, RoutineCreate, RoutineUpdate, Frequency, Weekday } from "@/types/enhanced-tasks";
 
@@ -129,8 +130,9 @@ export default function RoutineModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <RemoveScroll>
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-gray-900">
             {isEdit ? t("tasks:routine.edit") : t("tasks:routine.create")}
@@ -279,7 +281,7 @@ export default function RoutineModal({
                 </label>
                 <select
                   value={schedulingType}
-                  onChange={(e) => setSchedulingType(e.target.value as any)}
+                  onChange={(e) => setSchedulingType(e.target.value as "fixed_time" | "preferred_time" | "flexible")}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 >
                   {SCHEDULING_TYPES.map((type) => (
@@ -296,7 +298,7 @@ export default function RoutineModal({
                 </label>
                 <select
                   value={obligationLevel}
-                  onChange={(e) => setObligationLevel(e.target.value as any)}
+                  onChange={(e) => setObligationLevel(e.target.value as "must_do" | "should_do" | "can_do")}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 >
                   {OBLIGATION_LEVELS.map((level) => (
@@ -392,7 +394,8 @@ export default function RoutineModal({
             </button>
           </div>
         </form>
+        </div>
       </div>
-    </div>
+    </RemoveScroll>
   );
 }
