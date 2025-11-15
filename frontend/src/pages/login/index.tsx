@@ -45,6 +45,9 @@ function LoginPage() {
             // Store credentials in Redux
             dispatch(setCredentials({ token: tokenData.access_token, user }));
 
+            // Set flag to show device registration modal on portal selection page
+            sessionStorage.setItem("show_device_registration_prompt", "true");
+
             // Navigate to portal selection (modal will show there if needed)
             navigate("/portal-selection");
           }

@@ -33,9 +33,16 @@ export default function PortalSelectionPage() {
   const { data: devices } = useDevices();
   const [showDeviceRegistration, setShowDeviceRegistration] = useState(false);
 
-  // Check if device should be registered on mount
+  // Check if device should be registered on mount (only right after login)
   useEffect(() => {
     const checkDeviceRegistration = () => {
+      // Only check if we just logged in (flag set by login page)
+      const shouldShowPrompt = sessionStorage.getItem("show_device_registration_prompt");
+      if (!shouldShowPrompt) return;
+
+      // Clear the flag immediately so it doesn't show again
+      sessionStorage.removeItem("show_device_registration_prompt");
+
       const loginPreference = localStorage.getItem("login_trusted_device_preference");
       const wasTrustedDuringLogin = loginPreference ? JSON.parse(loginPreference) : false;
 
