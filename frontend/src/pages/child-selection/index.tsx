@@ -20,7 +20,8 @@ export default function ChildSelectionPage() {
   const deviceToken = getDeviceToken();
 
   // Use parent auth if available, otherwise use device token
-  const { data: authChildren, isLoading: authLoading, isError: authError } = useChildren();
+  // Only fetch from auth endpoint if authenticated, otherwise use device endpoint
+  const { data: authChildren, isLoading: authLoading, isError: authError } = useChildren(isAuthenticated);
   const { data: deviceChildren, isLoading: deviceLoading, isError: deviceError } = useDeviceChildren(deviceToken, !isAuthenticated);
 
   // Determine which data source to use

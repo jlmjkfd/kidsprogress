@@ -4,10 +4,13 @@
 import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useParentPinStatus } from "@api/queries/useParentPinStatus";
+import { useAppSelector } from "@/store/hooks";
 
 export function useParentPortalAccess() {
   const navigate = useNavigate();
-  const { data: pinStatus } = useParentPinStatus();
+  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
+  // Only check PIN status if authenticated
+  const { data: pinStatus } = useParentPinStatus(isAuthenticated);
   const [showPinModal, setShowPinModal] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
 
