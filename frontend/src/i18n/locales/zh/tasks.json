@@ -73,5 +73,18 @@
     "confirm_delete": "确定要删除此活动吗？",
     "inactive": "未激活",
     "type_reward": "奖励活动"
+  },
+  "time_block": {
+    "title": "时间块",
+    "description": "管理固定时间块和特殊事件",
+    "create": "创建时间块",
+    "create_first": "创建您的第一个时间块",
+    "empty_title": "还没有时间块",
+    "empty_description": "为固定事件创建时间块，如上学、用餐或特殊活动。",
+    "confirm_delete": "确定要删除此时间块吗？",
+    "day_type_school_day": "上学日",
+    "day_type_weekend": "周末",
+    "day_type_holiday": "假日",
+    "day_type_special_event": "特殊事件"
   }
 }
