@@ -21,7 +21,7 @@ async def get_daily_schedule(
     # Verify child belongs to parent
     child_doc = await db.children.find_one({
         "_id": ObjectId(child_id),
-        "parent_id": ObjectId(current_user["user_id"])
+        "parent_id": ObjectId(current_user.id)
     })
     if not child_doc:
         raise HTTPException(status_code=404, detail="Child not found or unauthorized")
@@ -46,7 +46,7 @@ async def get_schedule_conflicts(
     # Verify child belongs to parent
     child_doc = await db.children.find_one({
         "_id": ObjectId(child_id),
-        "parent_id": ObjectId(current_user["user_id"])
+        "parent_id": ObjectId(current_user.id)
     })
     if not child_doc:
         raise HTTPException(status_code=404, detail="Child not found or unauthorized")
@@ -77,7 +77,7 @@ async def get_available_time_slots(
     # Verify child belongs to parent
     child_doc = await db.children.find_one({
         "_id": ObjectId(child_id),
-        "parent_id": ObjectId(current_user["user_id"])
+        "parent_id": ObjectId(current_user.id)
     })
     if not child_doc:
         raise HTTPException(status_code=404, detail="Child not found or unauthorized")
@@ -107,7 +107,7 @@ async def get_ai_recommendation(
     # Verify child belongs to parent
     child_doc = await db.children.find_one({
         "_id": ObjectId(child_id),
-        "parent_id": ObjectId(current_user["user_id"])
+        "parent_id": ObjectId(current_user.id)
     })
     if not child_doc:
         raise HTTPException(status_code=404, detail="Child not found or unauthorized")

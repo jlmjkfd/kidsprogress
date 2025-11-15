@@ -24,13 +24,13 @@ async def create_routine(
     # Verify child belongs to parent
     child_doc = await db.children.find_one({
         "_id": ObjectId(routine_data.child_id),
-        "parent_id": ObjectId(current_user["user_id"])
+        "parent_id": ObjectId(current_user.id)
     })
     if not child_doc:
         raise HTTPException(status_code=404, detail="Child not found or unauthorized")
 
     routine = await service.create_routine(
-        parent_id=ObjectId(current_user["user_id"]),
+        parent_id=ObjectId(current_user.id),
         data=routine_data
     )
 
@@ -51,7 +51,7 @@ async def get_routines(
     # Verify child belongs to parent
     child_doc = await db.children.find_one({
         "_id": ObjectId(child_id),
-        "parent_id": ObjectId(current_user["user_id"])
+        "parent_id": ObjectId(current_user.id)
     })
     if not child_doc:
         raise HTTPException(status_code=404, detail="Child not found or unauthorized")
@@ -85,7 +85,7 @@ async def get_routine(
         raise HTTPException(status_code=404, detail="Routine not found")
 
     # Verify ownership
-    if str(routine.parent_id) != current_user["user_id"]:
+    if str(routine.parent_id) != current_user.id:
         raise HTTPException(status_code=403, detail="Unauthorized")
 
     return {
@@ -108,7 +108,7 @@ async def update_routine(
     existing = await service.get_routine(ObjectId(routine_id))
     if not existing:
         raise HTTPException(status_code=404, detail="Routine not found")
-    if str(existing.parent_id) != current_user["user_id"]:
+    if str(existing.parent_id) != current_user.id:
         raise HTTPException(status_code=403, detail="Unauthorized")
 
     routine = await service.update_routine(
@@ -138,7 +138,7 @@ async def delete_routine(
     existing = await service.get_routine(ObjectId(routine_id))
     if not existing:
         raise HTTPException(status_code=404, detail="Routine not found")
-    if str(existing.parent_id) != current_user["user_id"]:
+    if str(existing.parent_id) != current_user.id:
         raise HTTPException(status_code=403, detail="Unauthorized")
 
     success = await service.delete_routine(ObjectId(routine_id))
@@ -163,7 +163,7 @@ async def generate_routine_tasks(
     routine = await service.get_routine(ObjectId(routine_id))
     if not routine:
         raise HTTPException(status_code=404, detail="Routine not found")
-    if str(routine.parent_id) != current_user["user_id"]:
+    if str(routine.parent_id) != current_user.id:
         raise HTTPException(status_code=403, detail="Unauthorized")
 
     task = await service.generate_tasks_for_date(routine, target_date)
@@ -191,7 +191,7 @@ async def cancel_routine_instance(
     routine = await service.get_routine(ObjectId(routine_id))
     if not routine:
         raise HTTPException(status_code=404, detail="Routine not found")
-    if str(routine.parent_id) != current_user["user_id"]:
+    if str(routine.parent_id) != current_user.id:
         raise HTTPException(status_code=403, detail="Unauthorized")
 
     success = await service.cancel_routine_instance(ObjectId(routine_id), skip_date)
@@ -216,7 +216,7 @@ async def preview_routine_occurrences(
     routine = await service.get_routine(ObjectId(routine_id))
     if not routine:
         raise HTTPException(status_code=404, detail="Routine not found")
-    if str(routine.parent_id) != current_user["user_id"]:
+    if str(routine.parent_id) != current_user.id:
         raise HTTPException(status_code=403, detail="Unauthorized")
 
     occurrences = service.get_next_occurrences(routine.recurrence, count=count)

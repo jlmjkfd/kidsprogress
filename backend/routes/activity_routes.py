@@ -24,13 +24,13 @@ async def create_activity(
     # Verify child belongs to parent
     child_doc = await db.children.find_one({
         "_id": ObjectId(activity_data.child_id),
-        "parent_id": ObjectId(current_user["user_id"])
+        "parent_id": ObjectId(current_user.id)
     })
     if not child_doc:
         raise HTTPException(status_code=404, detail="Child not found or unauthorized")
 
     activity = await service.create_activity(
-        parent_id=ObjectId(current_user["user_id"]),
+        parent_id=ObjectId(current_user.id),
         data=activity_data
     )
 
@@ -48,7 +48,7 @@ async def get_activities(
     # Verify child belongs to parent
     child_doc = await db.children.find_one({
         "_id": ObjectId(child_id),
-        "parent_id": ObjectId(current_user["user_id"])
+        "parent_id": ObjectId(current_user.id)
     })
     if not child_doc:
         raise HTTPException(status_code=404, detail="Child not found or unauthorized")
@@ -76,7 +76,7 @@ async def get_activity(
         raise HTTPException(status_code=404, detail="Activity not found")
 
     # Verify ownership
-    if str(activity.parent_id) != current_user["user_id"]:
+    if str(activity.parent_id) != current_user.id:
         raise HTTPException(status_code=403, detail="Unauthorized")
 
     return activity.model_dump(by_alias=True, mode="json")
@@ -96,7 +96,7 @@ async def update_activity(
     existing = await service.get_activity(ObjectId(activity_id))
     if not existing:
         raise HTTPException(status_code=404, detail="Activity not found")
-    if str(existing.parent_id) != current_user["user_id"]:
+    if str(existing.parent_id) != current_user.id:
         raise HTTPException(status_code=403, detail="Unauthorized")
 
     activity = await service.update_activity(
@@ -123,7 +123,7 @@ async def delete_activity(
     existing = await service.get_activity(ObjectId(activity_id))
     if not existing:
         raise HTTPException(status_code=404, detail="Activity not found")
-    if str(existing.parent_id) != current_user["user_id"]:
+    if str(existing.parent_id) != current_user.id:
         raise HTTPException(status_code=403, detail="Unauthorized")
 
     success = await service.delete_activity(ObjectId(activity_id))
@@ -145,7 +145,7 @@ async def get_available_activities(
     # Verify child belongs to parent
     child_doc = await db.children.find_one({
         "_id": ObjectId(child_id),
-        "parent_id": ObjectId(current_user["user_id"])
+        "parent_id": ObjectId(current_user.id)
     })
     if not child_doc:
         raise HTTPException(status_code=404, detail="Child not found or unauthorized")
@@ -173,7 +173,7 @@ async def create_task_from_activity(
     activity = await service.get_activity(ObjectId(activity_id))
     if not activity:
         raise HTTPException(status_code=404, detail="Activity not found")
-    if str(activity.parent_id) != current_user["user_id"]:
+    if str(activity.parent_id) != current_user.id:
         raise HTTPException(status_code=403, detail="Unauthorized")
 
     # Check if activity is available

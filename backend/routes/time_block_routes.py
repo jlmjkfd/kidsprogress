@@ -31,13 +31,13 @@ async def create_time_block(
     # Verify child belongs to parent
     child_doc = await db.children.find_one({
         "_id": ObjectId(block_data.child_id),
-        "parent_id": ObjectId(current_user["user_id"])
+        "parent_id": ObjectId(current_user.id)
     })
     if not child_doc:
         raise HTTPException(status_code=404, detail="Child not found or unauthorized")
 
     time_block = await service.create_time_block(
-        parent_id=ObjectId(current_user["user_id"]),
+        parent_id=ObjectId(current_user.id),
         data=block_data
     )
 
@@ -57,7 +57,7 @@ async def get_time_blocks(
     # Verify child belongs to parent
     child_doc = await db.children.find_one({
         "_id": ObjectId(child_id),
-        "parent_id": ObjectId(current_user["user_id"])
+        "parent_id": ObjectId(current_user.id)
     })
     if not child_doc:
         raise HTTPException(status_code=404, detail="Child not found or unauthorized")
@@ -100,7 +100,7 @@ async def update_time_block(
     existing = await service.get_time_block(ObjectId(block_id))
     if not existing:
         raise HTTPException(status_code=404, detail="Time block not found")
-    if str(existing.parent_id) != current_user["user_id"]:
+    if str(existing.parent_id) != current_user.id:
         raise HTTPException(status_code=403, detail="Unauthorized")
 
     time_block = await service.update_time_block(
@@ -127,7 +127,7 @@ async def delete_time_block(
     existing = await service.get_time_block(ObjectId(block_id))
     if not existing:
         raise HTTPException(status_code=404, detail="Time block not found")
-    if str(existing.parent_id) != current_user["user_id"]:
+    if str(existing.parent_id) != current_user.id:
         raise HTTPException(status_code=403, detail="Unauthorized")
 
     success = await service.delete_time_block(ObjectId(block_id))
@@ -154,13 +154,13 @@ async def create_day_type(
     # Verify child belongs to parent
     child_doc = await db.children.find_one({
         "_id": ObjectId(day_type_data.child_id),
-        "parent_id": ObjectId(current_user["user_id"])
+        "parent_id": ObjectId(current_user.id)
     })
     if not child_doc:
         raise HTTPException(status_code=404, detail="Child not found or unauthorized")
 
     day_type = await service.create_day_type(
-        parent_id=ObjectId(current_user["user_id"]),
+        parent_id=ObjectId(current_user.id),
         data=day_type_data
     )
 
@@ -180,7 +180,7 @@ async def get_day_types(
     # Verify child belongs to parent
     child_doc = await db.children.find_one({
         "_id": ObjectId(child_id),
-        "parent_id": ObjectId(current_user["user_id"])
+        "parent_id": ObjectId(current_user.id)
     })
     if not child_doc:
         raise HTTPException(status_code=404, detail="Child not found or unauthorized")

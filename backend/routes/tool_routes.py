@@ -54,7 +54,7 @@ async def create_tool(
 
     try:
         tool = await service.create_tool(
-            parent_id=ObjectId(current_user["user_id"]),
+            parent_id=ObjectId(current_user.id),
             data=tool_data
         )
     except ValueError as e:
@@ -81,7 +81,7 @@ async def update_tool(
     if existing.is_system:
         raise HTTPException(status_code=403, detail="Cannot modify system tools")
 
-    if existing.created_by and str(existing.created_by) != current_user["user_id"]:
+    if existing.created_by and str(existing.created_by) != current_user.id:
         raise HTTPException(status_code=403, detail="Unauthorized")
 
     tool = await service.update_tool(
@@ -112,7 +112,7 @@ async def delete_tool(
     if existing.is_system:
         raise HTTPException(status_code=403, detail="Cannot delete system tools")
 
-    if existing.created_by and str(existing.created_by) != current_user["user_id"]:
+    if existing.created_by and str(existing.created_by) != current_user.id:
         raise HTTPException(status_code=403, detail="Unauthorized")
 
     try:
