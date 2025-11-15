@@ -10,6 +10,7 @@ import {
   IconArrowLeft,
   IconRepeat,
   IconStar,
+  IconCalendarEvent,
 } from "@tabler/icons-react";
 import { useChild } from "@/api/queries/useChild";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
@@ -26,6 +27,7 @@ export default function ChildManagementLayout() {
     { path: `/parent-portal/children/${childId}/tasks`, icon: IconChecklist, label: t("common:child_management.tasks") },
     { path: `/parent-portal/children/${childId}/routines`, icon: IconRepeat, label: t("common:child_management.routines") },
     { path: `/parent-portal/children/${childId}/activities`, icon: IconStar, label: t("common:child_management.activities") },
+    { path: `/parent-portal/children/${childId}/time-blocks`, icon: IconCalendarEvent, label: t("common:child_management.time_blocks") },
     { path: `/parent-portal/children/${childId}/analysis`, icon: IconChartBar, label: t("common:child_management.analysis") },
   ];
 

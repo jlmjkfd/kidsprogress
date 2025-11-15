@@ -74,5 +74,18 @@
     "confirm_delete": "Are you sure you want to delete this activity?",
     "inactive": "Inactive",
     "type_reward": "Reward Activity"
+  },
+  "time_block": {
+    "title": "Time Blocks",
+    "description": "Manage fixed time blocks and special events",
+    "create": "Create Time Block",
+    "create_first": "Create Your First Time Block",
+    "empty_title": "No Time Blocks Yet",
+    "empty_description": "Create time blocks for fixed events like school, meals, or special activities.",
+    "confirm_delete": "Are you sure you want to delete this time block?",
+    "day_type_school_day": "School Day",
+    "day_type_weekend": "Weekend",
+    "day_type_holiday": "Holiday",
+    "day_type_special_event": "Special Event"
   }
 }
