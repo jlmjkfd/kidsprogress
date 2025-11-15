@@ -1,7 +1,7 @@
 # API Registry
 
 > Manually updated after feature implementation
-> Last updated: 2025-11-10
+> Last updated: 2025-11-15
 
 ## Endpoints
 
@@ -327,58 +327,69 @@
 #### POST /api/routines
 - **Route**: `backend/routes/routine_routes.py`
 - **Service**: `backend/services/routine_service.py`
-- **Used in**: Not yet implemented
-- **Status**: ⚙️ In Development
+- **Used in**:
+  - `frontend/src/pages/parent-portal/children/[id]/routines.tsx`
+  - `frontend/src/api/mutations/useRoutineMutations.ts` (useCreateRoutine)
+- **Status**: ✓ Active
 - **Note**: Create recurring task template with RRULE pattern
 
 #### GET /api/routines
 - **Route**: `backend/routes/routine_routes.py`
 - **Service**: `backend/services/routine_service.py`
 - **Query params**: `child_id`, `include_inactive`
-- **Used in**: Not yet implemented
-- **Status**: ⚙️ In Development
+- **Used in**:
+  - `frontend/src/pages/parent-portal/children/[id]/routines.tsx`
+  - `frontend/src/api/queries/useRoutines.ts`
+- **Status**: ✓ Active
 
 #### GET /api/routines/{routine_id}
 - **Route**: `backend/routes/routine_routes.py`
 - **Service**: `backend/services/routine_service.py`
-- **Used in**: Not yet implemented
-- **Status**: ⚙️ In Development
+- **Used in**:
+  - `frontend/src/api/queries/useRoutines.ts` (useRoutine)
+- **Status**: ✓ Active (frontend hooks ready)
 
 #### PUT /api/routines/{routine_id}
 - **Route**: `backend/routes/routine_routes.py`
 - **Service**: `backend/services/routine_service.py`
-- **Used in**: Not yet implemented
-- **Status**: ⚙️ In Development
+- **Used in**:
+  - `frontend/src/pages/parent-portal/children/[id]/routines.tsx`
+  - `frontend/src/api/mutations/useRoutineMutations.ts` (useUpdateRoutine)
+- **Status**: ✓ Active
 
 #### DELETE /api/routines/{routine_id}
 - **Route**: `backend/routes/routine_routes.py`
 - **Service**: `backend/services/routine_service.py`
-- **Used in**: Not yet implemented
-- **Status**: ⚙️ In Development
+- **Used in**:
+  - `frontend/src/pages/parent-portal/children/[id]/routines.tsx`
+  - `frontend/src/api/mutations/useRoutineMutations.ts` (useDeleteRoutine)
+- **Status**: ✓ Active
 - **Note**: Soft delete (sets is_active=false)
 
 #### POST /api/routines/{routine_id}/generate
 - **Route**: `backend/routes/routine_routes.py`
 - **Service**: `backend/services/routine_service.py`
 - **Query params**: `date` (generate task for specific date)
-- **Used in**: Not yet implemented
-- **Status**: ⚙️ In Development
+- **Used in**:
+  - `frontend/src/api/mutations/useRoutineMutations.ts` (useGenerateRoutineTask)
+- **Status**: ✓ Active (frontend hooks ready)
 - **Note**: Generate task instance from routine
 
 #### POST /api/routines/{routine_id}/cancel
 - **Route**: `backend/routes/routine_routes.py`
 - **Service**: `backend/services/routine_service.py`
 - **Body**: `skip_date`
-- **Used in**: Not yet implemented
-- **Status**: ⚙️ In Development
+- **Used in**:
+  - `frontend/src/api/mutations/useRoutineMutations.ts` (useCancelRoutine)
+- **Status**: ✓ Active (frontend hooks ready)
 - **Note**: Cancel routine instance for specific date
 
 #### GET /api/routines/{routine_id}/preview
 - **Route**: `backend/routes/routine_routes.py`
 - **Service**: `backend/services/routine_service.py`
 - **Query params**: `count` (default 10)
-- **Used in**: Not yet implemented
-- **Status**: ⚙️ In Development
+- **Used in**: Frontend implementation pending
+- **Status**: ✓ Active (backend only)
 - **Note**: Preview next N occurrences
 
 ### Activities (Enhanced Task Management)
@@ -386,34 +397,43 @@
 #### POST /api/activities
 - **Route**: `backend/routes/activity_routes.py`
 - **Service**: `backend/services/activity_service.py`
-- **Used in**: Not yet implemented
-- **Status**: ⚙️ In Development
+- **Used in**:
+  - `frontend/src/pages/parent-portal/children/[id]/activities.tsx`
+  - `frontend/src/api/mutations/useActivityMutations.ts` (useCreateActivity)
+- **Status**: ✓ Active (frontend hooks ready)
 - **Note**: Create activity in optional pool
 
 #### GET /api/activities
 - **Route**: `backend/routes/activity_routes.py`
 - **Service**: `backend/services/activity_service.py`
 - **Query params**: `child_id`, `include_inactive`
-- **Used in**: Not yet implemented
-- **Status**: ⚙️ In Development
+- **Used in**:
+  - `frontend/src/pages/parent-portal/children/[id]/activities.tsx`
+  - `frontend/src/api/queries/useActivities.ts`
+- **Status**: ✓ Active (frontend hooks ready)
 
 #### GET /api/activities/{activity_id}
 - **Route**: `backend/routes/activity_routes.py`
 - **Service**: `backend/services/activity_service.py`
-- **Used in**: Not yet implemented
-- **Status**: ⚙️ In Development
+- **Used in**:
+  - `frontend/src/api/queries/useActivities.ts` (useActivity)
+- **Status**: ✓ Active (frontend hooks ready)
 
 #### PUT /api/activities/{activity_id}
 - **Route**: `backend/routes/activity_routes.py`
 - **Service**: `backend/services/activity_service.py`
-- **Used in**: Not yet implemented
-- **Status**: ⚙️ In Development
+- **Used in**:
+  - `frontend/src/pages/parent-portal/children/[id]/activities.tsx`
+  - `frontend/src/api/mutations/useActivityMutations.ts` (useUpdateActivity)
+- **Status**: ✓ Active (frontend hooks ready)
 
 #### DELETE /api/activities/{activity_id}
 - **Route**: `backend/routes/activity_routes.py`
 - **Service**: `backend/services/activity_service.py`
-- **Used in**: Not yet implemented
-- **Status**: ⚙️ In Development
+- **Used in**:
+  - `frontend/src/pages/parent-portal/children/[id]/activities.tsx`
+  - `frontend/src/api/mutations/useActivityMutations.ts` (useDeleteActivity)
+- **Status**: ✓ Active (frontend hooks ready)
 
 #### GET /api/activities/available
 - **Route**: `backend/routes/activity_routes.py`
@@ -505,28 +525,34 @@
 #### POST /api/time-blocks
 - **Route**: `backend/routes/time_block_routes.py`
 - **Service**: `backend/services/time_block_service.py`
-- **Used in**: Not yet implemented
-- **Status**: ⚙️ In Development
+- **Used in**:
+  - `frontend/src/api/mutations/useTimeBlockMutations.ts` (useCreateTimeBlock)
+- **Status**: ✓ Active (frontend hooks ready)
 - **Note**: Create calendar time block or special event
 
 #### GET /api/time-blocks
 - **Route**: `backend/routes/time_block_routes.py`
 - **Service**: `backend/services/time_block_service.py`
 - **Query params**: `child_id`, `date` or `date_range`
-- **Used in**: Not yet implemented
-- **Status**: ⚙️ In Development
+- **Used in**:
+  - `frontend/src/pages/parent-portal/children/[id]/time-blocks.tsx`
+  - `frontend/src/api/queries/useTimeBlocks.ts`
+- **Status**: ✓ Active
 
 #### PUT /api/time-blocks/{block_id}
 - **Route**: `backend/routes/time_block_routes.py`
 - **Service**: `backend/services/time_block_service.py`
-- **Used in**: Not yet implemented
-- **Status**: ⚙️ In Development
+- **Used in**:
+  - `frontend/src/api/mutations/useTimeBlockMutations.ts` (useUpdateTimeBlock)
+- **Status**: ✓ Active (frontend hooks ready)
 
 #### DELETE /api/time-blocks/{block_id}
 - **Route**: `backend/routes/time_block_routes.py`
 - **Service**: `backend/services/time_block_service.py`
-- **Used in**: Not yet implemented
-- **Status**: ⚙️ In Development
+- **Used in**:
+  - `frontend/src/pages/parent-portal/children/[id]/time-blocks.tsx`
+  - `frontend/src/api/mutations/useTimeBlockMutations.ts` (useDeleteTimeBlock)
+- **Status**: ✓ Active
 
 #### POST /api/day-types
 - **Route**: `backend/routes/time_block_routes.py`
@@ -578,8 +604,7 @@
 
 ## Statistics
 - Total endpoints: 86
-- Active in frontend: 7 (existing features)
-- Frontend hooks ready: 32 (task management Phase 1A)
-- In development: 37 (enhanced task management)
+- Active in frontend: 22 (Enhanced Task Management UI complete)
+- Frontend hooks ready: 45 (task management complete)
+- Backend only: 15 (Schedule, Tools, AI features)
 - AI features: 4 (task planning)
-- Backend only: 6
