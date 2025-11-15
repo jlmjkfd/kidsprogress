@@ -18,7 +18,7 @@ export function useCreateRoutine() {
   return useMutation({
     mutationFn: async (data: RoutineCreate): Promise<Routine> => {
       const response = await apiClient.post("/api/routines", data);
-      return response.data.routine;
+      return response.data;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["routines", data.child_id] });

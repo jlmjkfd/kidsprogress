@@ -13,17 +13,43 @@ import {
   IconPlayerPause,
 } from "@tabler/icons-react";
 import { useRoutines } from "@/api/queries/useRoutines";
-import { useDeleteRoutine } from "@/api/mutations/useRoutineMutations";
-import { Routine } from "@/types/enhanced-tasks";
+import { useDefaultTaskCollection } from "@/api/queries/useTaskCollections";
+import { useCreateRoutine, useUpdateRoutine, useDeleteRoutine } from "@/api/mutations/useRoutineMutations";
+import { Routine, RoutineCreate, RoutineUpdate } from "@/types/enhanced-tasks";
+import RoutineModal from "./components/RoutineModal";
 
 export default function RoutinesPage() {
   const { childId } = useParams<{ childId: string }>();
   const { t } = useTranslation(["common", "tasks"]);
   const { data: routines, isLoading } = useRoutines(childId || "");
+  const { data: defaultCollection } = useDefaultTaskCollection(childId || "");
+  const createRoutineMutation = useCreateRoutine();
+  const updateRoutineMutation = useUpdateRoutine();
   const deleteRoutineMutation = useDeleteRoutine();
 
-  const [selectedRoutine, setSelectedRoutine] = useState<Routine | null>(null);
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingRoutine, setEditingRoutine] = useState<Routine | undefined>();
+
+  const handleCreate = () => {
+    setEditingRoutine(undefined);
+    setIsModalOpen(true);
+  };
+
+  const handleEdit = (routine: Routine) => {
+    setEditingRoutine(routine);
+    setIsModalOpen(true);
+  };
+
+  const handleSubmit = async (data: RoutineCreate | RoutineUpdate) => {
+    if (editingRoutine) {
+      await updateRoutineMutation.mutateAsync({
+        routineId: editingRoutine._id,
+        data: data as RoutineUpdate,
+      });
+    } else {
+      await createRoutineMutation.mutateAsync(data as RoutineCreate);
+    }
+  };
 
   const handleDelete = async (routineId: string) => {
     if (!confirm(t("tasks:routine.confirm_delete"))) return;
@@ -51,7 +77,7 @@ export default function RoutinesPage() {
           </p>
         </div>
         <button
-          onClick={() => setShowCreateModal(true)}
+          onClick={handleCreate}
           className="flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors min-h-[44px]"
         >
           <IconPlus size={20} />
@@ -68,7 +94,7 @@ export default function RoutinesPage() {
           </h3>
           <p className="text-gray-600 mb-6">{t("tasks:routine.empty_description")}</p>
           <button
-            onClick={() => setShowCreateModal(true)}
+            onClick={handleCreate}
             className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
           >
             <IconPlus size={20} />
@@ -93,7 +119,7 @@ export default function RoutinesPage() {
                 </div>
                 <div className="flex items-center gap-2 ml-4">
                   <button
-                    onClick={() => setSelectedRoutine(routine)}
+                    onClick={() => handleEdit(routine)}
                     className="p-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors min-h-[44px] min-w-[44px]"
                     title={t("common:edit")}
                   >
@@ -131,6 +157,18 @@ export default function RoutinesPage() {
             </div>
           ))}
         </div>
+      )}
+
+      {/* Routine Modal */}
+      {defaultCollection && (
+        <RoutineModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onSubmit={handleSubmit}
+          routine={editingRoutine}
+          childId={childId || ""}
+          collectionId={defaultCollection._id}
+        />
       )}
     </div>
   );
