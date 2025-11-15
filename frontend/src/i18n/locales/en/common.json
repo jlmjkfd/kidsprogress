@@ -94,6 +94,7 @@
     "basic_info": "Basic Info",
     "tasks": "Tasks",
     "routines": "Routines",
+    "activities": "Activities",
     "analysis": "Analysis",
     "subtitle": "{{age}} years old"
   },

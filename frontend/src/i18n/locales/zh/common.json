@@ -94,6 +94,7 @@
     "basic_info": "基本信息",
     "tasks": "任务",
     "routines": "例程",
+    "activities": "活动池",
     "analysis": "分析",
     "subtitle": "{{age}}岁"
   },

@@ -63,5 +63,16 @@
     "end_time": "End time",
     "duration_minutes": "Duration (minutes)",
     "priority_boost": "Priority boost"
+  },
+  "activity": {
+    "title": "Activity Pool",
+    "description": "Manage optional activities and rewards for your child",
+    "create": "Create Activity",
+    "create_first": "Create Your First Activity",
+    "empty_title": "No Activities Yet",
+    "empty_description": "Create activities for optional tasks, rewards, or free-time fun.",
+    "confirm_delete": "Are you sure you want to delete this activity?",
+    "inactive": "Inactive",
+    "type_reward": "Reward Activity"
   }
 }

@@ -35,6 +35,7 @@ import ChildManagementLayout from "@/pages/parent-portal/children/[id]/layout";
 import ChildBasicInfoPage from "@/pages/parent-portal/children/[id]/index";
 import ChildTasksPage from "@/pages/parent-portal/children/[id]/tasks";
 import ChildRoutinesPage from "@/pages/parent-portal/children/[id]/routines";
+import ChildActivitiesPage from "@/pages/parent-portal/children/[id]/activities";
 import ChildAnalysisPage from "@/pages/parent-portal/children/[id]/analysis";
 import ParentPortalSettings from "@/pages/parent-portal/settings";
 
@@ -114,6 +115,7 @@ function AppRoutes() {
           <Route index element={<ChildBasicInfoPage />} />
           <Route path="tasks" element={<ChildTasksPage />} />
           <Route path="routines" element={<ChildRoutinesPage />} />
+          <Route path="activities" element={<ChildActivitiesPage />} />
           <Route path="analysis" element={<ChildAnalysisPage />} />
         </Route>
 
