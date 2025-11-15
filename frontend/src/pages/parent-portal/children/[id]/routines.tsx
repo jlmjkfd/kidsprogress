@@ -13,7 +13,8 @@ import {
   IconPlayerPause,
 } from "@tabler/icons-react";
 import { useRoutines } from "@/api/queries/useRoutines";
-import { useDefaultTaskCollection } from "@/api/queries/useTaskCollections";
+import { useDefaultTaskCollection, useTaskCollections } from "@/api/queries/useTaskCollections";
+import { useCreateTaskCollection } from "@/api/mutations/useTaskCollectionMutations";
 import { useCreateRoutine, useUpdateRoutine, useDeleteRoutine } from "@/api/mutations/useRoutineMutations";
 import { Routine, RoutineCreate, RoutineUpdate } from "@/types/enhanced-tasks";
 import RoutineModal from "./components/RoutineModal";
@@ -23,14 +24,43 @@ export default function RoutinesPage() {
   const { t } = useTranslation(["common", "tasks"]);
   const { data: routines, isLoading } = useRoutines(childId || "");
   const { data: defaultCollection } = useDefaultTaskCollection(childId || "");
+  const { data: allCollections } = useTaskCollections(childId || "");
   const createRoutineMutation = useCreateRoutine();
   const updateRoutineMutation = useUpdateRoutine();
   const deleteRoutineMutation = useDeleteRoutine();
+  const createCollectionMutation = useCreateTaskCollection();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRoutine, setEditingRoutine] = useState<Routine | undefined>();
+  const [isCreatingCollection, setIsCreatingCollection] = useState(false);
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
+    // Use default collection or first available collection
+    const collectionToUse = defaultCollection || allCollections?.[0];
+
+    // If no collection exists, create a default one
+    if (!collectionToUse && !isCreatingCollection) {
+      setIsCreatingCollection(true);
+      try {
+        await createCollectionMutation.mutateAsync({
+          child_id: childId || "",
+          name: "My Tasks",
+          description: "Default task collection",
+          color: "#3B82F6",
+          icon: "checkbox",
+        });
+        // Refetch will happen automatically via onSuccess
+        // Wait a bit for the query to update
+        await new Promise(resolve => setTimeout(resolve, 300));
+      } catch (error) {
+        console.error("Failed to create default collection:", error);
+        alert("Failed to create task collection. Please try again.");
+        setIsCreatingCollection(false);
+        return;
+      }
+      setIsCreatingCollection(false);
+    }
+
     setEditingRoutine(undefined);
     setIsModalOpen(true);
   };
@@ -64,6 +94,8 @@ export default function RoutinesPage() {
     );
   }
 
+  const activeCollection = defaultCollection || allCollections?.[0];
+
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       {/* Header */}
@@ -78,10 +110,11 @@ export default function RoutinesPage() {
         </div>
         <button
           onClick={handleCreate}
-          className="flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors min-h-[44px]"
+          disabled={isCreatingCollection}
+          className="flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition-colors min-h-[44px]"
         >
           <IconPlus size={20} />
-          <span>{t("tasks:routine.create")}</span>
+          <span>{isCreatingCollection ? t("common:loading") : t("tasks:routine.create")}</span>
         </button>
       </div>
 
@@ -95,10 +128,11 @@ export default function RoutinesPage() {
           <p className="text-gray-600 mb-6">{t("tasks:routine.empty_description")}</p>
           <button
             onClick={handleCreate}
-            className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+            disabled={isCreatingCollection}
+            className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition-colors"
           >
             <IconPlus size={20} />
-            <span>{t("tasks:routine.create_first")}</span>
+            <span>{isCreatingCollection ? t("common:loading") : t("tasks:routine.create_first")}</span>
           </button>
         </div>
       ) : (
@@ -160,14 +194,14 @@ export default function RoutinesPage() {
       )}
 
       {/* Routine Modal */}
-      {defaultCollection && (
+      {activeCollection && (
         <RoutineModal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           onSubmit={handleSubmit}
           routine={editingRoutine}
           childId={childId || ""}
-          collectionId={defaultCollection._id}
+          collectionId={activeCollection._id}
         />
       )}
     </div>
