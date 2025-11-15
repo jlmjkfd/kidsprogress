@@ -27,5 +27,15 @@
   "view_tasks": "View Tasks",
   "manage_tasks": "Manage tasks and activities",
   "no_tasks_yet": "No tasks yet",
-  "create_first_task": "Create your first task to get started"
+  "create_first_task": "Create your first task to get started",
+  "routine": {
+    "title": "Routines",
+    "description": "Manage recurring task templates for your child",
+    "create": "Create Routine",
+    "create_first": "Create Your First Routine",
+    "empty_title": "No Routines Yet",
+    "empty_description": "Create routines to automatically generate recurring tasks like homework, bedtime, or chores.",
+    "confirm_delete": "Are you sure you want to delete this routine? Future tasks will not be generated.",
+    "inactive": "Inactive"
+  }
 }

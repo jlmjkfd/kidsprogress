@@ -8,6 +8,7 @@ import {
   IconChecklist,
   IconChartBar,
   IconArrowLeft,
+  IconRepeat,
 } from "@tabler/icons-react";
 import { useChild } from "@/api/queries/useChild";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
@@ -22,6 +23,7 @@ export default function ChildManagementLayout() {
   const navItems = [
     { path: `/parent-portal/children/${childId}`, icon: IconUser, label: t("common:child_management.basic_info"), exact: true },
     { path: `/parent-portal/children/${childId}/tasks`, icon: IconChecklist, label: t("common:child_management.tasks") },
+    { path: `/parent-portal/children/${childId}/routines`, icon: IconRepeat, label: t("common:child_management.routines") },
     { path: `/parent-portal/children/${childId}/analysis`, icon: IconChartBar, label: t("common:child_management.analysis") },
   ];
 

@@ -93,6 +93,7 @@
   "child_management": {
     "basic_info": "Basic Info",
     "tasks": "Tasks",
+    "routines": "Routines",
     "analysis": "Analysis",
     "subtitle": "{{age}} years old"
   },
