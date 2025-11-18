@@ -11,7 +11,7 @@ interface RecurrencePickerProps {
   onChange: (rrule: string) => void;
 }
 
-type Frequency = "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY";
+type Frequency = "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY" | "SCHOOL_DAYS" | "HOLIDAYS";
 type EndType = "never" | "on_date" | "after_count";
 
 const WEEKDAYS = [
@@ -64,6 +64,25 @@ export function RecurrencePicker({ value, onChange }: RecurrencePickerProps) {
   };
 
   const generateRRule = (): string => {
+    // Special handling for school days and holidays
+    // We use a custom format: FREQ=SCHOOL_DAYS or FREQ=HOLIDAYS
+    // The backend will need to expand these based on the school calendar
+    if (frequency === "SCHOOL_DAYS" || frequency === "HOLIDAYS") {
+      let rrule = `FREQ=${frequency}`;
+
+      if (endType === "on_date" && endDate) {
+        const formattedDate = endDate.replace(/-/g, "");
+        rrule += `;UNTIL=${formattedDate}`;
+      }
+
+      if (endType === "after_count" && endCount > 0) {
+        rrule += `;COUNT=${endCount}`;
+      }
+
+      return rrule;
+    }
+
+    // Standard RRULE for regular frequencies
     let rrule = `FREQ=${frequency}`;
 
     if (interval > 1) {
@@ -123,31 +142,35 @@ export function RecurrencePicker({ value, onChange }: RecurrencePickerProps) {
           <option value="WEEKLY">{t("tasks:unified_model.repeat_weekly")}</option>
           <option value="MONTHLY">{t("tasks:unified_model.repeat_monthly")}</option>
           <option value="YEARLY">Yearly</option>
+          <option value="SCHOOL_DAYS">{t("tasks:unified_model.repeat_school_days")}</option>
+          <option value="HOLIDAYS">{t("tasks:unified_model.repeat_holidays")}</option>
         </select>
       </div>
 
-      {/* Interval */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          {t("tasks:unified_model.repeat_every")}
-        </label>
-        <div className="flex items-center gap-2">
-          <input
-            type="number"
-            min="1"
-            max="999"
-            value={interval}
-            onChange={(e) => setInterval(parseInt(e.target.value) || 1)}
-            className="w-20 px-3 py-2 border border-gray-300 rounded-lg"
-          />
-          <span className="text-sm text-gray-600">
-            {frequency === "DAILY" && (interval === 1 ? "day" : "days")}
-            {frequency === "WEEKLY" && (interval === 1 ? "week" : "weeks")}
-            {frequency === "MONTHLY" && (interval === 1 ? "month" : "months")}
-            {frequency === "YEARLY" && (interval === 1 ? "year" : "years")}
-          </span>
+      {/* Interval - hide for school days/holidays */}
+      {frequency !== "SCHOOL_DAYS" && frequency !== "HOLIDAYS" && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            {t("tasks:unified_model.repeat_every")}
+          </label>
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              min="1"
+              max="999"
+              value={interval}
+              onChange={(e) => setInterval(parseInt(e.target.value) || 1)}
+              className="w-20 px-3 py-2 border border-gray-300 rounded-lg"
+            />
+            <span className="text-sm text-gray-600">
+              {frequency === "DAILY" && (interval === 1 ? "day" : "days")}
+              {frequency === "WEEKLY" && (interval === 1 ? "week" : "weeks")}
+              {frequency === "MONTHLY" && (interval === 1 ? "month" : "months")}
+              {frequency === "YEARLY" && (interval === 1 ? "year" : "years")}
+            </span>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Weekdays (for WEEKLY) */}
       {frequency === "WEEKLY" && (

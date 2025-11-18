@@ -211,6 +211,8 @@
     "repeat_daily": "Daily",
     "repeat_weekly": "Weekly",
     "repeat_monthly": "Monthly",
+    "repeat_school_days": "On School Days",
+    "repeat_holidays": "On Holidays/Weekends",
     "repeat_custom": "Custom",
     "repeat_on_days": "Repeat on",
     "repeat_every": "Repeat every",

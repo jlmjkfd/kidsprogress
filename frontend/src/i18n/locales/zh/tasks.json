@@ -211,6 +211,8 @@
     "repeat_daily": "每天",
     "repeat_weekly": "每周",
     "repeat_monthly": "每月",
+    "repeat_school_days": "上课日",
+    "repeat_holidays": "假期/周末",
     "repeat_custom": "自定义",
     "repeat_on_days": "重复日期",
     "repeat_every": "重复间隔",
