@@ -16,10 +16,12 @@ import {
 } from "@tabler/icons-react";
 import { useChild } from "@/api/queries/useChild";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
-import { useAppSelector } from "@/store/hooks";
+import { useAppSelector, useAppDispatch } from "@/store/hooks";
+import { clearSelectedChild } from "@/store/slices/childSlice";
 
 export default function ChildPortalLayout() {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
   const location = useLocation();
   const { childId } = useParams<{ childId: string }>();
   const { t } = useTranslation(["common"]);
@@ -40,6 +42,7 @@ export default function ChildPortalLayout() {
   };
 
   const handleBack = () => {
+    dispatch(clearSelectedChild());
     navigate("/child-selection");
   };
 

@@ -75,9 +75,12 @@ tmp/
 .temp/
 
 # others
-docs/
+docs/features/**/context.md  # Don't track feature context files
 *.md
 !/README.md
+!docs/api-registry.md  # Track API registry
+!docs/component-map.md  # Track component map
+!CLAUDE.md  # Track project configuration
 config.ini
 .*/
 *.backup

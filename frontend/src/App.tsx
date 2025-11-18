@@ -34,14 +34,16 @@ import ManageChildrenPage from "@/pages/parent-portal/children";
 import ChildManagementLayout from "@/pages/parent-portal/children/[id]/layout";
 import ChildBasicInfoPage from "@/pages/parent-portal/children/[id]/index";
 import ChildTasksPage from "@/pages/parent-portal/children/[id]/tasks";
-import ChildRoutinesPage from "@/pages/parent-portal/children/[id]/routines";
-import ChildActivitiesPage from "@/pages/parent-portal/children/[id]/activities";
-import ChildTimeBlocksPage from "@/pages/parent-portal/children/[id]/time-blocks";
+// Removed obsolete imports - now using unified task model in tasks page
+// import ChildRoutinesPage from "@/pages/parent-portal/children/[id]/routines";
+// import ChildActivitiesPage from "@/pages/parent-portal/children/[id]/activities";
+// import ChildTimeBlocksPage from "@/pages/parent-portal/children/[id]/time-blocks";
 import ChildAnalysisPage from "@/pages/parent-portal/children/[id]/analysis";
 import ParentPortalSettings from "@/pages/parent-portal/settings";
 
 // Child Portal
 import ChildPortalLayout from "@/pages/child-portal/layout";
+import ChildPortalTasksPage from "@/pages/child-portal/tasks";
 
 import "@/i18n/config";
 import "./App.css";
@@ -115,9 +117,10 @@ function AppRoutes() {
         <Route path="children/:childId" element={<ChildManagementLayout />}>
           <Route index element={<ChildBasicInfoPage />} />
           <Route path="tasks" element={<ChildTasksPage />} />
-          <Route path="routines" element={<ChildRoutinesPage />} />
-          <Route path="activities" element={<ChildActivitiesPage />} />
-          <Route path="time-blocks" element={<ChildTimeBlocksPage />} />
+          {/* Removed obsolete routes - now using unified task model */}
+          {/* <Route path="routines" element={<ChildRoutinesPage />} /> */}
+          {/* <Route path="activities" element={<ChildActivitiesPage />} /> */}
+          {/* <Route path="time-blocks" element={<ChildTimeBlocksPage />} /> */}
           <Route path="analysis" element={<ChildAnalysisPage />} />
         </Route>
 
@@ -143,7 +146,7 @@ function AppRoutes() {
         {/* Child's Tasks */}
         <Route
           path="tasks"
-          element={<div className="p-8">Child Tasks View - Coming Soon</div>}
+          element={<ChildPortalTasksPage />}
         />
 
         {/* Tools */}

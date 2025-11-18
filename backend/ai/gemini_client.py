@@ -1,4 +1,5 @@
 """Gemini API client wrapper for AI-powered features."""
+
 import os
 from typing import Optional, Dict, Any
 import google.generativeai as genai
@@ -7,10 +8,14 @@ from pydantic_settings import BaseSettings
 
 class GeminiSettings(BaseSettings):
     """Gemini API settings from environment."""
+
     gemini_api_key: str = ""
     gemini_model: str = "gemini-1.5-flash"
 
-    model_config = {"env_file": ".env"}
+    model_config = {
+        "env_file": ".env",
+        "extra": "ignore",
+    }
 
 
 class GeminiClient:
@@ -29,7 +34,7 @@ class GeminiClient:
         prompt: str,
         temperature: float = 0.7,
         max_tokens: Optional[int] = None,
-        system_instruction: Optional[str] = None
+        system_instruction: Optional[str] = None,
     ) -> str:
         """Generate content using Gemini API.
 
@@ -53,15 +58,13 @@ class GeminiClient:
         # If system instruction provided, create new model instance
         if system_instruction:
             model = genai.GenerativeModel(
-                self.settings.gemini_model,
-                system_instruction=system_instruction
+                self.settings.gemini_model, system_instruction=system_instruction
             )
         else:
             model = self.model
 
         response = await model.generate_content_async(
-            prompt,
-            generation_config=generation_config
+            prompt, generation_config=generation_config
         )
 
         return response.text
@@ -70,7 +73,7 @@ class GeminiClient:
         self,
         prompt: str,
         temperature: float = 0.3,
-        system_instruction: Optional[str] = None
+        system_instruction: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Generate structured JSON response.
 
@@ -89,7 +92,7 @@ class GeminiClient:
         response_text = await self.generate(
             prompt=full_prompt,
             temperature=temperature,
-            system_instruction=system_instruction
+            system_instruction=system_instruction,
         )
 
         # Clean markdown code blocks if present

@@ -1,10 +1,12 @@
 """API routes for routine management."""
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import List, Optional
 from datetime import date
 from bson import ObjectId
 
 from backend.models.routine import Routine, RoutineCreate, RoutineUpdate
+from backend.models.user import User
 from backend.services.routine_service import RoutineService
 from backend.dependencies.database import get_db
 from backend.routes.auth import get_current_user
@@ -15,28 +17,26 @@ router = APIRouter(prefix="/api/routines", tags=["routines"])
 @router.post("", response_model=dict)
 async def create_routine(
     routine_data: RoutineCreate,
-    current_user: dict = Depends(get_current_user),
-    db=Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db=Depends(get_db),
 ):
     """Create a new recurring task routine."""
     service = RoutineService(db)
 
     # Verify child belongs to parent
-    child_doc = await db.children.find_one({
-        "_id": ObjectId(routine_data.child_id),
-        "parent_id": ObjectId(current_user.id)
-    })
+    child_doc = await db.children.find_one(
+        {"_id": ObjectId(routine_data.child_id), "parent_id": ObjectId(current_user.id)}
+    )
     if not child_doc:
         raise HTTPException(status_code=404, detail="Child not found or unauthorized")
 
     routine = await service.create_routine(
-        parent_id=ObjectId(current_user.id),
-        data=routine_data
+        parent_id=ObjectId(current_user.id), data=routine_data
     )
 
     return {
         **routine.model_dump(by_alias=True, mode="json"),
-        "recurrence_readable": routine.recurrence.to_human_readable()
+        "recurrence_readable": routine.recurrence.to_human_readable(),
     }
 
 
@@ -44,28 +44,26 @@ async def create_routine(
 async def get_routines(
     child_id: str = Query(..., description="Child ID"),
     include_inactive: bool = Query(False, description="Include inactive routines"),
-    current_user: dict = Depends(get_current_user),
-    db=Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db=Depends(get_db),
 ):
     """Get all routines for a child."""
     # Verify child belongs to parent
-    child_doc = await db.children.find_one({
-        "_id": ObjectId(child_id),
-        "parent_id": ObjectId(current_user.id)
-    })
+    child_doc = await db.children.find_one(
+        {"_id": ObjectId(child_id), "parent_id": ObjectId(current_user.id)}
+    )
     if not child_doc:
         raise HTTPException(status_code=404, detail="Child not found or unauthorized")
 
     service = RoutineService(db)
     routines = await service.get_routines_by_child(
-        child_id=ObjectId(child_id),
-        include_inactive=include_inactive
+        child_id=ObjectId(child_id), include_inactive=include_inactive
     )
 
     return [
         {
             **r.model_dump(by_alias=True, mode="json"),
-            "recurrence_readable": r.recurrence.to_human_readable()
+            "recurrence_readable": r.recurrence.to_human_readable(),
         }
         for r in routines
     ]
@@ -73,9 +71,7 @@ async def get_routines(
 
 @router.get("/{routine_id}", response_model=dict)
 async def get_routine(
-    routine_id: str,
-    current_user: dict = Depends(get_current_user),
-    db=Depends(get_db)
+    routine_id: str, current_user: User = Depends(get_current_user), db=Depends(get_db)
 ):
     """Get a specific routine."""
     service = RoutineService(db)
@@ -90,7 +86,7 @@ async def get_routine(
 
     return {
         **routine.model_dump(by_alias=True, mode="json"),
-        "recurrence_readable": routine.recurrence.to_human_readable()
+        "recurrence_readable": routine.recurrence.to_human_readable(),
     }
 
 
@@ -98,8 +94,8 @@ async def get_routine(
 async def update_routine(
     routine_id: str,
     routine_data: RoutineUpdate,
-    current_user: dict = Depends(get_current_user),
-    db=Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db=Depends(get_db),
 ):
     """Update a routine."""
     service = RoutineService(db)
@@ -112,8 +108,7 @@ async def update_routine(
         raise HTTPException(status_code=403, detail="Unauthorized")
 
     routine = await service.update_routine(
-        routine_id=ObjectId(routine_id),
-        data=routine_data
+        routine_id=ObjectId(routine_id), data=routine_data
     )
 
     if not routine:
@@ -121,15 +116,13 @@ async def update_routine(
 
     return {
         **routine.model_dump(by_alias=True, mode="json"),
-        "recurrence_readable": routine.recurrence.to_human_readable()
+        "recurrence_readable": routine.recurrence.to_human_readable(),
     }
 
 
 @router.delete("/{routine_id}")
 async def delete_routine(
-    routine_id: str,
-    current_user: dict = Depends(get_current_user),
-    db=Depends(get_db)
+    routine_id: str, current_user: User = Depends(get_current_user), db=Depends(get_db)
 ):
     """Delete (deactivate) a routine."""
     service = RoutineService(db)
@@ -153,8 +146,8 @@ async def delete_routine(
 async def generate_routine_tasks(
     routine_id: str,
     target_date: date = Query(..., description="Date to generate task for"),
-    current_user: dict = Depends(get_current_user),
-    db=Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db=Depends(get_db),
 ):
     """Generate task instance from routine for specific date."""
     service = RoutineService(db)
@@ -171,7 +164,7 @@ async def generate_routine_tasks(
     if not task:
         raise HTTPException(
             status_code=400,
-            detail="Date is not in recurrence pattern or task already exists"
+            detail="Date is not in recurrence pattern or task already exists",
         )
 
     return task.model_dump(by_alias=True, mode="json")
@@ -181,8 +174,8 @@ async def generate_routine_tasks(
 async def cancel_routine_instance(
     routine_id: str,
     skip_date: date,
-    current_user: dict = Depends(get_current_user),
-    db=Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db=Depends(get_db),
 ):
     """Cancel routine instance for a specific date."""
     service = RoutineService(db)
@@ -206,8 +199,8 @@ async def cancel_routine_instance(
 async def preview_routine_occurrences(
     routine_id: str,
     count: int = Query(10, ge=1, le=50, description="Number of occurrences to preview"),
-    current_user: dict = Depends(get_current_user),
-    db=Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db=Depends(get_db),
 ):
     """Preview next N occurrences of routine."""
     service = RoutineService(db)
@@ -225,5 +218,5 @@ async def preview_routine_occurrences(
         "routine_id": routine_id,
         "recurrence_pattern": routine.recurrence.to_human_readable(),
         "occurrences": [d.isoformat() for d in occurrences],
-        "count": len(occurrences)
+        "count": len(occurrences),
     }

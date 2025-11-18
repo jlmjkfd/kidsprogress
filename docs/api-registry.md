@@ -322,7 +322,7 @@
 - **Status**: ✓ Active (backend only)
 - **Note**: Enhanced task management - move task to backlog after 3 rollovers
 
-### Routines (Enhanced Task Management)
+### ❌ OBSOLETE: Routines (Replaced by Unified Task Model)
 
 #### POST /api/routines
 - **Route**: `backend/routes/routine_routes.py`
@@ -392,7 +392,7 @@
 - **Status**: ✓ Active (backend only)
 - **Note**: Preview next N occurrences
 
-### Activities (Enhanced Task Management)
+### ❌ OBSOLETE: Activities (Replaced by Unified Task Model)
 
 #### POST /api/activities
 - **Route**: `backend/routes/activity_routes.py`
@@ -520,7 +520,7 @@
 - **Status**: ⚙️ In Development
 - **Note**: Get applicable tools for specific task
 
-### Time Blocks (Enhanced Task Management)
+### ❌ OBSOLETE: Time Blocks (Replaced by Unified Task Model)
 
 #### POST /api/time-blocks
 - **Route**: `backend/routes/time_block_routes.py`
@@ -568,43 +568,201 @@
 - **Used in**: Not yet implemented
 - **Status**: ⚙️ In Development
 
-### AI-Powered Features
+### AI-Powered Features (Phase 3)
+
+#### GET /api/ai/schedule/day-tasks
+- **Route**: `backend/routes/ai_schedule_routes.py`
+- **Service**: `backend/services/ai_schedule_service.py`
+- **Query params**: `child_id`, `target_date` (optional), `parent_id`
+- **Used in**:
+  - `frontend/src/api/queries/useAISchedule.ts` (useDayTasks)
+- **Status**: ✓ Active
+- **Note**: Get comprehensive day summary (tasks, time blocks, statistics) for AI scheduling context
 
 #### POST /api/ai/schedule/recommend
-- **Route**: `backend/routes/ai_routes.py`
-- **Service**: `backend/ai/task_recommender.py`
-- **Body**: `child_id`
-- **Used in**: Not yet implemented
+- **Route**: `backend/routes/ai_schedule_routes.py`
+- **Service**: `backend/services/ai_schedule_service.py`
+- **Query params**: `child_id`, `parent_id`
+- **Body**: `current_time` (optional for testing), `child_state` (optional)
+- **Used in**:
+  - `frontend/src/api/queries/useAISchedule.ts` (useAIRecommendation)
+  - `frontend/src/components/AIRecommendationButton.tsx`
+  - `frontend/src/pages/parent-portal/children/[id]/tasks.tsx`
+  - `frontend/src/pages/child-portal/tasks/index.tsx`
 - **Status**: ✓ Active
-- **Note**: AI "What should I do now?" recommendation based on current context
+- **Note**: AI "What should I do now?" recommendation with reasoning, priority score, alternatives, and break detection
 
-#### POST /api/ai/schedule/plan-day
-- **Route**: `backend/routes/ai_routes.py`
-- **Service**: `backend/ai/task_recommender.py`
-- **Body**: `child_id`, `target_date` (optional)
-- **Used in**: Not yet implemented
+#### GET /api/ai/schedule/conflicts
+- **Route**: `backend/routes/ai_schedule_routes.py`
+- **Service**: `backend/services/ai_schedule_service.py`
+- **Query params**: `child_id`, `target_date` (optional), `parent_id`
+- **Used in**:
+  - `frontend/src/api/queries/useAISchedule.ts` (useScheduleConflicts)
+  - `frontend/src/pages/parent-portal/children/[id]/tasks.tsx`
 - **Status**: ✓ Active
-- **Note**: Generate complete daily schedule using AI
+- **Note**: Detect time block overlaps, prerequisite violations, and break needs
 
 #### POST /api/ai/schedule/replan
-- **Route**: `backend/routes/ai_routes.py`
-- **Service**: `backend/ai/task_recommender.py`
-- **Body**: `child_id`, `reason`, `completed_task_ids`
-- **Used in**: Not yet implemented
+- **Route**: `backend/routes/ai_schedule_routes.py`
+- **Service**: `backend/services/ai_schedule_service.py`
+- **Body**: `child_id`, `parent_id`, `current_task_id`, `actual_duration`, `estimated_duration`, `current_time` (optional for testing)
+- **Used in**:
+  - `frontend/src/api/mutations/useAIScheduleMutations.ts` (useReplanSchedule)
+  - `frontend/src/pages/parent-portal/children/[id]/tasks.tsx` (auto-triggered on completion)
 - **Status**: ✓ Active
-- **Note**: Dynamic replanning when schedule changes
+- **Note**: Dynamic replanning when tasks run longer than expected - shifts tasks, moves to tomorrow, or removes optional
 
-#### GET /api/ai/schedule/explanation
-- **Route**: `backend/routes/ai_routes.py`
-- **Service**: `backend/ai/gemini_client.py`
-- **Query params**: `child_id`, `task_id`
-- **Used in**: Not yet implemented
+### Day Type Calendar (Unified Task Model Support)
+
+#### POST /api/day-types
+- **Route**: `backend/routes/day_type_routes.py`
+- **Service**: `backend/services/day_type_service.py`
+- **Body**: `DayTypeCreate` (child_id, date, day_type, name, description)
+- **Used in**:
+  - `frontend/src/api/mutations/useDayTypeMutations.ts` (useCreateDayType)
 - **Status**: ✓ Active
-- **Note**: Get child-friendly explanation for task scheduling decision
+- **Note**: Create day type entry for specific date (school_day, weekend, holiday, special)
+
+#### GET /api/day-types/date
+- **Route**: `backend/routes/day_type_routes.py`
+- **Service**: `backend/services/day_type_service.py`
+- **Query params**: `child_id`, `date` (YYYY-MM-DD)
+- **Used in**:
+  - `frontend/src/api/queries/useDayTypes.ts` (useDayType)
+- **Status**: ✓ Active
+- **Note**: Get day type entry for specific date
+
+#### GET /api/day-types/range
+- **Route**: `backend/routes/day_type_routes.py`
+- **Service**: `backend/services/day_type_service.py`
+- **Query params**: `child_id`, `start_date`, `end_date`
+- **Used in**:
+  - `frontend/src/api/queries/useDayTypes.ts` (useDayTypesRange)
+- **Status**: ✓ Active
+- **Note**: Get all day type entries in date range for calendar view
+
+#### GET /api/day-types/effective
+- **Route**: `backend/routes/day_type_routes.py`
+- **Service**: `backend/services/day_type_service.py`
+- **Query params**: `child_id`, `date`
+- **Used in**:
+  - `frontend/src/api/queries/useDayTypes.ts` (useEffectiveDayType)
+- **Status**: ✓ Active
+- **Note**: Get effective day type (specific entry or default pattern)
+
+#### PUT /api/day-types/{entry_id}
+- **Route**: `backend/routes/day_type_routes.py`
+- **Service**: `backend/services/day_type_service.py`
+- **Body**: `DayTypeUpdate`
+- **Used in**:
+  - `frontend/src/api/mutations/useDayTypeMutations.ts` (useUpdateDayType)
+- **Status**: ✓ Active
+
+#### DELETE /api/day-types/{entry_id}
+- **Route**: `backend/routes/day_type_routes.py`
+- **Service**: `backend/services/day_type_service.py`
+- **Used in**:
+  - `frontend/src/api/mutations/useDayTypeMutations.ts` (useDeleteDayType)
+- **Status**: ✓ Active
+
+#### GET /api/day-types/pattern/{child_id}
+- **Route**: `backend/routes/day_type_routes.py`
+- **Service**: `backend/services/day_type_service.py`
+- **Used in**:
+  - `frontend/src/api/queries/useDayTypes.ts` (useDefaultDayPattern)
+- **Status**: ✓ Active
+- **Note**: Get or create default day pattern (Mon-Fri defaults)
+
+#### PUT /api/day-types/pattern/{child_id}
+- **Route**: `backend/routes/day_type_routes.py`
+- **Service**: `backend/services/day_type_service.py`
+- **Body**: `DefaultDayPatternUpdate`
+- **Used in**:
+  - `frontend/src/api/mutations/useDayTypeMutations.ts` (useUpdateDefaultPattern)
+- **Status**: ✓ Active
+- **Note**: Update default day pattern for each weekday
+
+### School Calendar
+
+#### POST /api/school-calendar/terms
+- **Route**: `backend/routes/school_calendar_routes.py`
+- **Service**: `backend/services/school_calendar_service.py`
+- **Used in**: `frontend/src/api/mutations/useSchoolCalendarMutations.ts` (useCreateTerm)
+- **Status**: ✓ Active
+- **Note**: Create school term with start/end dates and school weekdays
+
+#### GET /api/school-calendar/terms?child_id={id}
+- **Route**: `backend/routes/school_calendar_routes.py`
+- **Service**: `backend/services/school_calendar_service.py`
+- **Used in**: `frontend/src/api/queries/useSchoolCalendar.ts` (useTerms)
+- **Status**: ✓ Active
+- **Note**: Fetch all terms for a child
+
+#### PUT /api/school-calendar/terms/{term_id}
+- **Route**: `backend/routes/school_calendar_routes.py`
+- **Service**: `backend/services/school_calendar_service.py`
+- **Used in**: `frontend/src/api/mutations/useSchoolCalendarMutations.ts` (useUpdateTerm)
+- **Status**: ✓ Active
+
+#### DELETE /api/school-calendar/terms/{term_id}
+- **Route**: `backend/routes/school_calendar_routes.py`
+- **Service**: `backend/services/school_calendar_service.py`
+- **Used in**: `frontend/src/api/mutations/useSchoolCalendarMutations.ts` (useDeleteTerm)
+- **Status**: ✓ Active
+
+#### POST /api/school-calendar/special-days
+- **Route**: `backend/routes/school_calendar_routes.py`
+- **Service**: `backend/services/school_calendar_service.py`
+- **Used in**: `frontend/src/api/mutations/useSchoolCalendarMutations.ts` (useCreateSpecialDay)
+- **Status**: ✓ Active
+- **Note**: Create holiday or special school day
+
+#### GET /api/school-calendar/special-days?child_id={id}
+- **Route**: `backend/routes/school_calendar_routes.py`
+- **Service**: `backend/services/school_calendar_service.py`
+- **Used in**: `frontend/src/api/queries/useSchoolCalendar.ts` (useSpecialDays)
+- **Status**: ✓ Active
+
+#### PUT /api/school-calendar/special-days/{day_id}
+- **Route**: `backend/routes/school_calendar_routes.py`
+- **Service**: `backend/services/school_calendar_service.py`
+- **Used in**: `frontend/src/api/mutations/useSchoolCalendarMutations.ts` (useUpdateSpecialDay)
+- **Status**: ✓ Active
+
+#### DELETE /api/school-calendar/special-days/{day_id}
+- **Route**: `backend/routes/school_calendar_routes.py`
+- **Service**: `backend/services/school_calendar_service.py`
+- **Used in**: `frontend/src/api/mutations/useSchoolCalendarMutations.ts` (useDeleteSpecialDay)
+- **Status**: ✓ Active
+
+#### GET /api/school-calendar/day-type?child_id={id}&date={date}
+- **Route**: `backend/routes/school_calendar_routes.py`
+- **Service**: `backend/services/school_calendar_service.py`
+- **Used in**: `frontend/src/api/queries/useSchoolCalendar.ts` (useDayType)
+- **Status**: ✓ Active
+- **Note**: Get day type for specific date (school_day, weekend, holiday, special_school_day)
+
+#### GET /api/school-calendar/day-types?child_id={id}&start_date={start}&end_date={end}
+- **Route**: `backend/routes/school_calendar_routes.py`
+- **Service**: `backend/services/school_calendar_service.py`
+- **Used in**: `frontend/src/api/queries/useSchoolCalendar.ts` (useDayTypesBatch)
+- **Status**: ✓ Active
+- **Note**: Batch query for calendar views - efficient day type lookup for date range
 
 ## Statistics
-- Total endpoints: 86
-- Active in frontend: 22 (Enhanced Task Management UI complete)
-- Frontend hooks ready: 45 (task management complete)
-- Backend only: 15 (Schedule, Tools, AI features)
-- AI features: 4 (task planning)
+- Total endpoints: 108 (+10 School Calendar)
+- Active in frontend: 44 (Unified Task Model + School Calendar + Day Types + AI Scheduling)
+- Frontend hooks ready: 67 (unified task management + school calendar complete)
+- Backend only: 15
+- **Obsolete (removed)**: ~40 endpoints (Routines, Activities, Time Blocks - replaced by Unified Task Model)
+- AI features: 4
+- Day Type Calendar: 8 (Unified Task Model support)
+- School Calendar: 10 (Term & Special Day management)
+
+## Migration Notes
+- **Unified Task Model**: All task types (one-time, recurring, time-blocks, pool activities) now use `/api/tasks` endpoints
+- **Recurrence**: Set `is_recurring=true` and `recurrence_pattern` (RRULE) in task creation
+- **Time Blocks**: Set `blocks_other_tasks=true` and `scheduling_type=fixed_time`
+- **Activity Pool**: Set `is_in_pool=true` and configure `pool_usage_rules`
+- **Day Types**: Use `/api/day-types` to manage school days vs weekends vs holidays (legacy)
+- **School Calendar**: Use `/api/school-calendar` to define terms and special days - replaces manual day type management

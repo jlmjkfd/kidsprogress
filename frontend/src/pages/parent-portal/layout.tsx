@@ -18,6 +18,7 @@ import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useLogout } from "@api/mutations/useLogout";
 import { useAppDispatch } from "@store/hooks";
 import { logout } from "@store/slices/authSlice";
+import { clearSelectedChild } from "@store/slices/childSlice";
 import { getDeviceToken } from "@/utils/deviceToken";
 
 export default function ParentPortalLayout() {
@@ -44,6 +45,7 @@ export default function ParentPortalLayout() {
     logoutMutation.mutate(undefined, {
       onSettled: () => {
         dispatch(logout());
+        dispatch(clearSelectedChild());
         const deviceToken = getDeviceToken();
         if (deviceToken) {
           navigate("/child-selection");

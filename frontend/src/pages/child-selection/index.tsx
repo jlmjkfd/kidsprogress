@@ -11,10 +11,12 @@ import LanguageSwitcher from "@/components/LanguageSwitcher";
 import ParentPinModal from "@/components/ParentPinModal";
 import { useParentPortalAccess } from "@/hooks/useParentPortalAccess";
 import { getDeviceToken } from "@/utils/deviceToken";
-import { useAppSelector } from "@/store/hooks";
+import { useAppSelector, useAppDispatch } from "@/store/hooks";
+import { setSelectedChild } from "@/store/slices/childSlice";
 
 export default function ChildSelectionPage() {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
   const { t } = useTranslation(["common", "auth"]);
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
   const deviceToken = getDeviceToken();
@@ -35,6 +37,7 @@ export default function ChildSelectionPage() {
   const { navigateToParentPortal, showPinModal, handlePinSuccess, handlePinCancel } = useParentPortalAccess();
 
   const handleSelectChild = (childId: string) => {
+    dispatch(setSelectedChild(childId));
     navigate(`/child-portal/${childId}`);
   };
 

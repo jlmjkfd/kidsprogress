@@ -15,6 +15,31 @@ export enum TaskStatus {
   ARCHIVED = "archived",
 }
 
+export enum TaskSource {
+  ONE_TIME = "one_time",
+  ROUTINE = "routine",
+  ACTIVITY = "activity",
+}
+
+export enum SchedulingType {
+  FLEXIBLE = "flexible",
+  FIXED_TIME = "fixed_time",
+  TIME_WINDOW = "time_window",
+  DEADLINE = "deadline",
+  POOL = "pool",
+}
+
+export enum DeadlineType {
+  HARD = "hard",
+  SOFT = "soft",
+}
+
+export enum ObligationLevel {
+  MUST_DO = "must_do",
+  SHOULD_DO = "should_do",
+  OPTIONAL = "optional",
+}
+
 export enum ActivationType {
   MANUAL = "manual",
   DATE_BASED = "date_based",
@@ -133,6 +158,33 @@ export interface TaskCollectionUpdate {
 
 // ==================== Task Sub-models ====================
 
+export interface TimeSlot {
+  start: string; // HH:MM format
+  end: string; // HH:MM format
+}
+
+export interface TimeWindow {
+  start: string; // HH:MM format
+  end: string; // HH:MM format
+  priority_in_window: number; // 0-10
+}
+
+export interface PoolUsageRules {
+  max_times_per_day?: number;
+  max_duration_per_day_minutes?: number;
+  max_duration_per_session_minutes?: number;
+  cooldown_minutes?: number;
+  allowed_day_types?: string[];
+  requires_completion_of?: string[];
+}
+
+export interface TaskSourceMetadata {
+  source_name?: string;
+  source_description?: string;
+  generation_date?: string;
+  recurrence_info?: string;
+}
+
 export interface ActivationRule {
   activation_type: ActivationType;
   activate_on?: string; // ISO datetime
@@ -223,6 +275,52 @@ export interface Task {
   description?: string;
   task_type_code?: string;
 
+  // Source tracking (Enhanced)
+  task_source: TaskSource;
+  source_id?: string;
+  source_metadata?: TaskSourceMetadata;
+
+  // Scheduling (Enhanced - Unified Model)
+  scheduling_type: SchedulingType;
+  scheduled_date?: string;
+
+  // Time attributes (different for each scheduling_type)
+  fixed_time_slot?: TimeSlot; // For FIXED_TIME
+  preferred_time_slot?: TimeSlot; // For FLEXIBLE (soft constraint)
+  preferred_time_window?: TimeWindow; // For TIME_WINDOW
+  deadline?: string; // For DEADLINE
+  deadline_type?: DeadlineType; // HARD or SOFT
+  estimated_duration_minutes?: number;
+
+  // Recurrence (Unified Model - replaces separate Routine)
+  is_recurring: boolean;
+  recurrence_pattern?: string; // RRULE string
+  source_recurring_task_id?: string;
+
+  // Blocking & Interruption (Unified Model - replaces TimeBlock)
+  blocks_other_tasks: boolean;
+  can_be_interrupted: boolean;
+  can_be_split: boolean;
+  min_session_duration?: number;
+
+  // Pool / Activity (Unified Model - replaces Activity)
+  is_in_pool: boolean;
+  pool_usage_rules?: PoolUsageRules;
+
+  // Rollover tracking (Enhanced)
+  original_date?: string;
+  rollover_count: number;
+  is_in_backlog: boolean;
+  is_delayed: boolean;
+
+  // Concurrent task support (Enhanced)
+  concurrent_allowed: boolean;
+  concurrent_compatible_with: string[];
+
+  // Priority (Enhanced)
+  priority_boost: number;
+  obligation_level: ObligationLevel;
+
   // Lifecycle
   status: TaskStatus;
   activation_rule?: ActivationRule;
@@ -263,6 +361,38 @@ export interface TaskCreate {
   title: string;
   description?: string;
   task_type_code?: string;
+
+  // Scheduling fields (Unified Model)
+  scheduling_type?: SchedulingType;
+  scheduled_date?: string; // ISO datetime
+
+  // Time attributes
+  fixed_time_slot?: TimeSlot;
+  preferred_time_slot?: TimeSlot;
+  preferred_time_window?: TimeWindow;
+  deadline?: string;
+  deadline_type?: DeadlineType;
+  estimated_duration_minutes?: number;
+
+  // Obligation & Priority
+  obligation_level?: ObligationLevel;
+  priority_boost?: number; // -5 to 5
+
+  // Recurrence
+  is_recurring?: boolean;
+  recurrence_pattern?: string;
+
+  // Blocking & Interruption
+  blocks_other_tasks?: boolean;
+  can_be_interrupted?: boolean;
+  can_be_split?: boolean;
+  min_session_duration?: number;
+
+  // Pool / Activity
+  is_in_pool?: boolean;
+  pool_usage_rules?: PoolUsageRules;
+
+  // Existing fields
   activation_rule?: ActivationRule;
   constraints?: TaskConstraints;
   metrics?: QuantifiableMetric[];
@@ -275,6 +405,38 @@ export interface TaskUpdate {
   title?: string;
   description?: string;
   task_type_code?: string;
+
+  // Scheduling fields (Unified Model)
+  scheduling_type?: SchedulingType;
+  scheduled_date?: string; // ISO datetime
+
+  // Time attributes
+  fixed_time_slot?: TimeSlot;
+  preferred_time_slot?: TimeSlot;
+  preferred_time_window?: TimeWindow;
+  deadline?: string;
+  deadline_type?: DeadlineType;
+  estimated_duration_minutes?: number;
+
+  // Obligation & Priority
+  obligation_level?: ObligationLevel;
+  priority_boost?: number; // -5 to 5
+
+  // Recurrence
+  is_recurring?: boolean;
+  recurrence_pattern?: string;
+
+  // Blocking & Interruption
+  blocks_other_tasks?: boolean;
+  can_be_interrupted?: boolean;
+  can_be_split?: boolean;
+  min_session_duration?: number;
+
+  // Pool / Activity
+  is_in_pool?: boolean;
+  pool_usage_rules?: PoolUsageRules;
+
+  // Existing fields
   activation_rule?: ActivationRule;
   constraints?: TaskConstraints;
   metrics?: QuantifiableMetric[];

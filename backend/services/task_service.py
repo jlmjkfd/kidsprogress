@@ -63,6 +63,47 @@ class TaskService:
             "title": task_data.title,
             "description": task_data.description,
             "task_type_code": task_data.task_type_code,
+            "task_source": "one_time",  # Default for manually created tasks
+
+            # Scheduling fields (Unified Model)
+            "scheduling_type": task_data.scheduling_type.value if task_data.scheduling_type else "flexible",
+            "scheduled_date": task_data.scheduled_date,
+            "fixed_time_slot": task_data.fixed_time_slot.model_dump() if task_data.fixed_time_slot else None,
+            "preferred_time_slot": task_data.preferred_time_slot.model_dump() if task_data.preferred_time_slot else None,
+            "preferred_time_window": task_data.preferred_time_window.model_dump() if task_data.preferred_time_window else None,
+            "deadline": task_data.deadline,
+            "deadline_type": task_data.deadline_type.value if task_data.deadline_type else None,
+            "estimated_duration_minutes": task_data.estimated_duration_minutes,
+
+            # Recurrence (Unified Model - replaces Routine)
+            "is_recurring": task_data.is_recurring,
+            "recurrence_pattern": task_data.recurrence_pattern,
+            "source_recurring_task_id": None,
+
+            # Blocking & Interruption (Unified Model - replaces TimeBlock)
+            "blocks_other_tasks": task_data.blocks_other_tasks,
+            "can_be_interrupted": task_data.can_be_interrupted,
+            "can_be_split": task_data.can_be_split,
+            "min_session_duration": task_data.min_session_duration,
+
+            # Pool / Activity (Unified Model - replaces Activity)
+            "is_in_pool": task_data.is_in_pool,
+            "pool_usage_rules": task_data.pool_usage_rules.model_dump() if task_data.pool_usage_rules else None,
+
+            # Priority & Obligation
+            "obligation_level": task_data.obligation_level.value if task_data.obligation_level else "optional",
+            "priority_boost": task_data.priority_boost if task_data.priority_boost is not None else 0,
+
+            # Rollover tracking
+            "original_date": None,
+            "rollover_count": 0,
+            "is_in_backlog": False,
+            "is_delayed": False,
+
+            # Concurrent task support
+            "concurrent_allowed": False,
+            "concurrent_compatible_with": [],
+
             "status": TaskStatus.DRAFT.value,
             "activation_rule": (
                 task_data.activation_rule.model_dump() if task_data.activation_rule else None
@@ -195,6 +236,53 @@ class TaskService:
             update_doc["description"] = task_data.description
         if task_data.task_type_code is not None:
             update_doc["task_type_code"] = task_data.task_type_code
+
+        # Scheduling fields (Unified Model)
+        if task_data.scheduling_type is not None:
+            update_doc["scheduling_type"] = task_data.scheduling_type.value
+        if task_data.scheduled_date is not None:
+            update_doc["scheduled_date"] = task_data.scheduled_date
+        if task_data.fixed_time_slot is not None:
+            update_doc["fixed_time_slot"] = task_data.fixed_time_slot.model_dump()
+        if task_data.preferred_time_slot is not None:
+            update_doc["preferred_time_slot"] = task_data.preferred_time_slot.model_dump()
+        if task_data.preferred_time_window is not None:
+            update_doc["preferred_time_window"] = task_data.preferred_time_window.model_dump()
+        if task_data.deadline is not None:
+            update_doc["deadline"] = task_data.deadline
+        if task_data.deadline_type is not None:
+            update_doc["deadline_type"] = task_data.deadline_type.value
+        if task_data.estimated_duration_minutes is not None:
+            update_doc["estimated_duration_minutes"] = task_data.estimated_duration_minutes
+
+        # Recurrence (Unified Model)
+        if task_data.is_recurring is not None:
+            update_doc["is_recurring"] = task_data.is_recurring
+        if task_data.recurrence_pattern is not None:
+            update_doc["recurrence_pattern"] = task_data.recurrence_pattern
+
+        # Blocking & Interruption (Unified Model)
+        if task_data.blocks_other_tasks is not None:
+            update_doc["blocks_other_tasks"] = task_data.blocks_other_tasks
+        if task_data.can_be_interrupted is not None:
+            update_doc["can_be_interrupted"] = task_data.can_be_interrupted
+        if task_data.can_be_split is not None:
+            update_doc["can_be_split"] = task_data.can_be_split
+        if task_data.min_session_duration is not None:
+            update_doc["min_session_duration"] = task_data.min_session_duration
+
+        # Pool / Activity (Unified Model)
+        if task_data.is_in_pool is not None:
+            update_doc["is_in_pool"] = task_data.is_in_pool
+        if task_data.pool_usage_rules is not None:
+            update_doc["pool_usage_rules"] = task_data.pool_usage_rules.model_dump()
+
+        # Priority & Obligation
+        if task_data.obligation_level is not None:
+            update_doc["obligation_level"] = task_data.obligation_level.value
+        if task_data.priority_boost is not None:
+            update_doc["priority_boost"] = task_data.priority_boost
+
         if task_data.activation_rule is not None:
             update_doc["activation_rule"] = task_data.activation_rule.model_dump()
         if task_data.constraints is not None:

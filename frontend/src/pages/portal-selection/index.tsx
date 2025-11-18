@@ -17,6 +17,7 @@ import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useLogout } from "@api/mutations/useLogout";
 import { useAppDispatch } from "@store/hooks";
 import { logout } from "@store/slices/authSlice";
+import { clearSelectedChild } from "@store/slices/childSlice";
 import { getDeviceToken } from "@/utils/deviceToken";
 import ParentPinModal from "@/components/ParentPinModal";
 import { useParentPortalAccess } from "@/hooks/useParentPortalAccess";
@@ -73,6 +74,7 @@ export default function PortalSelectionPage() {
       onSettled: () => {
         // Clear Redux state and localStorage
         dispatch(logout());
+        dispatch(clearSelectedChild());
 
         // Redirect based on device registration
         const deviceToken = getDeviceToken();

@@ -20,12 +20,16 @@ from backend.routes import (
     tasks,
 )
 from backend.routes import (
-    routine_routes,
-    activity_routes,
+    # Obsolete - removed for unified task model
+    # routine_routes,
+    # activity_routes,
+    # time_block_routes,
     schedule_routes,
     tool_routes,
-    time_block_routes,
+    day_type_routes,
     ai_routes,
+    ai_schedule_routes,
+    school_calendar_routes,
 )
 from backend.jobs import init_scheduler, shutdown_scheduler
 
@@ -54,16 +58,32 @@ async def lifespan(app: FastAPI):
     await database.active_task_sessions.create_index("child_id")
     await database.active_task_sessions.create_index("task_id", unique=True)
 
-    # Enhanced task management indexes
+    # Unified task model indexes
     await database.tasks.create_index([("task_source", 1), ("source_id", 1)])
     await database.tasks.create_index([("child_id", 1), ("scheduled_date", 1)])
     await database.tasks.create_index([("child_id", 1), ("obligation_level", 1)])
-    await database.routines.create_index([("child_id", 1), ("is_active", 1)])
-    await database.activities.create_index([("child_id", 1), ("is_active", 1)])
-    await database.activities.create_index([("child_id", 1), ("activity_type", 1)])
-    await database.activity_usage.create_index([("activity_id", 1), ("usage_date", 1)])
-    await database.time_blocks.create_index([("child_id", 1), ("date", 1)])
+    await database.tasks.create_index([("child_id", 1), ("scheduling_type", 1)])
+    await database.tasks.create_index([("child_id", 1), ("is_recurring", 1)])
+    await database.tasks.create_index([("child_id", 1), ("is_in_pool", 1)])
+
+    # Obsolete indexes - commented out (collections can be dropped later):
+    # await database.routines.create_index([("child_id", 1), ("is_active", 1)])
+    # await database.activities.create_index([("child_id", 1), ("is_active", 1)])
+    # await database.activities.create_index([("child_id", 1), ("activity_type", 1)])
+    # await database.activity_usage.create_index([("activity_id", 1), ("usage_date", 1)])
+    # await database.time_blocks.create_index([("child_id", 1), ("date", 1)])
+
+    # Day type calendar (needed for unified task model)
     await database.day_types.create_index([("child_id", 1), ("date", 1)], unique=True)
+    await database.default_day_patterns.create_index("child_id", unique=True)
+
+    # School calendar indexes
+    await database.terms.create_index([("child_id", 1), ("is_active", 1)])
+    await database.terms.create_index([("child_id", 1), ("start_date", 1), ("end_date", 1)])
+    await database.special_days.create_index([("child_id", 1), ("date", 1)])
+
+
+    # Tools (still needed)
     await database.tools.create_index("code", unique=True)
     await database.tools.create_index([("is_system", 1), ("is_active", 1)])
 
@@ -103,15 +123,19 @@ app.include_router(task_collections.router)
 app.include_router(tasks.router)
 
 # Enhanced task management routers
-app.include_router(routine_routes.router)
-app.include_router(activity_routes.router)
-app.include_router(schedule_routes.router)
-app.include_router(tool_routes.router)
-app.include_router(time_block_routes.router)
-app.include_router(time_block_routes.day_type_router)
+# Obsolete - removed for unified task model:
+# app.include_router(routine_routes.router)
+# app.include_router(activity_routes.router)
+# app.include_router(time_block_routes.router)
+# app.include_router(time_block_routes.day_type_router)
+app.include_router(schedule_routes.router)  # Keep for now - schedule generation
+app.include_router(tool_routes.router)  # Keep - tools still needed
+app.include_router(day_type_routes.router)  # Keep - needed for unified task model
+app.include_router(school_calendar_routes.router)  # School calendar (terms, holidays)
 
 # AI-powered features
 app.include_router(ai_routes.router)
+app.include_router(ai_schedule_routes.router)
 
 @app.get("/health")
 def health_check():

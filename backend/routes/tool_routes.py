@@ -1,9 +1,11 @@
 """API routes for tool registry management."""
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import List
 from bson import ObjectId
 
 from backend.models.tool import Tool, ToolCreate, ToolUpdate, ToolApplicability
+from backend.models.user import User
 from backend.services.tool_service import ToolService
 from backend.dependencies.database import get_db
 from backend.routes.auth import get_current_user
@@ -15,7 +17,7 @@ router = APIRouter(prefix="/api/tools", tags=["tools"])
 async def get_tools(
     include_inactive: bool = Query(False, description="Include inactive tools"),
     system_only: bool = Query(False, description="Show only system tools"),
-    db=Depends(get_db)
+    db=Depends(get_db),
 ):
     """Get all tools."""
     service = ToolService(db)
@@ -29,10 +31,7 @@ async def get_tools(
 
 
 @router.get("/{tool_id}", response_model=dict)
-async def get_tool(
-    tool_id: str,
-    db=Depends(get_db)
-):
+async def get_tool(tool_id: str, db=Depends(get_db)):
     """Get a specific tool."""
     service = ToolService(db)
     tool = await service.get_tool(ObjectId(tool_id))
@@ -46,16 +45,15 @@ async def get_tool(
 @router.post("", response_model=dict)
 async def create_tool(
     tool_data: ToolCreate,
-    current_user: dict = Depends(get_current_user),
-    db=Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db=Depends(get_db),
 ):
     """Create a custom tool (parent only)."""
     service = ToolService(db)
 
     try:
         tool = await service.create_tool(
-            parent_id=ObjectId(current_user.id),
-            data=tool_data
+            parent_id=ObjectId(current_user.id), data=tool_data
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -67,8 +65,8 @@ async def create_tool(
 async def update_tool(
     tool_id: str,
     tool_data: ToolUpdate,
-    current_user: dict = Depends(get_current_user),
-    db=Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    db=Depends(get_db),
 ):
     """Update a tool (custom tools only)."""
     service = ToolService(db)
@@ -84,10 +82,7 @@ async def update_tool(
     if existing.created_by and str(existing.created_by) != current_user.id:
         raise HTTPException(status_code=403, detail="Unauthorized")
 
-    tool = await service.update_tool(
-        tool_id=ObjectId(tool_id),
-        data=tool_data
-    )
+    tool = await service.update_tool(tool_id=ObjectId(tool_id), data=tool_data)
 
     if not tool:
         raise HTTPException(status_code=500, detail="Failed to update tool")
@@ -97,9 +92,7 @@ async def update_tool(
 
 @router.delete("/{tool_id}")
 async def delete_tool(
-    tool_id: str,
-    current_user: dict = Depends(get_current_user),
-    db=Depends(get_db)
+    tool_id: str, current_user: User = Depends(get_current_user), db=Depends(get_db)
 ):
     """Delete a tool (custom tools only)."""
     service = ToolService(db)
@@ -128,8 +121,7 @@ async def delete_tool(
 
 @router.get("/applicable", response_model=List[ToolApplicability])
 async def get_applicable_tools(
-    task_id: str = Query(..., description="Task ID"),
-    db=Depends(get_db)
+    task_id: str = Query(..., description="Task ID"), db=Depends(get_db)
 ):
     """Get all applicable tools for a specific task."""
     service = ToolService(db)

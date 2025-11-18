@@ -29,8 +29,11 @@ class TaskSource(str, Enum):
 
 class SchedulingType(str, Enum):
     """How the task is scheduled."""
-    FLEXIBLE = "flexible"  # AI can move to optimal time
-    FIXED_TIME = "fixed_time"  # Locked to specific time slot
+    FLEXIBLE = "flexible"  # AI can move to optimal time, anytime today
+    FIXED_TIME = "fixed_time"  # Locked to exact time slot (can't be moved)
+    TIME_WINDOW = "time_window"  # Suggested time range (3:30-5:30pm)
+    DEADLINE = "deadline"  # Must complete before deadline
+    POOL = "pool"  # Activity pool, AI suggests when appropriate
 
 
 class ObligationLevel(str, Enum):
@@ -67,6 +70,29 @@ class TimeSlot(BaseModel):
     """Time slot for scheduling."""
     start: str  # HH:MM format
     end: str  # HH:MM format
+
+
+class TimeWindow(BaseModel):
+    """Suggested time window for task completion."""
+    start: str  # HH:MM format
+    end: str  # HH:MM format
+    priority_in_window: int = Field(default=5, ge=0, le=10)  # How strongly to recommend in window
+
+
+class DeadlineType(str, Enum):
+    """Deadline strictness."""
+    HARD = "hard"  # Must complete, no exceptions (medicine)
+    SOFT = "soft"  # Should complete, minor flexibility okay (bedtime)
+
+
+class PoolUsageRules(BaseModel):
+    """Usage rules for pool/activity tasks."""
+    max_times_per_day: Optional[int] = None
+    max_duration_per_day_minutes: Optional[int] = None
+    max_duration_per_session_minutes: Optional[int] = None
+    cooldown_minutes: Optional[int] = None  # Wait time between sessions
+    allowed_day_types: Optional[List[str]] = None  # ["weekend", "holiday"]
+    requires_completion_of: Optional[List[str]] = None  # Task IDs must complete first
 
 
 class TaskSourceMetadata(BaseModel):
@@ -183,11 +209,32 @@ class Task(BaseModel):
     source_id: Optional[PyObjectId] = None  # Routine ID or Activity ID
     source_metadata: Optional[TaskSourceMetadata] = None
 
-    # Scheduling (Enhanced)
+    # Scheduling (Enhanced - Unified Model)
     scheduling_type: SchedulingType = SchedulingType.FLEXIBLE
     scheduled_date: Optional[datetime] = None  # Date for this task
-    fixed_time_slot: Optional[TimeSlot] = None  # For FIXED_TIME tasks
-    preferred_time_slot: Optional[TimeSlot] = None  # Soft constraint for FLEXIBLE
+
+    # Time attributes (different for each scheduling_type)
+    fixed_time_slot: Optional[TimeSlot] = None  # For FIXED_TIME
+    preferred_time_slot: Optional[TimeSlot] = None  # For FLEXIBLE (soft constraint)
+    preferred_time_window: Optional[TimeWindow] = None  # For TIME_WINDOW
+    deadline: Optional[datetime] = None  # For DEADLINE
+    deadline_type: Optional[DeadlineType] = None  # HARD or SOFT
+    estimated_duration_minutes: Optional[int] = None  # How long task takes
+
+    # Recurrence (Unified Model - replaces separate Routine model)
+    is_recurring: bool = False  # Is this a recurring task template?
+    recurrence_pattern: Optional[str] = None  # RRULE string for generation
+    source_recurring_task_id: Optional[PyObjectId] = None  # Link to parent recurring task
+
+    # Blocking & Interruption (Unified Model - replaces TimeBlock)
+    blocks_other_tasks: bool = False  # True for time blocks (school, lessons)
+    can_be_interrupted: bool = True  # False for critical tasks
+    can_be_split: bool = False  # Can task be done in multiple sessions?
+    min_session_duration: Optional[int] = None  # Minimum chunk size in minutes
+
+    # Pool / Activity Rules (Unified Model - replaces Activity model)
+    is_in_pool: bool = False  # True for activity pool tasks
+    pool_usage_rules: Optional[PoolUsageRules] = None  # Usage limits and rules
 
     # Rollover tracking (Enhanced)
     original_date: Optional[datetime] = None  # Original scheduled date
@@ -274,12 +321,44 @@ class Task(BaseModel):
 
 
 class TaskCreate(BaseModel):
-    """Request model for creating a task."""
+    """Request model for creating a task - Unified Model."""
     collection_id: str
     child_id: str
     title: str = Field(min_length=1, max_length=200)
     description: Optional[str] = None
     task_type_code: Optional[str] = None
+
+    # Scheduling fields (Unified Model)
+    scheduling_type: Optional[SchedulingType] = SchedulingType.FLEXIBLE
+    scheduled_date: Optional[datetime] = None
+
+    # Time attributes
+    fixed_time_slot: Optional[TimeSlot] = None
+    preferred_time_slot: Optional[TimeSlot] = None
+    preferred_time_window: Optional[TimeWindow] = None
+    deadline: Optional[datetime] = None
+    deadline_type: Optional[DeadlineType] = None
+    estimated_duration_minutes: Optional[int] = None
+
+    # Obligation & Priority
+    obligation_level: Optional[ObligationLevel] = ObligationLevel.OPTIONAL
+    priority_boost: Optional[int] = Field(default=0, ge=-5, le=5)
+
+    # Recurrence
+    is_recurring: bool = False
+    recurrence_pattern: Optional[str] = None
+
+    # Blocking & Interruption
+    blocks_other_tasks: bool = False
+    can_be_interrupted: bool = True
+    can_be_split: bool = False
+    min_session_duration: Optional[int] = None
+
+    # Pool / Activity
+    is_in_pool: bool = False
+    pool_usage_rules: Optional[PoolUsageRules] = None
+
+    # Existing fields
     activation_rule: Optional[ActivationRule] = None
     constraints: Optional[TaskConstraints] = None
     metrics: List[QuantifiableMetric] = []
@@ -289,10 +368,42 @@ class TaskCreate(BaseModel):
 
 
 class TaskUpdate(BaseModel):
-    """Request model for updating a task."""
+    """Request model for updating a task - Unified Model."""
     title: Optional[str] = Field(None, min_length=1, max_length=200)
     description: Optional[str] = None
     task_type_code: Optional[str] = None
+
+    # Scheduling fields (Unified Model)
+    scheduling_type: Optional[SchedulingType] = None
+    scheduled_date: Optional[datetime] = None
+
+    # Time attributes
+    fixed_time_slot: Optional[TimeSlot] = None
+    preferred_time_slot: Optional[TimeSlot] = None
+    preferred_time_window: Optional[TimeWindow] = None
+    deadline: Optional[datetime] = None
+    deadline_type: Optional[DeadlineType] = None
+    estimated_duration_minutes: Optional[int] = None
+
+    # Obligation & Priority
+    obligation_level: Optional[ObligationLevel] = None
+    priority_boost: Optional[int] = Field(None, ge=-5, le=5)
+
+    # Recurrence
+    is_recurring: Optional[bool] = None
+    recurrence_pattern: Optional[str] = None
+
+    # Blocking & Interruption
+    blocks_other_tasks: Optional[bool] = None
+    can_be_interrupted: Optional[bool] = None
+    can_be_split: Optional[bool] = None
+    min_session_duration: Optional[int] = None
+
+    # Pool / Activity
+    is_in_pool: Optional[bool] = None
+    pool_usage_rules: Optional[PoolUsageRules] = None
+
+    # Existing fields
     activation_rule: Optional[ActivationRule] = None
     constraints: Optional[TaskConstraints] = None
     metrics: Optional[List[QuantifiableMetric]] = None
