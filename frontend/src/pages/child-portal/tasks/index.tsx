@@ -90,6 +90,11 @@ export default function ChildTasksPage() {
     }
   };
 
+  // Check if task is informational/blocking (no action buttons needed)
+  const isInformationalTask = (task: Task): boolean => {
+    return task.blocks_other_tasks && task.scheduling_type === "fixed_time";
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4 sm:p-6 lg:p-8">
@@ -201,8 +206,8 @@ export default function ChildTasksPage() {
                   <TaskCard
                     key={task._id}
                     task={task}
-                    onPause={() => handlePauseTask(task._id)}
-                    onComplete={() => handleCompleteTask(task._id)}
+                    onPause={!isInformationalTask(task) ? () => handlePauseTask(task._id) : undefined}
+                    onComplete={!isInformationalTask(task) ? () => handleCompleteTask(task._id) : undefined}
                   />
                 ))}
               </div>
@@ -219,8 +224,8 @@ export default function ChildTasksPage() {
                   <TaskCard
                     key={task._id}
                     task={task}
-                    onResume={() => handleResumeTask(task._id)}
-                    onComplete={() => handleCompleteTask(task._id)}
+                    onResume={!isInformationalTask(task) ? () => handleResumeTask(task._id) : undefined}
+                    onComplete={!isInformationalTask(task) ? () => handleCompleteTask(task._id) : undefined}
                   />
                 ))}
               </div>
@@ -237,7 +242,7 @@ export default function ChildTasksPage() {
                   <TaskCard
                     key={task._id}
                     task={task}
-                    onStart={() => handleStartTask(task._id)}
+                    onStart={!isInformationalTask(task) ? () => handleStartTask(task._id) : undefined}
                   />
                 ))}
               </div>

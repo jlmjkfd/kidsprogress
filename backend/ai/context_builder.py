@@ -38,6 +38,10 @@ class ContextBuilder:
         child_obj_id = ObjectId(child_id)
         today = current_time.date()
 
+        # Get child info for age calculation
+        child_doc = await self.db.children.find_one({"_id": child_obj_id})
+        child_age = self._calculate_age(child_doc.get("date_of_birth")) if child_doc else "unknown"
+
         # Get all relevant data in parallel
         scheduled_tasks = await self.schedule_service.get_tasks_for_date(
             child_obj_id, today, include_status=["scheduled", "in_progress"]
@@ -59,8 +63,13 @@ class ContextBuilder:
         day_type_obj = await self.time_block_service.get_day_type(child_obj_id, today)
         day_type = day_type_obj.day_type.value if day_type_obj else "regular"
 
+        # Determine energy level based on time of day
+        energy_level = self._estimate_energy_level(current_time)
+
         return {
+            "child_age": child_age,
             "current_time": current_time.strftime("%H:%M"),
+            "energy_level": energy_level,
             "day_type": day_type,
             "time_blocks": self._format_time_blocks(time_blocks),
             "scheduled_tasks": self._format_tasks(scheduled_tasks),
@@ -187,3 +196,40 @@ class ContextBuilder:
                 formatted.append(f"  - {routine.title} ({duration}){time_info}")
 
         return "\n".join(formatted) if formatted else "None"
+
+    def _calculate_age(self, date_of_birth: Any) -> int:
+        """Calculate child's age from date of birth."""
+        if not date_of_birth:
+            return 0
+
+        from datetime import date as date_type
+        if isinstance(date_of_birth, date_type):
+            dob = date_of_birth
+        elif isinstance(date_of_birth, datetime):
+            dob = date_of_birth.date()
+        else:
+            # Assume it's a string in ISO format
+            dob = date.fromisoformat(str(date_of_birth))
+
+        today = date.today()
+        age = today.year - dob.year
+        if today.month < dob.month or (today.month == dob.month and today.day < dob.day):
+            age -= 1
+        return age
+
+    def _estimate_energy_level(self, current_time: datetime) -> str:
+        """Estimate child's energy level based on time of day."""
+        hour = current_time.hour
+
+        if 6 <= hour < 10:
+            return "high (morning)"
+        elif 10 <= hour < 12:
+            return "medium-high (late morning)"
+        elif 12 <= hour < 15:
+            return "medium (afternoon, may have post-lunch dip)"
+        elif 15 <= hour < 18:
+            return "medium-high (late afternoon)"
+        elif 18 <= hour < 21:
+            return "low (evening, winding down)"
+        else:
+            return "very low (night, should prepare for bed)"
