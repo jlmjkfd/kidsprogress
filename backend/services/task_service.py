@@ -130,6 +130,9 @@ class TaskService:
         task_doc["_id"] = result.inserted_id
 
         # Generate recurring task instances if this is a recurring task
+        # NOTE: This is a TEMPORARY implementation that creates all instances upfront.
+        # For production, this should be replaced with dynamic virtual instance expansion.
+        # See: docs/features/task-management/recurring-tasks-improvement-plan.md
         if task_data.is_recurring and task_data.recurrence_pattern:
             await self._generate_recurring_instances(
                 str(result.inserted_id),
@@ -143,6 +146,14 @@ class TaskService:
         self, source_task_id: str, task_data: TaskCreate, parent_id: str
     ):
         """Generate task instances for a recurring task.
+
+        TEMPORARY IMPLEMENTATION: This creates all instances upfront, which has limitations:
+        - Database bloat for long-running recurrences
+        - No dynamic updates when school calendar changes
+        - Storage waste for far-future tasks
+        - Editing challenges (can't update all instances)
+
+        TODO: Replace with dynamic virtual instance expansion (see recurring-tasks-improvement-plan.md)
 
         Args:
             source_task_id: ID of the source recurring task
