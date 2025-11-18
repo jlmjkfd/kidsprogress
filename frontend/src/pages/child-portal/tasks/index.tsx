@@ -183,7 +183,7 @@ export default function ChildTasksPage() {
         {/* Calendar or List View */}
         {viewMode === "calendar" ? (
           <TaskCalendar
-            tasks={tasks}
+            tasks={allTasks || []}
             childId={selectedChildId || ""}
             onTaskClick={() => {}}
             editable={false}
