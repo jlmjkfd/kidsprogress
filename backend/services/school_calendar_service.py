@@ -3,7 +3,7 @@ School Calendar Service
 Business logic for managing school terms, holidays, and determining day types
 """
 from motor.motor_asyncio import AsyncIOMotorDatabase
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Optional
 from bson import ObjectId
 
@@ -313,3 +313,63 @@ class SchoolCalendarService:
             current += delta
 
         return results
+
+    async def expand_school_day_rrule(
+        self,
+        child_id: str,
+        rrule: str,
+        start_date: str,
+    ) -> list[str]:
+        """
+        Expand a school day or holiday RRULE into actual dates.
+
+        Args:
+            child_id: Child ID
+            rrule: RRULE string (must be FREQ=SCHOOL_DAYS or FREQ=HOLIDAYS)
+            start_date: Start date in YYYY-MM-DD format
+
+        Returns:
+            List of dates in YYYY-MM-DD format
+        """
+        # Parse RRULE
+        parts = rrule.split(";")
+        freq = None
+        until_date = None
+        count = None
+
+        for part in parts:
+            key, val = part.split("=") if "=" in part else (part, None)
+            if key == "FREQ":
+                freq = val
+            elif key == "UNTIL":
+                # Convert YYYYMMDD to YYYY-MM-DD
+                until_date = f"{val[0:4]}-{val[4:6]}-{val[6:8]}"
+            elif key == "COUNT":
+                count = int(val)
+
+        if freq not in ["SCHOOL_DAYS", "HOLIDAYS"]:
+            raise ValueError(f"Unsupported frequency for school day expansion: {freq}")
+
+        # Determine end date
+        end_date = until_date
+        if not end_date:
+            # Default to 1 year from start if no end specified
+            start = date.fromisoformat(start_date)
+            end_date = (start + timedelta(days=365)).isoformat()
+
+        # Get day types for the range
+        day_types = await self.get_day_types_batch(child_id, start_date, end_date)
+
+        # Filter dates based on frequency
+        matching_dates = []
+        for dt in day_types:
+            if freq == "SCHOOL_DAYS" and dt.day_type == "school_day":
+                matching_dates.append(dt.date)
+            elif freq == "HOLIDAYS" and dt.day_type in ["holiday", "weekend"]:
+                matching_dates.append(dt.date)
+
+            # Stop if we've reached the count limit
+            if count and len(matching_dates) >= count:
+                break
+
+        return matching_dates[:count] if count else matching_dates
