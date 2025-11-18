@@ -4,6 +4,7 @@ from typing import List, Optional
 
 from backend.models.task import Task, TaskCreate, TaskUpdate, TaskStatus
 from backend.services.task_service import TaskService
+from backend.services.school_calendar_service import SchoolCalendarService
 from backend.models.user import User
 from backend.routes.auth import get_current_user
 from backend.db.connection import db
@@ -12,8 +13,10 @@ router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 
 
 def get_task_service() -> TaskService:
-    """Dependency to get task service."""
-    return TaskService(db.get_database())
+    """Dependency to get task service with school calendar support."""
+    database = db.get_database()
+    school_calendar_service = SchoolCalendarService(database)
+    return TaskService(database, school_calendar_service)
 
 
 # ==================== CRUD Operations ====================
