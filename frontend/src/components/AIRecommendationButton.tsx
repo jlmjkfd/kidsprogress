@@ -32,6 +32,11 @@ export function AIRecommendationButton({ childId, currentTime, onTaskStart }: AI
     setShowDetails(true);
   };
 
+  // Debug: Log recommendation data
+  if (recommendation) {
+    console.log("AI Recommendation data:", recommendation);
+  }
+
   const handleStartTask = async () => {
     if (!recommendation) return;
 

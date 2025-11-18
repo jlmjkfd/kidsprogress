@@ -48,7 +48,9 @@ export function useAIRecommendation(
           child_state: childState,
         }
       );
-      return response.data;
+      // Backend returns {success: true, recommendation: {...}, timestamp: ...}
+      // Extract just the recommendation object
+      return response.data.recommendation || response.data;
     },
     enabled: enabled && !!childId,
     staleTime: 30000, // 30 seconds - recommendations can change quickly
