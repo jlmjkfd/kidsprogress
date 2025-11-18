@@ -174,16 +174,25 @@ export function AIRecommendationButton({ childId, currentTime, onTaskStart }: AI
           )}
 
           {/* Alternatives */}
-          {recommendation.alternatives && recommendation.alternatives.length > 0 && (
+          {(recommendation.alternatives?.length > 0 || (recommendation as any).alternative_tasks?.length > 0) && (
             <details className="bg-gray-50 rounded-lg p-3">
               <summary className="cursor-pointer font-medium text-gray-900">
-                {t("tasks:alternatives")} ({recommendation.alternatives.length})
+                {t("tasks:alternatives")} ({recommendation.alternatives?.length || (recommendation as any).alternative_tasks?.length})
               </summary>
               <div className="mt-3 space-y-2">
-                {recommendation.alternatives.map((alt) => (
+                {/* Handle full Task objects */}
+                {recommendation.alternatives?.map((alt) => (
                   <div key={alt._id} className="flex items-start gap-2 text-sm text-gray-700 bg-white rounded p-2">
                     <span>•</span>
                     <span>{alt.title}</span>
+                  </div>
+                ))}
+                {/* Handle simple alternative_tasks array (just IDs or strings) */}
+                {(recommendation as any).alternative_tasks?.map((alt: any, idx: number) => (
+                  <div key={idx} className="flex items-start gap-2 text-sm text-gray-700 bg-white rounded p-2">
+                    <span>•</span>
+                    <span>{typeof alt === 'string' ? `Alternative task ${idx + 1}` : (alt.task_title || alt.title || 'Task')}</span>
+                    {alt.reason && <span className="text-gray-500 text-xs">- {alt.reason}</span>}
                   </div>
                 ))}
               </div>

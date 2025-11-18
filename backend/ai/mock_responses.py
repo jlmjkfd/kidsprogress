@@ -19,7 +19,10 @@ MOCK_RECOMMENDATIONS = {
         "task_title": "Math Homework",
         "reasoning": "Good morning! You have lots of energy right now, which is perfect for challenging tasks like math. Let's tackle this while your brain is fresh!",
         "estimated_duration": "45",
-        "alternative_tasks": ["task_456", "task_789"],
+        "alternative_tasks": [
+            {"task_title": "Reading Time", "reason": "A quieter option if you prefer"},
+            {"task_title": "Drawing Practice", "reason": "Creative and fun"}
+        ],
         "suggestion_type": "scheduled_task"
     },
 
@@ -28,7 +31,9 @@ MOCK_RECOMMENDATIONS = {
         "task_title": "Reading Time",
         "reasoning": "You might be feeling a bit tired after lunch. Reading is a great activity that's not too demanding but still productive. Let's enjoy a good book!",
         "estimated_duration": "30",
-        "alternative_tasks": ["task_789"],
+        "alternative_tasks": [
+            {"task_title": "Drawing Practice", "reason": "Another calm activity"}
+        ],
         "suggestion_type": "scheduled_task"
     },
 
@@ -55,7 +60,10 @@ MOCK_RECOMMENDATIONS = {
         "task_title": "Play Outside",
         "reasoning": "It's the weekend and the weather is nice! Playing outside is great for your health and you'll have lots of fun. Remember to stay safe!",
         "estimated_duration": "60",
-        "alternative_tasks": ["activity_456"],
+        "alternative_tasks": [
+            {"task_title": "Board Games", "reason": "Fun indoor alternative"},
+            {"task_title": "Arts and Crafts", "reason": "Be creative!"}
+        ],
         "suggestion_type": "activity"
     }
 }
