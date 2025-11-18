@@ -338,13 +338,15 @@ class SchoolCalendarService:
         count = None
 
         for part in parts:
-            key, val = part.split("=") if "=" in part else (part, None)
+            if "=" not in part:
+                continue
+            key, val = part.split("=", 1)
             if key == "FREQ":
                 freq = val
-            elif key == "UNTIL":
+            elif key == "UNTIL" and val:
                 # Convert YYYYMMDD to YYYY-MM-DD
                 until_date = f"{val[0:4]}-{val[4:6]}-{val[6:8]}"
-            elif key == "COUNT":
+            elif key == "COUNT" and val:
                 count = int(val)
 
         if freq not in ["SCHOOL_DAYS", "HOLIDAYS"]:

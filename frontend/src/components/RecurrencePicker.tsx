@@ -106,13 +106,10 @@ export function RecurrencePicker({ value, onChange }: RecurrencePickerProps) {
     return rrule;
   };
 
-  const handleUpdate = () => {
+  useEffect(() => {
     const rrule = generateRRule();
     onChange(rrule);
-  };
-
-  useEffect(() => {
-    handleUpdate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [frequency, interval, selectedDays, endType, endDate, endCount]);
 
   const toggleDay = (day: string) => {
