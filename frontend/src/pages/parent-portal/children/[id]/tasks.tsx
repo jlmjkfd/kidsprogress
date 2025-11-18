@@ -41,9 +41,9 @@ import {
 import { UnifiedTaskModal } from "./components/UnifiedTaskModal";
 import { useScheduleConflicts } from "@/api/queries/useAISchedule";
 import { useReplanSchedule } from "@/api/mutations/useAIScheduleMutations";
-import { TaskCalendar } from "@/components/TaskCalendar";
+import { TaskCalendar } from "@/components/calendar";
 import { SchoolCalendarModal } from "@/components/SchoolCalendarModal";
-import { DayDetailModal } from "@/components/DayDetailModal";
+import { DayDetailModal } from "@/components/calendar";
 import { DayType } from "@/types/schoolCalendar";
 
 type FilterType = "all" | "today" | "upcoming" | "completed";

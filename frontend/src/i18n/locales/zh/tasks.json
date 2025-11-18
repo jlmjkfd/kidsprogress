@@ -254,8 +254,18 @@
     "confirm_delete_special_day": "确定要删除此特殊日期吗？"
   },
   "no_tasks_for_day": "当天没有安排任务",
+  "no_matching_tasks": "没有符合筛选条件的任务",
+  "actionable": "可操作",
+  "informational": "仅信息",
+  "hide_breaks": "隐藏休息",
+  "hide_informational": "隐藏信息任务",
+  "scheduled_tasks": "已安排任务",
+  "unscheduled_tasks": "未安排任务",
   "overdue_tasks": "逾期任务",
   "completed_tasks": "已完成任务",
   "all_tasks": "所有任务",
-  "overdue": "逾期"
+  "overdue": "逾期",
+  "view_month": "月视图",
+  "view_week": "周视图",
+  "view_day": "日视图"
 }

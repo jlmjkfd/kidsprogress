@@ -20,7 +20,7 @@ import { useTasksByChild } from "@/api/queries/useTasks";
 import { useStartTask, usePauseTask, useCompleteTask, useResumeTask } from "@/api/mutations/useTaskMutations";
 import { Task, TaskStatus } from "@/types/task";
 import { AIRecommendationButton } from "@/components/AIRecommendationButton";
-import { TaskCalendar } from "@/components/TaskCalendar";
+import { TaskCalendar } from "@/components/calendar";
 
 type ViewMode = "list" | "calendar";
 

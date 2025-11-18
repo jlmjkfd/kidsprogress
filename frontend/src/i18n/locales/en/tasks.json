@@ -254,8 +254,18 @@
     "confirm_delete_special_day": "Are you sure you want to delete this special day?"
   },
   "no_tasks_for_day": "No tasks scheduled for this day",
+  "no_matching_tasks": "No tasks match the selected filters",
+  "actionable": "Actionable",
+  "informational": "Informational",
+  "hide_breaks": "Hide Breaks",
+  "hide_informational": "Hide Informational Tasks",
+  "scheduled_tasks": "Scheduled Tasks",
+  "unscheduled_tasks": "Unscheduled Tasks",
   "overdue_tasks": "Overdue Tasks",
   "completed_tasks": "Completed Tasks",
   "all_tasks": "All Tasks",
-  "overdue": "Overdue"
+  "overdue": "Overdue",
+  "view_month": "Month",
+  "view_week": "Week",
+  "view_day": "Day"
 }

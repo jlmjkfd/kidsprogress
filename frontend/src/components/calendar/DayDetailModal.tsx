@@ -1,6 +1,8 @@
 /**
  * DayDetailModal - Shows detailed task list for a specific day
+ * Supports filtering by task type and hiding breaks
  */
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   IconX,
@@ -10,8 +12,9 @@ import {
   IconPlayerPause,
   IconClock,
   IconAlertCircle,
+  IconFilter,
 } from "@tabler/icons-react";
-import { Task, TaskStatus, ObligationLevel } from "@/types/task";
+import { Task, TaskStatus, ObligationLevel, SchedulingType } from "@/types/task";
 import { DayType } from "@/types/schoolCalendar";
 
 interface DayDetailModalProps {
@@ -24,6 +27,8 @@ interface DayDetailModalProps {
   editable?: boolean;
 }
 
+type FilterType = "all" | "actionable" | "informational" | "completed";
+
 export function DayDetailModal({
   isOpen,
   onClose,
@@ -34,8 +39,22 @@ export function DayDetailModal({
   editable = true,
 }: DayDetailModalProps) {
   const { t } = useTranslation(["tasks", "common"]);
+  const [filter, setFilter] = useState<FilterType>("all");
+  const [hideBreaks, setHideBreaks] = useState(false);
 
   if (!isOpen) return null;
+
+  // Check if task is informational (blocking, no actions)
+  const isInformationalTask = (task: Task): boolean => {
+    return task.blocks_other_tasks && task.scheduling_type === SchedulingType.FIXED_TIME;
+  };
+
+  // Check if task is a break
+  const isBreakTask = (task: Task): boolean => {
+    return task.title.toLowerCase().includes("break") ||
+           task.title.toLowerCase().includes("rest") ||
+           task.title.toLowerCase().includes("休息");
+  };
 
   const dateObj = new Date(date + "T00:00:00");
   const today = new Date();
@@ -130,49 +149,132 @@ export function DayDetailModal({
     }
   };
 
+  // Apply filters
+  let filteredTasks = tasks;
+
+  // Filter by type
+  if (filter !== "all") {
+    filteredTasks = filteredTasks.filter((task) => {
+      if (filter === "actionable") {
+        return !isInformationalTask(task) && task.status !== TaskStatus.COMPLETED;
+      } else if (filter === "informational") {
+        return isInformationalTask(task);
+      } else if (filter === "completed") {
+        return task.status === TaskStatus.COMPLETED;
+      }
+      return true;
+    });
+  }
+
+  // Hide breaks if enabled
+  if (hideBreaks) {
+    filteredTasks = filteredTasks.filter(task => !isBreakTask(task));
+  }
+
   // Separate overdue tasks (past tasks not completed)
   const overdueTasks = isPast
-    ? tasks.filter((t) => t.status !== TaskStatus.COMPLETED && t.status !== TaskStatus.CANCELLED)
+    ? filteredTasks.filter((t) => t.status !== TaskStatus.COMPLETED && t.status !== TaskStatus.CANCELLED)
     : [];
   const regularTasks = isPast
-    ? tasks.filter((t) => t.status === TaskStatus.COMPLETED || t.status === TaskStatus.CANCELLED)
-    : tasks;
+    ? filteredTasks.filter((t) => t.status === TaskStatus.COMPLETED || t.status === TaskStatus.CANCELLED)
+    : filteredTasks;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
       <div className="max-h-[90vh] w-full max-w-2xl overflow-hidden rounded-lg bg-white shadow-xl">
         {/* Header */}
-        <div className="flex items-center justify-between border-b bg-gray-50 p-4">
-          <div className="flex-1">
-            <h2 className="text-lg font-bold text-gray-900">{formattedDate}</h2>
-            <div className="mt-1 flex items-center gap-2">
-              {isToday && (
-                <span className="rounded bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
-                  {t("common:today")}
-                </span>
-              )}
-              {isPast && (
-                <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-                  {t("common:past")}
-                </span>
-              )}
-              {dayType && getDayTypeBadge(dayType)}
+        <div className="border-b bg-gray-50 p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <h2 className="text-lg font-bold text-gray-900">{formattedDate}</h2>
+              <div className="mt-1 flex items-center gap-2">
+                {isToday && (
+                  <span className="rounded bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
+                    {t("common:today")}
+                  </span>
+                )}
+                {isPast && (
+                  <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+                    {t("common:past")}
+                  </span>
+                )}
+                {dayType && getDayTypeBadge(dayType)}
+              </div>
             </div>
+            <button
+              onClick={onClose}
+              className="rounded-lg p-2 transition-colors hover:bg-gray-200"
+              aria-label={t("common:close")}
+            >
+              <IconX size={20} />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="rounded-lg p-2 transition-colors hover:bg-gray-200"
-            aria-label={t("common:close")}
-          >
-            <IconX size={20} />
-          </button>
+
+          {/* Filters */}
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1 text-sm text-gray-700">
+              <IconFilter size={16} />
+              <span>{t("common:filter")}:</span>
+            </div>
+            <button
+              onClick={() => setFilter("all")}
+              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                filter === "all"
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+              }`}
+            >
+              {t("common:all")} ({tasks.length})
+            </button>
+            <button
+              onClick={() => setFilter("actionable")}
+              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                filter === "actionable"
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+              }`}
+            >
+              {t("tasks:actionable")} ({tasks.filter(t => !isInformationalTask(t) && t.status !== TaskStatus.COMPLETED).length})
+            </button>
+            <button
+              onClick={() => setFilter("informational")}
+              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                filter === "informational"
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+              }`}
+            >
+              {t("tasks:informational")} ({tasks.filter(isInformationalTask).length})
+            </button>
+            <button
+              onClick={() => setFilter("completed")}
+              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                filter === "completed"
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+              }`}
+            >
+              {t("tasks:completed")} ({tasks.filter(t => t.status === TaskStatus.COMPLETED).length})
+            </button>
+            <label className="flex items-center gap-2 text-xs text-gray-700">
+              <input
+                type="checkbox"
+                checked={hideBreaks}
+                onChange={(e) => setHideBreaks(e.target.checked)}
+                className="rounded"
+              />
+              {t("tasks:hide_breaks")}
+            </label>
+          </div>
         </div>
 
         {/* Content */}
-        <div className="max-h-[calc(90vh-120px)] overflow-y-auto p-4">
-          {tasks.length === 0 ? (
+        <div className="max-h-[calc(90vh-180px)] overflow-y-auto p-4">
+          {filteredTasks.length === 0 ? (
             <div className="py-12 text-center text-gray-500">
-              {t("tasks:no_tasks_for_day")}
+              {filter !== "all" || hideBreaks
+                ? t("tasks:no_matching_tasks")
+                : t("tasks:no_tasks_for_day")}
             </div>
           ) : (
             <div className="space-y-4">
