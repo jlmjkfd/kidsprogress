@@ -18,6 +18,7 @@ interface TaskCalendarProps {
   tasks: Task[];
   childId: string; // Required for fetching day types
   onTaskClick?: (task: Task) => void;
+  onDayClick?: (date: string, tasks: Task[], dayType?: DayType) => void; // Callback when day is clicked
   editable?: boolean; // If false, tasks are read-only
 }
 
@@ -25,6 +26,7 @@ export function TaskCalendar({
   tasks,
   childId,
   onTaskClick,
+  onDayClick,
   editable = true,
 }: TaskCalendarProps) {
   const { t } = useTranslation(["tasks", "common"]);
@@ -202,10 +204,11 @@ export function TaskCalendar({
             return (
               <div
                 key={day}
+                onClick={() => onDayClick?.(dateStr, dayTasks, dayType)}
                 className={`aspect-square overflow-hidden rounded-lg border p-1 sm:p-2 ${getDayTypeBgColor(
                   dayType,
                   isTodayDate
-                )} transition-colors hover:border-gray-400`}
+                )} transition-colors hover:border-gray-400 cursor-pointer`}
               >
                 {/* Day number */}
                 <div
@@ -219,17 +222,19 @@ export function TaskCalendar({
                 {/* Tasks */}
                 <div className="space-y-0.5">
                   {dayTasks.slice(0, 3).map((task) => (
-                    <button
+                    <div
                       key={task._id}
-                      onClick={() => editable && onTaskClick?.(task)}
-                      disabled={!editable}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (editable) onTaskClick?.(task);
+                      }}
                       className={`w-full truncate rounded border-l-2 px-1 py-0.5 text-left text-xs ${getObligationColor(
                         task.obligation_level
                       )} ${
                         task.status === TaskStatus.COMPLETED
                           ? "bg-green-50 text-green-700 line-through"
                           : "bg-gray-50 text-gray-700 hover:bg-gray-100"
-                      } ${!editable ? "cursor-default" : "cursor-pointer"} transition-colors`}
+                      } ${editable ? "cursor-pointer" : "cursor-default"} transition-colors`}
                       title={task.title}
                     >
                       <div className="flex items-center gap-1">
@@ -243,7 +248,7 @@ export function TaskCalendar({
                         )}
                         <span className="truncate">{task.title}</span>
                       </div>
-                    </button>
+                    </div>
                   ))}
                   {dayTasks.length > 3 && (
                     <div className="px-1 text-xs text-gray-500">
