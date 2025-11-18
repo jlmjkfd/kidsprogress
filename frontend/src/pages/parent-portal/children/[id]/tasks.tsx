@@ -164,6 +164,35 @@ export default function ChildTasksPage() {
     setShowDayDetail(true);
   };
 
+  // Get overdue tasks (past tasks that are not completed or cancelled)
+  const getOverdueTasks = () => {
+    if (!tasks) return [];
+    const today = new Date().toISOString().split("T")[0];
+    return tasks.filter((task) => {
+      const taskDate = task.scheduled_date?.split("T")[0];
+      return (
+        taskDate &&
+        taskDate < today &&
+        task.status !== TaskStatus.COMPLETED &&
+        task.status !== TaskStatus.CANCELLED
+      );
+    });
+  };
+
+  const overdueTasks = getOverdueTasks();
+
+  // Check if a task is overdue
+  const isTaskOverdue = (task: Task): boolean => {
+    const today = new Date().toISOString().split("T")[0];
+    const taskDate = task.scheduled_date?.split("T")[0];
+    return !!(
+      taskDate &&
+      taskDate < today &&
+      task.status !== TaskStatus.COMPLETED &&
+      task.status !== TaskStatus.CANCELLED
+    );
+  };
+
   // Filter tasks based on current filters
   const filteredTasks =
     tasks?.filter((task) => {
@@ -171,8 +200,14 @@ export default function ChildTasksPage() {
       if (filterType === "today") {
         const today = new Date().toISOString().split("T")[0];
         const taskDate = task.scheduled_date?.split("T")[0];
-        // Show tasks scheduled for today OR tasks without a scheduled date (draft/unscheduled tasks)
-        if (taskDate && taskDate !== today) return false;
+        // Show tasks scheduled for today OR overdue tasks (past incomplete tasks)
+        // OR tasks without a scheduled date (draft/unscheduled tasks)
+        const isOverdue =
+          taskDate &&
+          taskDate < today &&
+          task.status !== TaskStatus.COMPLETED &&
+          task.status !== TaskStatus.CANCELLED;
+        if (taskDate && taskDate !== today && !isOverdue) return false;
       } else if (filterType === "upcoming") {
         const today = new Date().toISOString().split("T")[0];
         const taskDate = task.scheduled_date?.split("T")[0];
@@ -512,10 +547,15 @@ export default function ChildTasksPage() {
                 const obligationBadge = getObligationBadge(
                   task.obligation_level
                 );
+                const isOverdue = isTaskOverdue(task);
                 return (
                   <div
                     key={task._id}
-                    className="rounded-lg bg-white p-4 shadow transition-shadow hover:shadow-md"
+                    className={`rounded-lg p-4 shadow transition-shadow hover:shadow-md ${
+                      isOverdue
+                        ? "border-2 border-red-300 bg-red-50"
+                        : "bg-white"
+                    }`}
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0 flex-1">
@@ -550,6 +590,12 @@ export default function ChildTasksPage() {
                               <span className="rounded bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">
                                 <IconLock className="inline" size={12} />{" "}
                                 {t("tasks:blocks")}
+                              </span>
+                            )}
+                            {isOverdue && (
+                              <span className="rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-700">
+                                <IconAlertCircle className="inline" size={12} />{" "}
+                                {t("tasks:overdue")}
                               </span>
                             )}
                           </div>
