@@ -5,7 +5,7 @@ from datetime import datetime, date
 from pydantic import BaseModel, Field
 
 from backend.dependencies.database import get_db
-from backend.routes.auth import get_current_user
+from backend.dependencies.auth import get_current_user
 from backend.ai.task_recommender import TaskRecommender
 
 
@@ -33,7 +33,7 @@ class ReplanRequest(BaseModel):
 @router.post("/schedule/recommend")
 async def recommend_now(
     request: RecommendNowRequest,
-    current_user: dict = Depends(get_current_user),
+    current_user = Depends(get_current_user),
     db = Depends(get_db)
 ):
     """Get AI recommendation for what task to do right now.
@@ -49,7 +49,7 @@ async def recommend_now(
 
     child_doc = await db.children.find_one({
         "_id": ObjectId(request.child_id),
-        "parent_id": ObjectId(current_user["user_id"])
+        "parent_id": ObjectId(str(current_user.id))
     })
 
     if not child_doc:
@@ -69,7 +69,7 @@ async def recommend_now(
 @router.post("/schedule/plan-day")
 async def plan_day(
     request: PlanDayRequest,
-    current_user: dict = Depends(get_current_user),
+    current_user = Depends(get_current_user),
     db = Depends(get_db)
 ):
     """Generate complete daily schedule plan using AI.
@@ -86,7 +86,7 @@ async def plan_day(
 
     child_doc = await db.children.find_one({
         "_id": ObjectId(request.child_id),
-        "parent_id": ObjectId(current_user["user_id"])
+        "parent_id": ObjectId(str(current_user.id))
     })
 
     if not child_doc:
@@ -114,7 +114,7 @@ async def plan_day(
 @router.post("/schedule/replan")
 async def replan_schedule(
     request: ReplanRequest,
-    current_user: dict = Depends(get_current_user),
+    current_user = Depends(get_current_user),
     db = Depends(get_db)
 ):
     """Dynamically replan schedule after changes.
@@ -130,7 +130,7 @@ async def replan_schedule(
 
     child_doc = await db.children.find_one({
         "_id": ObjectId(request.child_id),
-        "parent_id": ObjectId(current_user["user_id"])
+        "parent_id": ObjectId(str(current_user.id))
     })
 
     if not child_doc:
@@ -156,7 +156,7 @@ async def replan_schedule(
 async def get_scheduling_explanation(
     child_id: str = Query(...),
     task_id: str = Query(...),
-    current_user: dict = Depends(get_current_user),
+    current_user = Depends(get_current_user),
     db = Depends(get_db)
 ):
     """Get AI explanation for why a task is scheduled at a specific time.
@@ -168,7 +168,7 @@ async def get_scheduling_explanation(
 
     child_doc = await db.children.find_one({
         "_id": ObjectId(child_id),
-        "parent_id": ObjectId(current_user["user_id"])
+        "parent_id": ObjectId(str(current_user.id))
     })
 
     if not child_doc:
