@@ -41,8 +41,9 @@ export function useAIRecommendation(
     queryKey: ["aiRecommendation", childId, currentTime, childState],
     queryFn: async (): Promise<TaskRecommendation> => {
       const response = await apiClient.post(
-        `/api/ai/schedule/recommend?child_id=${childId}`,
+        `/api/ai/schedule/recommend`,
         {
+          child_id: childId,
           current_time: currentTime,
           child_state: childState,
         }

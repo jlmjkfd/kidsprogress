@@ -10,7 +10,7 @@ class GeminiSettings(BaseSettings):
     """Gemini API settings from environment."""
 
     gemini_api_key: str = ""
-    gemini_model: str = "gemini-1.5-flash"
+    gemini_model: str = "gemini-2.5-flash"
 
     model_config = {
         "env_file": ".env",
