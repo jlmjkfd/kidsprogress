@@ -109,24 +109,27 @@ export function AIRecommendationButton({ childId, currentTime, onTaskStart }: AI
 
           {/* Suggested Task */}
           <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-4">
-            <h4 className="text-xl font-bold text-gray-900 mb-2">{recommendation.suggested_task.title}</h4>
-
-            {recommendation.suggested_task.description && (
-              <p className="text-gray-700 mb-3">{recommendation.suggested_task.description}</p>
-            )}
+            <h4 className="text-xl font-bold text-gray-900 mb-2">
+              {(recommendation as any).task_title || recommendation.suggested_task?.title || "Task"}
+            </h4>
 
             {/* Metadata */}
             <div className="flex flex-wrap gap-3 mb-3">
-              {recommendation.estimated_minutes > 0 && (
+              {((recommendation as any).estimated_duration || recommendation.estimated_minutes) && (
                 <div className="flex items-center gap-1 text-sm text-gray-600">
                   <IconClock size={16} />
-                  <span>{t("tasks:estimated_time")}: ~{recommendation.estimated_minutes} min</span>
+                  <span>
+                    {t("tasks:estimated_time")}: ~
+                    {(recommendation as any).estimated_duration || recommendation.estimated_minutes} min
+                  </span>
                 </div>
               )}
-              <div className="flex items-center gap-1 text-sm text-gray-600">
-                <IconTarget size={16} />
-                <span>{t("tasks:priority_score")}: {Math.round(recommendation.priority_score)}/100</span>
-              </div>
+              {recommendation.priority_score && (
+                <div className="flex items-center gap-1 text-sm text-gray-600">
+                  <IconTarget size={16} />
+                  <span>{t("tasks:priority_score")}: {Math.round(recommendation.priority_score)}/100</span>
+                </div>
+              )}
             </div>
 
             {/* Reasoning */}
@@ -135,15 +138,25 @@ export function AIRecommendationButton({ childId, currentTime, onTaskStart }: AI
               <p className="text-sm text-gray-600">{recommendation.reasoning}</p>
             </div>
 
-            {/* Start Button */}
-            <button
-              onClick={handleStartTask}
-              disabled={startTaskMutation.isPending}
-              className="w-full flex items-center justify-center gap-2 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed min-h-[48px]"
-            >
-              <IconPlayerPlay size={20} />
-              <span className="font-semibold">{t("tasks:start_task")}</span>
-            </button>
+            {/* Start Button - only show if there's a task to start */}
+            {((recommendation as any).recommended_task_id || recommendation.suggested_task?._id) && (
+              <button
+                onClick={handleStartTask}
+                disabled={startTaskMutation.isPending}
+                className="w-full flex items-center justify-center gap-2 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed min-h-[48px]"
+              >
+                <IconPlayerPlay size={20} />
+                <span className="font-semibold">{t("tasks:start_task")}</span>
+              </button>
+            )}
+
+            {/* If it's a break/none suggestion, show appropriate message */}
+            {!(recommendation as any).recommended_task_id && !recommendation.suggested_task?._id && (
+              <div className="text-center text-gray-600 py-2">
+                {(recommendation as any).suggestion_type === "break" && "💤 "}
+                {(recommendation as any).suggestion_type === "none" && "🎉 "}
+              </div>
+            )}
           </div>
 
           {/* Conflicts (if any) */}

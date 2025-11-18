@@ -1,4 +1,5 @@
 """AI-powered task recommendation system using Gemini."""
+import os
 from datetime import datetime, date
 from typing import Dict, Any, Optional
 from motor.motor_asyncio import AsyncIOMotorDatabase
@@ -6,6 +7,10 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from backend.ai.gemini_client import GeminiClient
 from backend.ai.context_builder import ContextBuilder
 from backend.ai import prompts
+from backend.ai.mock_responses import get_mock_recommendation, get_mock_daily_plan
+
+# Set to True to use mock responses instead of real LLM calls (for development)
+USE_MOCK_RESPONSES = os.getenv("USE_MOCK_AI", "false").lower() == "true"
 
 
 class TaskRecommendation:
@@ -80,6 +85,11 @@ class TaskRecommender:
         if current_time is None:
             current_time = datetime.now()
 
+        # Use mock response if enabled (for development)
+        if USE_MOCK_RESPONSES:
+            mock_data = get_mock_recommendation("auto")
+            return TaskRecommendation(mock_data)
+
         # Build context from backend data
         context = await self.context_builder.build_recommendation_context(
             child_id, current_time
@@ -111,6 +121,11 @@ class TaskRecommender:
         """
         if target_date is None:
             target_date = date.today()
+
+        # Use mock response if enabled (for development)
+        if USE_MOCK_RESPONSES:
+            mock_data = get_mock_daily_plan()
+            return DailyPlan(mock_data)
 
         # Build context
         context = await self.context_builder.build_daily_plan_context(
