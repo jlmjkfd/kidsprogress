@@ -601,6 +601,11 @@ export function UnifiedTaskModal({
                   {t("tasks:unified_model.scheduling_type")}{" "}
                   <span className="text-red-500">*</span>
                 </label>
+                {formData.is_informational && (
+                  <p className="mb-2 text-xs text-blue-600">
+                    {t("tasks:informational_requires_fixed_time")}
+                  </p>
+                )}
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
                   {[
                     {
@@ -628,23 +633,29 @@ export function UnifiedTaskModal({
                       icon: IconPool,
                       label: t("tasks:unified_model.pool"),
                     },
-                  ].map(({ value, icon: Icon, label }) => (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() =>
-                        setFormData({ ...formData, scheduling_type: value })
-                      }
-                      className={`rounded-lg border-2 px-3 py-2 transition-all ${
-                        formData.scheduling_type === value
-                          ? "border-blue-600 bg-blue-50 text-blue-700"
-                          : "border-gray-300 hover:border-gray-400"
-                      }`}
-                    >
-                      <Icon size={20} className="mx-auto mb-1" />
-                      <div className="text-xs">{label}</div>
-                    </button>
-                  ))}
+                  ].map(({ value, icon: Icon, label }) => {
+                    const isDisabled = formData.is_informational && value !== SchedulingType.FIXED_TIME;
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() =>
+                          !isDisabled && setFormData({ ...formData, scheduling_type: value })
+                        }
+                        disabled={isDisabled}
+                        className={`rounded-lg border-2 px-3 py-2 transition-all ${
+                          formData.scheduling_type === value
+                            ? "border-blue-600 bg-blue-50 text-blue-700"
+                            : isDisabled
+                            ? "cursor-not-allowed border-gray-200 bg-gray-50 text-gray-400 opacity-50"
+                            : "border-gray-300 hover:border-gray-400"
+                        }`}
+                      >
+                        <Icon size={20} className="mx-auto mb-1" />
+                        <div className="text-xs">{label}</div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 

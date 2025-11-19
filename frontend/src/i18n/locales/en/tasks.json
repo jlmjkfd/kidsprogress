@@ -7,6 +7,7 @@
   "confirm_delete": "Are you sure you want to delete this task? This action cannot be undone.",
   "is_informational": "This is an informational task",
   "is_informational_hint": "Informational tasks (like school time, sleep) show in calendar but have no start/complete buttons. Related fields will be auto-checked.",
+  "informational_requires_fixed_time": "ℹ️ Informational tasks must use Fixed Time scheduling (other types disabled)",
   "create_new_task": "Create New Task",
   "scheduled_date": "Scheduled Date",
   "task_title": "Task Title",
