@@ -4,7 +4,7 @@ This service generates task instances on-the-fly from recurring task templates,
 avoiding database bloat from pre-generating all instances.
 """
 
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
 from typing import List, Optional, Dict, Any
 from dateutil.rrule import rrulestr, rrule, DAILY, WEEKLY, MONTHLY
 from copy import deepcopy
@@ -119,9 +119,9 @@ class VirtualInstanceService:
             rule = rrulestr(rrule_str)
 
             # Get occurrences in range
-            # Convert dates to datetime for rrule
-            start_dt = datetime.combine(start_date, datetime.min.time())
-            end_dt = datetime.combine(end_date, datetime.max.time())
+            # Convert dates to datetime for rrule (use UTC to match DTSTART format)
+            start_dt = datetime.combine(start_date, datetime.min.time()).replace(tzinfo=timezone.utc)
+            end_dt = datetime.combine(end_date, datetime.max.time()).replace(tzinfo=timezone.utc)
 
             occurrences = rule.between(start_dt, end_dt, inc=True)
 
