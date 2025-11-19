@@ -18,7 +18,6 @@ import { useDayTypesBatch } from "@/api/queries/useSchoolCalendar";
 import { DayType } from "@/types/schoolCalendar";
 import { DayView } from "./DayView";
 import { WeekView } from "./WeekView";
-import { DayDetailModal } from "./DayDetailModal";
 
 type CalendarView = "month" | "week" | "day";
 
@@ -43,11 +42,6 @@ export function TaskCalendar({
   const currentLocale = i18n.language || "en";
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<CalendarView>(defaultView);
-  const [selectedDay, setSelectedDay] = useState<{
-    date: string;
-    tasks: Task[];
-    dayType?: DayType;
-  } | null>(null);
   const [hideInformational, setHideInformational] = useState(false);
 
   const year = currentDate.getFullYear();
@@ -76,13 +70,18 @@ export function TaskCalendar({
     setCurrentDate(new Date());
   };
 
-  // Get tasks for a specific date
+  // Get tasks for a specific date (including deleted for the list below)
   const getTasksForDate = (day: number): Task[] => {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     return tasks.filter((task) => {
       const taskDate = task.scheduled_date?.split("T")[0];
       return taskDate === dateStr;
     });
+  };
+
+  // Get tasks for calendar display (excluding deleted)
+  const getTasksForDisplay = (day: number): Task[] => {
+    return getTasksForDate(day).filter(task => !task.is_deleted);
   };
 
   // Generate calendar grid
@@ -203,7 +202,7 @@ export function TaskCalendar({
 
   // Handle day cell click
   const handleDayClick = (date: string, dayTasks: Task[], dayType?: DayType) => {
-    setSelectedDay({ date, tasks: dayTasks, dayType });
+    // Don't open modal - just pass to parent handler
     onDayClick?.(date, dayTasks, dayType);
   };
 
@@ -331,7 +330,8 @@ export function TaskCalendar({
                   return <div key={`empty-${index}`} className="aspect-square" />;
                 }
 
-                const dayTasks = getTasksForDate(day);
+                const allDayTasks = getTasksForDate(day);
+                const displayTasks = getTasksForDisplay(day);
                 const isTodayDate = isToday(day);
                 const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                 const dayType = dayTypeMap.get(dateStr);
@@ -339,7 +339,7 @@ export function TaskCalendar({
                 return (
                   <div
                     key={day}
-                    onClick={() => handleDayClick(dateStr, dayTasks, dayType)}
+                    onClick={() => handleDayClick(dateStr, allDayTasks, dayType)}
                     className={`aspect-square overflow-hidden rounded-lg border p-1 sm:p-2 ${getDayTypeBgColor(
                       dayType,
                       isTodayDate
@@ -356,7 +356,7 @@ export function TaskCalendar({
 
                     {/* Tasks */}
                     <div className="space-y-0.5">
-                      {dayTasks.slice(0, 3).map((task) => (
+                      {displayTasks.slice(0, 3).map((task) => (
                         <div
                           key={task._id}
                           onClick={(e) => {
@@ -385,9 +385,9 @@ export function TaskCalendar({
                           </div>
                         </div>
                       ))}
-                      {dayTasks.length > 3 && (
+                      {displayTasks.length > 3 && (
                         <div className="px-1 text-xs text-gray-500">
-                          +{dayTasks.length - 3} more
+                          +{displayTasks.length - 3} more
                         </div>
                       )}
                     </div>
@@ -418,19 +418,6 @@ export function TaskCalendar({
           />
         )}
       </div>
-
-      {/* Day Detail Modal */}
-      {selectedDay && (
-        <DayDetailModal
-          isOpen={true}
-          onClose={() => setSelectedDay(null)}
-          date={selectedDay.date}
-          tasks={selectedDay.tasks}
-          dayType={selectedDay.dayType}
-          onTaskClick={onTaskClick}
-          editable={editable}
-        />
-      )}
 
       {/* Legend */}
       <div className="space-y-3 border-t p-4">

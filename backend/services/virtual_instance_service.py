@@ -60,14 +60,15 @@ class VirtualInstanceService:
                 template.exceptions, occurrence_date
             )
 
-            if exception and exception.type == "deleted":
-                # Skip deleted occurrences
-                continue
-
-            # Create virtual instance
+            # Create virtual instance (include deleted ones with a flag)
             instance = VirtualInstanceService._create_virtual_instance(
                 template, occurrence_date, exception
             )
+
+            # Mark deleted occurrences
+            if exception and exception.type == "deleted":
+                instance["is_deleted"] = True
+
             instances.append(instance)
 
         return instances

@@ -17,6 +17,8 @@ class TaskCollection(BaseModel):
     color: Optional[str] = None  # Hex color for UI
     icon: Optional[str] = None  # Icon name/code
     is_default: bool = False  # Each child has one default collection
+    is_system: bool = False  # System collections (undeletable, e.g., "Informational Tasks")
+    collection_type: Optional[str] = None  # Type hint: "informational", "general", etc.
     is_archived: bool = False
     created_at: datetime = Field(default_factory=utcnow)
     updated_at: datetime = Field(default_factory=utcnow)

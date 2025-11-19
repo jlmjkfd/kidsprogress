@@ -27,7 +27,8 @@ export function useCreateTerm() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["terms", variables.child_id] });
       queryClient.invalidateQueries({ queryKey: ["dayTypes", variables.child_id] });
-      queryClient.invalidateQueries({ queryKey: ["tasks", variables.child_id] });
+      // Invalidate all task queries for this child (matches ["tasks", "child", childId, ...])
+      queryClient.invalidateQueries({ queryKey: ["tasks", "child", variables.child_id] });
     },
   });
 }
@@ -44,7 +45,8 @@ export function useUpdateTerm() {
       queryClient.invalidateQueries({ queryKey: ["terms", data.child_id] });
       queryClient.invalidateQueries({ queryKey: ["term", data._id] });
       queryClient.invalidateQueries({ queryKey: ["dayTypes", data.child_id] });
-      queryClient.invalidateQueries({ queryKey: ["tasks", data.child_id] });
+      // Invalidate all task queries for this child (matches ["tasks", "child", childId, ...])
+      queryClient.invalidateQueries({ queryKey: ["tasks", "child", data.child_id] });
     },
   });
 }
@@ -59,7 +61,8 @@ export function useDeleteTerm() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["terms", variables.childId] });
       queryClient.invalidateQueries({ queryKey: ["dayTypes", variables.childId] });
-      queryClient.invalidateQueries({ queryKey: ["tasks", variables.childId] });
+      // Invalidate all task queries for this child (matches ["tasks", "child", childId, ...])
+      queryClient.invalidateQueries({ queryKey: ["tasks", "child", variables.childId] });
     },
   });
 }
@@ -76,7 +79,8 @@ export function useCreateSpecialDay() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["specialDays", variables.child_id] });
       queryClient.invalidateQueries({ queryKey: ["dayTypes", variables.child_id] });
-      queryClient.invalidateQueries({ queryKey: ["tasks", variables.child_id] });
+      // Invalidate all task queries for this child (matches ["tasks", "child", childId, ...])
+      queryClient.invalidateQueries({ queryKey: ["tasks", "child", variables.child_id] });
     },
   });
 }
@@ -99,7 +103,8 @@ export function useUpdateSpecialDay() {
       queryClient.invalidateQueries({ queryKey: ["specialDays", data.child_id] });
       queryClient.invalidateQueries({ queryKey: ["specialDay", data._id] });
       queryClient.invalidateQueries({ queryKey: ["dayTypes", data.child_id] });
-      queryClient.invalidateQueries({ queryKey: ["tasks", data.child_id] });
+      // Invalidate all task queries for this child (matches ["tasks", "child", childId, ...])
+      queryClient.invalidateQueries({ queryKey: ["tasks", "child", data.child_id] });
     },
   });
 }
@@ -114,7 +119,8 @@ export function useDeleteSpecialDay() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["specialDays", variables.childId] });
       queryClient.invalidateQueries({ queryKey: ["dayTypes", variables.childId] });
-      queryClient.invalidateQueries({ queryKey: ["tasks", variables.childId] });
+      // Invalidate all task queries for this child (matches ["tasks", "child", childId, ...])
+      queryClient.invalidateQueries({ queryKey: ["tasks", "child", variables.childId] });
     },
   });
 }

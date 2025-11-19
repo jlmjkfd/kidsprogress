@@ -369,7 +369,13 @@ class TaskService:
         tasks = []
 
         async for doc in cursor:
-            tasks.append(Task(**doc))
+            # Convert to dict immediately for consistency
+            task_obj = Task(**doc)
+            task_dict = task_obj.model_dump(mode='json', by_alias=True)
+            # Ensure _id is a string
+            if "_id" in task_dict and not isinstance(task_dict["_id"], str):
+                task_dict["_id"] = str(task_dict["_id"])
+            tasks.append(task_dict)
 
         # Get recurring task templates (no date filter, no status filter)
         recurring_query: Dict[str, Any] = {
@@ -406,8 +412,11 @@ class TaskService:
         # Add recurring templates to the list so they can be edited
         # Convert templates to dicts and mark with is_virtual=False
         for template in recurring_templates:
-            template_data = template.model_dump(mode='json')
+            template_data = template.model_dump(mode='json', by_alias=True)
             template_data["is_virtual"] = False
+            # Ensure _id is a string (model_dump with by_alias=True should handle this)
+            if "_id" in template_data and not isinstance(template_data["_id"], str):
+                template_data["_id"] = str(template_data["_id"])
             tasks.append(template_data)
 
         # Sort by scheduled_date
@@ -614,6 +623,49 @@ class TaskService:
             new_exception["overrides"] = overrides
 
         exceptions.append(new_exception)
+
+        # Update task
+        result = await self.tasks_collection.update_one(
+            {"_id": ObjectId(task_id)},
+            {"$set": {"exceptions": exceptions, "updated_at": utcnow()}},
+        )
+
+        if result.modified_count == 0:
+            return None
+
+        # Fetch and return updated task
+        updated_doc = await self.tasks_collection.find_one({"_id": ObjectId(task_id)})
+        return Task(**updated_doc) if updated_doc else None
+
+    async def remove_recurrence_exception(
+        self,
+        task_id: str,
+        parent_id: str,
+        exception_date: str,
+    ) -> Optional[Task]:
+        """Remove an exception from a recurring task (restore deleted/modified occurrence).
+
+        Args:
+            task_id: Recurring task template's ObjectId as string
+            parent_id: Parent's ObjectId as string (for authorization)
+            exception_date: Date of the exception to remove (YYYY-MM-DD)
+
+        Returns:
+            Updated task template or None if not found/unauthorized
+        """
+        if not ObjectId.is_valid(task_id) or not ObjectId.is_valid(parent_id):
+            return None
+
+        # Get the task
+        task = await self.tasks_collection.find_one(
+            {"_id": ObjectId(task_id), "parent_id": ObjectId(parent_id), "is_recurring": True}
+        )
+        if not task:
+            return None
+
+        # Get existing exceptions and remove the one for this date
+        exceptions = task.get("exceptions", [])
+        exceptions = [e for e in exceptions if e.get("date") != exception_date]
 
         # Update task
         result = await self.tasks_collection.update_one(

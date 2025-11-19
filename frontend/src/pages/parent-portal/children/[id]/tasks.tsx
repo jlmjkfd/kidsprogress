@@ -14,6 +14,7 @@ import {
   useResumeTask,
   useUpdateTask,
   useDeleteTask,
+  useRemoveRecurrenceException,
 } from "@/api/mutations/useTaskMutations";
 import {
   Task,
@@ -77,12 +78,13 @@ export default function ChildTasksPage() {
   const resumeTaskMutation = useResumeTask();
   const completeTaskMutation = useCompleteTask();
   const replanMutation = useReplanSchedule();
+  const removeExceptionMutation = useRemoveRecurrenceException();
 
   const parentId = tasks && tasks.length > 0 ? tasks[0].parent_id : "";
 
   // Initialize calendar with today's tasks (use local timezone)
   useEffect(() => {
-    if (viewMode === "calendar" && tasks && selectedDateTasks.length === 0) {
+    if (viewMode === "calendar" && tasks && !selectedDate) {
       const now = new Date();
       const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
       const todayTasks = tasks.filter((task) => {
@@ -94,7 +96,20 @@ export default function ChildTasksPage() {
       setSelectedDate(today);
       setSelectedDateTasks(todayTasks);
     }
-  }, [viewMode, tasks, selectedDateTasks.length]);
+  }, [viewMode, tasks, selectedDate]);
+
+  // Update selectedDateTasks when tasks data changes (after delete/add/update)
+  useEffect(() => {
+    if (selectedDate && tasks) {
+      const dateTasks = tasks.filter((task) => {
+        // Filter out recurring templates (only show virtual instances)
+        if (task.is_recurring && !task.is_virtual) return false;
+        const taskDate = task.scheduled_date?.split("T")[0];
+        return taskDate === selectedDate;
+      });
+      setSelectedDateTasks(dateTasks);
+    }
+  }, [tasks, selectedDate]);
 
   // Task action handlers
   const handleStartTask = async (taskId: string) => {
@@ -197,6 +212,17 @@ export default function ChildTasksPage() {
       await deleteTaskMutation.mutateAsync(templateId);
     } catch (error) {
       console.error("Failed to delete template:", error);
+    }
+  };
+
+  const handleRestoreOccurrence = async (templateId: string, occurrenceDate: string) => {
+    try {
+      await removeExceptionMutation.mutateAsync({
+        taskId: templateId,
+        exceptionDate: occurrenceDate,
+      });
+    } catch (error) {
+      console.error("Failed to restore occurrence:", error);
     }
   };
 
@@ -340,10 +366,13 @@ export default function ChildTasksPage() {
           selectedDateTasks={selectedDateTasks}
           onTaskClick={handleTaskEdit}
           onDayClick={handleDayClick}
+          onTaskDelete={handleDeleteTask}
+          onRestoreOccurrence={handleRestoreOccurrence}
         />
       ) : (
         <TaskListView
           tasks={filteredTasks}
+          childId={childId || ""}
           onTaskEdit={handleTaskEdit}
           onTaskDelete={handleDeleteTask}
           onTaskStart={handleStartTask}
@@ -352,6 +381,7 @@ export default function ChildTasksPage() {
           onTaskComplete={handleCompleteTask}
           onCreateClick={() => setShowCreateModal(true)}
           isTaskOverdue={isTaskOverdue}
+          onRestoreOccurrence={handleRestoreOccurrence}
         />
       )}
 

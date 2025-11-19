@@ -15,6 +15,7 @@ import {
   IconLock,
   IconAlertCircle,
   IconSchool,
+  IconRestore,
 } from "@tabler/icons-react";
 import { Task, TaskStatus, SchedulingType, ObligationLevel } from "@/types/task";
 
@@ -27,6 +28,7 @@ interface TaskCardProps {
   onComplete?: (taskId: string) => void;
   onEdit: (task: Task) => void;
   onDelete?: (taskId: string) => void;
+  onRestore?: (taskId: string, date: string) => void;
 }
 
 export function TaskCard({
@@ -38,8 +40,41 @@ export function TaskCard({
   onComplete,
   onEdit,
   onDelete,
+  onRestore,
 }: TaskCardProps) {
   const { t } = useTranslation(["common", "tasks"]);
+
+  // If this is a deleted occurrence, show restore UI
+  if (task.is_deleted && task.source_recurring_task_id && task.scheduled_date) {
+    const occurrenceDate = task.scheduled_date.split("T")[0];
+    return (
+      <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-4 opacity-60">
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <span className="text-gray-500 line-through">{task.title}</span>
+            <span className="rounded bg-gray-200 px-2 py-0.5 text-xs text-gray-600">
+              {t("tasks:deleted")}
+            </span>
+          </div>
+          {task.fixed_time_slot && (
+            <p className="text-sm text-gray-500">
+              {task.fixed_time_slot.start} - {task.fixed_time_slot.end}
+            </p>
+          )}
+        </div>
+        {onRestore && (
+          <button
+            onClick={() => onRestore(task.source_recurring_task_id!, occurrenceDate)}
+            className="flex items-center gap-2 rounded-md bg-blue-600 px-3 py-2 text-sm text-white transition-colors hover:bg-blue-700"
+            title={t("tasks:restore_occurrence")}
+          >
+            <IconRestore size={16} />
+            <span>{t("common:restore")}</span>
+          </button>
+        )}
+      </div>
+    );
+  }
 
   const getStatusColor = (status: TaskStatus) => {
     switch (status) {

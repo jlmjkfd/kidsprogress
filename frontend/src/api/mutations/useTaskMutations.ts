@@ -49,9 +49,12 @@ export const useDeleteTask = () => {
   return useMutation({
     mutationFn: async (taskId: string) => {
       await apiClient.delete(`/api/tasks/${taskId}`);
+      return taskId;
     },
-    onSuccess: () => {
+    onSuccess: (taskId) => {
+      // Invalidate all task-related queries to ensure UI updates
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["task", taskId] });
     },
   });
 };
@@ -201,6 +204,35 @@ export const useAddRecurrenceException = () => {
           params: {
             exception_date: exceptionDate,
             exception_type: exceptionType,
+          },
+        }
+      );
+      return response.data;
+    },
+    onSuccess: (data) => {
+      // Invalidate all tasks queries to refresh virtual instances
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["task", data._id] });
+    },
+  });
+};
+
+export const useRemoveRecurrenceException = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      taskId,
+      exceptionDate,
+    }: {
+      taskId: string;
+      exceptionDate: string; // YYYY-MM-DD
+    }) => {
+      const response = await apiClient.delete<Task>(
+        `/api/tasks/${taskId}/exceptions`,
+        {
+          params: {
+            exception_date: exceptionDate,
           },
         }
       );

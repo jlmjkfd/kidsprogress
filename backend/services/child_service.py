@@ -31,12 +31,15 @@ class ChildService:
     async def _create_default_task_collection(
         self, child_id: ObjectId, parent_id: ObjectId
     ) -> None:
-        """Create default task collection for a child.
+        """Create default task collections for a child.
 
         Args:
             child_id: Child's ObjectId
             parent_id: Parent's ObjectId
         """
+        now = utcnow()
+
+        # Default general task collection
         default_collection = {
             "child_id": child_id,
             "parent_id": parent_id,
@@ -45,11 +48,34 @@ class ChildService:
             "color": "#3B82F6",  # Blue
             "icon": "checkbox",
             "is_default": True,
+            "is_system": False,
+            "collection_type": "general",
             "is_archived": False,
-            "created_at": utcnow(),
-            "updated_at": utcnow(),
+            "created_at": now,
+            "updated_at": now,
         }
-        await self.task_collections_collection.insert_one(default_collection)
+
+        # System informational task collection
+        informational_collection = {
+            "child_id": child_id,
+            "parent_id": parent_id,
+            "name": "Informational Tasks",
+            "description": "System collection for informational tasks (school time, sleep, etc.)",
+            "color": "#6B7280",  # Gray
+            "icon": "info-circle",
+            "is_default": False,
+            "is_system": True,
+            "collection_type": "informational",
+            "is_archived": False,
+            "created_at": now,
+            "updated_at": now,
+        }
+
+        # Insert both collections
+        await self.task_collections_collection.insert_many([
+            default_collection,
+            informational_collection
+        ])
 
     async def create_child(self, parent_id: str, child_data: ChildCreate) -> Child:
         """Create a new child profile for a parent.

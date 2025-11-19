@@ -315,5 +315,7 @@
   "overdue": "逾期",
   "view_month": "月视图",
   "view_week": "周视图",
-  "view_day": "日视图"
+  "view_day": "日视图",
+  "deleted": "已删除",
+  "restore_occurrence": "恢复此事件"
 }

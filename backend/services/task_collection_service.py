@@ -194,7 +194,7 @@ class TaskCollectionService:
         if not ObjectId.is_valid(collection_id) or not ObjectId.is_valid(parent_id):
             return False
 
-        # Verify ownership and check if default
+        # Verify ownership and check if default or system
         existing = await self.collections_collection.find_one(
             {"_id": ObjectId(collection_id), "parent_id": ObjectId(parent_id)}
         )
@@ -203,6 +203,9 @@ class TaskCollectionService:
 
         if existing.get("is_default", False):
             raise ValueError("Cannot delete default collection")
+
+        if existing.get("is_system", False):
+            raise ValueError("Cannot delete system collection")
 
         # Check if collection has tasks
         tasks_collection = self.db.tasks

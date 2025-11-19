@@ -56,7 +56,7 @@ async def get_tasks_by_child(
     current_user: User = Depends(get_current_user),
     service: TaskService = Depends(get_task_service),
 ):
-    """Get all tasks for a child (includes virtual instances as dicts)."""
+    """Get all tasks for a child (includes virtual instances and templates as dicts)."""
     try:
         return await service.get_tasks_by_child(child_id, str(current_user.id), status)
     except ValueError as e:
@@ -137,6 +137,32 @@ async def add_recurrence_exception(
         exception_date,
         exception_type,
         overrides,
+    )
+    if not task:
+        raise HTTPException(status_code=404, detail="Recurring task not found")
+    return task
+
+
+@router.delete("/{task_id}/exceptions", response_model=Task)
+async def remove_recurrence_exception(
+    task_id: str,
+    exception_date: str = Query(..., description="Date of exception to remove (YYYY-MM-DD)"),
+    current_user: User = Depends(get_current_user),
+    service: TaskService = Depends(get_task_service),
+):
+    """Remove an exception from a recurring task to restore a deleted/modified occurrence.
+
+    Args:
+        task_id: The recurring task template ID
+        exception_date: Date of the exception to remove (YYYY-MM-DD)
+
+    Example:
+        DELETE /api/tasks/123/exceptions?exception_date=2024-05-15
+    """
+    task = await service.remove_recurrence_exception(
+        task_id,
+        str(current_user.id),
+        exception_date,
     )
     if not task:
         raise HTTPException(status_code=404, detail="Recurring task not found")

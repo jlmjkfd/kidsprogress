@@ -6,9 +6,12 @@ import { useRef, useState, useEffect, useCallback } from "react";
 import { IconChecklist, IconPlus, IconCalendarTime } from "@tabler/icons-react";
 import { Task } from "@/types/task";
 import { TaskCard } from "./TaskCard";
+import { useDayTypesBatch } from "@/api/queries/useSchoolCalendar";
+import { DayType } from "@/types/schoolCalendar";
 
 interface TaskListViewProps {
   tasks: Task[];
+  childId: string;
   onTaskEdit: (task: Task) => void;
   onTaskDelete: (taskId: string) => void;
   onTaskStart: (taskId: string) => void;
@@ -17,6 +20,7 @@ interface TaskListViewProps {
   onTaskComplete: (taskId: string) => void;
   onCreateClick: () => void;
   isTaskOverdue: (task: Task) => boolean;
+  onRestoreOccurrence?: (templateId: string, occurrenceDate: string) => void;
 }
 
 // Helper function to add/subtract days from a date string (YYYY-MM-DD)
@@ -28,6 +32,7 @@ const addDays = (dateStr: string, days: number): string => {
 
 export function TaskListView({
   tasks,
+  childId,
   onTaskEdit,
   onTaskDelete,
   onTaskStart,
@@ -36,6 +41,7 @@ export function TaskListView({
   onTaskComplete,
   onCreateClick,
   isTaskOverdue,
+  onRestoreOccurrence,
 }: TaskListViewProps) {
   const { t } = useTranslation(["common", "tasks"]);
   const todayRef = useRef<HTMLDivElement>(null);
@@ -51,8 +57,48 @@ export function TaskListView({
     end: addDays(today, 14),
   });
 
+  // Cache all fetched day types in a Map to prevent flashing
+  const [cachedDayTypes, setCachedDayTypes] = useState<Map<string, DayType>>(new Map());
+
+  // Track if initial scroll has happened
+  const hasScrolledRef = useRef(false);
+
+  // Fixed fetch range - fetch a large range once and cache it
+  const fetchStart = addDays(today, -90);
+  const fetchEnd = addDays(today, 180);
+
+  // Fetch day types for the fixed range
+  const { data: dayTypes } = useDayTypesBatch(childId, fetchStart, fetchEnd);
+
+  // Update cache when new day types are fetched
+  useEffect(() => {
+    if (dayTypes && dayTypes.length > 0) {
+      setCachedDayTypes((prev) => {
+        const newCache = new Map(prev);
+        dayTypes.forEach((dt) => {
+          newCache.set(dt.date, dt.day_type);
+        });
+        return newCache;
+      });
+    }
+  }, [dayTypes]);
+
   const scrollToToday = () => {
-    todayRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (todayRef.current && containerRef.current) {
+      // Get the position of today element relative to its offset parent
+      const todayElement = todayRef.current;
+      let offsetTop = 0;
+      let element: HTMLElement | null = todayElement;
+
+      // Calculate total offset from container
+      while (element && element !== containerRef.current) {
+        offsetTop += element.offsetTop;
+        element = element.offsetParent as HTMLElement | null;
+      }
+
+      // Scroll the container smoothly, not the page
+      containerRef.current.scrollTo({ top: offsetTop, behavior: "smooth" });
+    }
   };
 
   // Group tasks by date
@@ -131,12 +177,27 @@ export function TaskListView({
     return () => container.removeEventListener("scroll", handleScroll);
   }, [handleScroll]);
 
-  // Auto-scroll to today on mount
+  // Auto-scroll to today only on first mount (not when switching tabs)
   useEffect(() => {
-    if (todayRef.current) {
+    if (todayRef.current && containerRef.current && !hasScrolledRef.current) {
+      hasScrolledRef.current = true;
       // Small delay to ensure layout is ready
       setTimeout(() => {
-        todayRef.current?.scrollIntoView({ block: "start" });
+        if (todayRef.current && containerRef.current) {
+          // Get the position of today element relative to its offset parent
+          const todayElement = todayRef.current;
+          let offsetTop = 0;
+          let element: HTMLElement | null = todayElement;
+
+          // Calculate total offset from container
+          while (element && element !== containerRef.current) {
+            offsetTop += element.offsetTop;
+            element = element.offsetParent as HTMLElement | null;
+          }
+
+          // Scroll the container, not the page
+          containerRef.current.scrollTop = offsetTop;
+        }
       }, 100);
     }
   }, []);
@@ -200,24 +261,60 @@ export function TaskListView({
             >
               {/* Date Header */}
               <div className="mb-4 flex items-center justify-between border-b border-gray-200 pb-3">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  {new Date(date + "T00:00:00").toLocaleDateString(undefined, {
-                    weekday: "short",
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })}
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    {new Date(date + "T00:00:00").toLocaleDateString(undefined, {
+                      weekday: "short",
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })}
+                  </h3>
                   {isToday && (
-                    <span className="ml-2 rounded bg-blue-100 px-2 py-1 text-sm font-medium text-blue-700">
+                    <span className="rounded bg-blue-100 px-2 py-1 text-sm font-medium text-blue-700">
                       {t("common:today")}
                     </span>
                   )}
                   {isPast && !isToday && (
-                    <span className="ml-2 rounded bg-gray-100 px-2 py-1 text-sm font-medium text-gray-600">
+                    <span className="rounded bg-gray-100 px-2 py-1 text-sm font-medium text-gray-600">
                       {t("common:past")}
                     </span>
                   )}
-                </h3>
+                  {(() => {
+                    const dayType = cachedDayTypes.get(date);
+                    if (!dayType) return null;
+
+                    const dayTypeConfig: Record<DayType, { bg: string; text: string; label: string }> = {
+                      school_day: {
+                        bg: "bg-blue-100",
+                        text: "text-blue-700",
+                        label: t("tasks:school_calendar.school_day")
+                      },
+                      weekend: {
+                        bg: "bg-gray-100",
+                        text: "text-gray-700",
+                        label: t("tasks:school_calendar.weekend")
+                      },
+                      holiday: {
+                        bg: "bg-green-100",
+                        text: "text-green-700",
+                        label: t("tasks:school_calendar.holiday")
+                      },
+                      special_school_day: {
+                        bg: "bg-purple-100",
+                        text: "text-purple-700",
+                        label: t("tasks:school_calendar.special_school_day")
+                      },
+                    };
+
+                    const config = dayTypeConfig[dayType];
+                    return (
+                      <span className={`rounded px-2 py-1 text-sm font-medium ${config.bg} ${config.text}`}>
+                        {config.label}
+                      </span>
+                    );
+                  })()}
+                </div>
                 <span className="text-sm text-gray-600">
                   {dateTasks.length} {t("common:tasks")}
                 </span>
@@ -237,6 +334,7 @@ export function TaskListView({
                       onComplete={onTaskComplete}
                       onEdit={onTaskEdit}
                       onDelete={onTaskDelete}
+                      onRestore={onRestoreOccurrence}
                     />
                   ))}
                 </div>

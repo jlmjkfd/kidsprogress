@@ -160,6 +160,7 @@
   },
   "edit_info": "Edit Information",
   "add": "Add",
+  "restore": "Restore",
   "child_not_found": "Child not found",
   "no_data_yet": "No data available yet",
   "analysis_description": "Activity and progress data will appear here",

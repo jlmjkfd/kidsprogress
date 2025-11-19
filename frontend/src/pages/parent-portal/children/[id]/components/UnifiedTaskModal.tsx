@@ -34,7 +34,7 @@ export function UnifiedTaskModal({
   const { t } = useTranslation(["common", "tasks"]);
   const { data: collections } = useTaskCollections(childId);
   const defaultCollection = collections?.find((c) => c.is_default);
-  const informationalCollection = collections?.find((c) => c.name === "Informational" || c.name === "信息类");
+  const informationalCollection = collections?.find((c) => c.collection_type === "informational");
 
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [taskTemplate, setTaskTemplate] = useState<"standard" | "informational">(
@@ -99,6 +99,7 @@ export function UnifiedTaskModal({
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Auto-select default collection on mount
   useEffect(() => {
     if (!task && defaultCollection && !formData.collection_id) {
       setFormData((prev) => ({
@@ -107,6 +108,26 @@ export function UnifiedTaskModal({
       }));
     }
   }, [defaultCollection, task, formData.collection_id]);
+
+  // Auto-select collection based on is_informational changes
+  useEffect(() => {
+    if (formData.is_informational && informationalCollection) {
+      if (formData.collection_id !== informationalCollection._id) {
+        setFormData((prev) => ({
+          ...prev,
+          collection_id: informationalCollection._id,
+        }));
+      }
+    } else if (!formData.is_informational && defaultCollection) {
+      // If switching back to standard, use default collection if currently using informational
+      if (formData.collection_id === informationalCollection?._id) {
+        setFormData((prev) => ({
+          ...prev,
+          collection_id: defaultCollection._id,
+        }));
+      }
+    }
+  }, [formData.is_informational, informationalCollection, defaultCollection, formData.collection_id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

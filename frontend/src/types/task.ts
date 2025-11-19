@@ -135,6 +135,8 @@ export interface TaskCollection {
   color?: string;
   icon?: string;
   is_default: boolean;
+  is_system: boolean; // System collections are undeletable
+  collection_type?: string; // "informational", "general", etc.
   is_archived: boolean;
   created_at: string;
   updated_at: string;
@@ -304,6 +306,7 @@ export interface Task {
   source_recurring_task_id?: string;
   exceptions: RecurrenceException[]; // Exceptions for specific occurrences
   is_virtual?: boolean; // True if this is a virtual instance (not stored in DB)
+  is_deleted?: boolean; // True if this virtual occurrence was deleted (can be restored)
 
   // Blocking & Interruption (Unified Model - replaces TimeBlock)
   is_informational: boolean; // Informational tasks (school time, sleep) - no start/complete buttons

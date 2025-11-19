@@ -314,5 +314,7 @@
   "overdue": "Overdue",
   "view_month": "Month",
   "view_week": "Week",
-  "view_day": "Day"
+  "view_day": "Day",
+  "deleted": "Deleted",
+  "restore_occurrence": "Restore this occurrence"
 }
