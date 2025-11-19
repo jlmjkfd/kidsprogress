@@ -298,6 +298,7 @@ export interface Task {
   source_recurring_task_id?: string;
 
   // Blocking & Interruption (Unified Model - replaces TimeBlock)
+  is_informational: boolean; // Informational tasks (school time, sleep) - no start/complete buttons
   blocks_other_tasks: boolean;
   can_be_interrupted: boolean;
   can_be_split: boolean;
@@ -383,6 +384,7 @@ export interface TaskCreate {
   recurrence_pattern?: string;
 
   // Blocking & Interruption
+  is_informational?: boolean;
   blocks_other_tasks?: boolean;
   can_be_interrupted?: boolean;
   can_be_split?: boolean;
@@ -427,6 +429,7 @@ export interface TaskUpdate {
   recurrence_pattern?: string;
 
   // Blocking & Interruption
+  is_informational?: boolean;
   blocks_other_tasks?: boolean;
   can_be_interrupted?: boolean;
   can_be_split?: boolean;

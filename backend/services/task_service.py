@@ -82,6 +82,7 @@ class TaskService:
             "source_recurring_task_id": None,
 
             # Blocking & Interruption (Unified Model - replaces TimeBlock)
+            "is_informational": task_data.is_informational if task_data.is_informational is not None else False,
             "blocks_other_tasks": task_data.blocks_other_tasks,
             "can_be_interrupted": task_data.can_be_interrupted,
             "can_be_split": task_data.can_be_split,
@@ -197,6 +198,7 @@ class TaskService:
                 "source_recurring_task_id": ObjectId(source_task_id),
 
                 # Copy other properties
+                "is_informational": task_data.is_informational if task_data.is_informational is not None else False,
                 "blocks_other_tasks": task_data.blocks_other_tasks,
                 "can_be_interrupted": task_data.can_be_interrupted,
                 "can_be_split": task_data.can_be_split,
@@ -431,6 +433,8 @@ class TaskService:
             update_doc["recurrence_pattern"] = task_data.recurrence_pattern
 
         # Blocking & Interruption (Unified Model)
+        if task_data.is_informational is not None:
+            update_doc["is_informational"] = task_data.is_informational
         if task_data.blocks_other_tasks is not None:
             update_doc["blocks_other_tasks"] = task_data.blocks_other_tasks
         if task_data.can_be_interrupted is not None:

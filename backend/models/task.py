@@ -227,6 +227,7 @@ class Task(BaseModel):
     source_recurring_task_id: Optional[PyObjectId] = None  # Link to parent recurring task
 
     # Blocking & Interruption (Unified Model - replaces TimeBlock)
+    is_informational: bool = False  # NEW: Informational tasks (school time, sleep) - no start/complete buttons
     blocks_other_tasks: bool = False  # True for time blocks (school, lessons)
     can_be_interrupted: bool = True  # False for critical tasks
     can_be_split: bool = False  # Can task be done in multiple sessions?
@@ -349,6 +350,7 @@ class TaskCreate(BaseModel):
     recurrence_pattern: Optional[str] = None
 
     # Blocking & Interruption
+    is_informational: bool = False
     blocks_other_tasks: bool = False
     can_be_interrupted: bool = True
     can_be_split: bool = False
@@ -394,6 +396,7 @@ class TaskUpdate(BaseModel):
     recurrence_pattern: Optional[str] = None
 
     # Blocking & Interruption
+    is_informational: Optional[bool] = None
     blocks_other_tasks: Optional[bool] = None
     can_be_interrupted: Optional[bool] = None
     can_be_split: Optional[bool] = None

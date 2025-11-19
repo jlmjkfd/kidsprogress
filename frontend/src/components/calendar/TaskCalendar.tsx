@@ -299,7 +299,7 @@ export function TaskCalendar({
               onChange={(e) => setHideInformational(e.target.checked)}
               className="rounded"
             />
-            {t("tasks:hide_informational")} ({tasks.filter(t => t.blocks_other_tasks && t.scheduling_type === "fixed_time").length})
+            {t("tasks:hide_informational")} ({tasks.filter(t => t.is_informational).length})
           </label>
         </div>
       </div>

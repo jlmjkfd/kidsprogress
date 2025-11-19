@@ -4,7 +4,7 @@
  */
 import { useTranslation } from "react-i18next";
 import { IconClock, IconCircle, IconCheck } from "@tabler/icons-react";
-import { Task, TaskStatus, ObligationLevel, SchedulingType } from "@/types/task";
+import { Task, TaskStatus, ObligationLevel } from "@/types/task";
 import { DayType } from "@/types/schoolCalendar";
 
 interface DayViewProps {
@@ -27,7 +27,7 @@ export function DayView({
 
   // Check if task is informational (blocks other tasks, not actionable)
   const isInformationalTask = (task: Task): boolean => {
-    return task.blocks_other_tasks && task.scheduling_type === SchedulingType.FIXED_TIME;
+    return task.is_informational;
   };
 
   // Filter tasks based on settings

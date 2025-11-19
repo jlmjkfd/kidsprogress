@@ -14,7 +14,7 @@ import {
   IconAlertCircle,
   IconFilter,
 } from "@tabler/icons-react";
-import { Task, TaskStatus, ObligationLevel, SchedulingType } from "@/types/task";
+import { Task, TaskStatus, ObligationLevel } from "@/types/task";
 import { DayType } from "@/types/schoolCalendar";
 
 interface DayDetailModalProps {
@@ -46,7 +46,7 @@ export function DayDetailModal({
 
   // Check if task is informational (blocking, no actions)
   const isInformationalTask = (task: Task): boolean => {
-    return task.blocks_other_tasks && task.scheduling_type === SchedulingType.FIXED_TIME;
+    return task.is_informational;
   };
 
   // Check if task is a break
