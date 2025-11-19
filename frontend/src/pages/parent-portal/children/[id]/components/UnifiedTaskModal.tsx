@@ -77,6 +77,7 @@ export function UnifiedTaskModal({
     recurrence_pattern: task?.recurrence_pattern || "",
 
     // Blocking & Interruption
+    is_informational: task?.is_informational || false,
     blocks_other_tasks: task?.blocks_other_tasks || false,
     can_be_interrupted: task?.can_be_interrupted ?? true,
     can_be_split: task?.can_be_split || false,
@@ -126,6 +127,7 @@ export function UnifiedTaskModal({
           : undefined,
 
         // Blocking & Interruption
+        is_informational: formData.is_informational,
         blocks_other_tasks: formData.blocks_other_tasks,
         can_be_interrupted: formData.can_be_interrupted,
         can_be_split: formData.can_be_split,
@@ -803,6 +805,34 @@ export function UnifiedTaskModal({
 
                   {/* Blocking & Interruption */}
                   <div className="space-y-3 rounded-lg bg-gray-50 p-4">
+                    {/* Informational Task Checkbox */}
+                    <div className="rounded-md border border-blue-200 bg-blue-50 p-3">
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={formData.is_informational}
+                          onChange={(e) => {
+                            const isChecked = e.target.checked;
+                            setFormData({
+                              ...formData,
+                              is_informational: isChecked,
+                              // Auto-check related fields when informational is true
+                              blocks_other_tasks: isChecked ? true : formData.blocks_other_tasks,
+                              can_be_interrupted: isChecked ? false : formData.can_be_interrupted,
+                              scheduling_type: isChecked ? SchedulingType.FIXED_TIME : formData.scheduling_type,
+                            });
+                          }}
+                          className="h-4 w-4"
+                        />
+                        <span className="font-medium text-blue-900">
+                          {t("tasks:is_informational")}
+                        </span>
+                      </label>
+                      <p className="ml-6 mt-1 text-xs text-blue-700">
+                        {t("tasks:is_informational_hint")}
+                      </p>
+                    </div>
+
                     <label className="flex items-center gap-2">
                       <input
                         type="checkbox"
@@ -813,10 +843,11 @@ export function UnifiedTaskModal({
                             blocks_other_tasks: e.target.checked,
                           })
                         }
-                        className="h-4 w-4"
+                        disabled={formData.is_informational}
+                        className="h-4 w-4 disabled:opacity-50"
                       />
-                      <IconLock size={18} />
-                      <span className="font-medium">
+                      <IconLock size={18} className={formData.is_informational ? "text-gray-400" : ""} />
+                      <span className={`font-medium ${formData.is_informational ? "text-gray-400" : ""}`}>
                         {t("tasks:unified_model.blocks_other_tasks")}
                       </span>
                     </label>
@@ -831,9 +862,10 @@ export function UnifiedTaskModal({
                             can_be_interrupted: e.target.checked,
                           })
                         }
-                        className="h-4 w-4"
+                        disabled={formData.is_informational}
+                        className="h-4 w-4 disabled:opacity-50"
                       />
-                      <span className="font-medium">
+                      <span className={`font-medium ${formData.is_informational ? "text-gray-400" : ""}`}>
                         {t("tasks:unified_model.can_be_interrupted")}
                       </span>
                     </label>

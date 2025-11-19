@@ -5,6 +5,8 @@
   "edit_task": "编辑任务",
   "delete_task": "删除任务",
   "confirm_delete": "确定要删除此任务吗？此操作无法撤销。",
+  "is_informational": "这是信息类任务",
+  "is_informational_hint": "信息类任务（如上学时间、睡觉）会显示在日历中，但没有开始/完成按钮。相关字段将自动勾选。",
   "create_new_task": "创建新任务",
   "scheduled_date": "计划日期",
   "task_title": "任务标题",
