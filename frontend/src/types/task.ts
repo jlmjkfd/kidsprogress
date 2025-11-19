@@ -202,6 +202,12 @@ export interface TaskConstraints {
   prerequisite_tasks: string[];
 }
 
+export interface RecurrenceException {
+  date: string; // YYYY-MM-DD
+  type: "deleted" | "modified";
+  overrides?: Record<string, any>; // Fields to override
+}
+
 export interface TaskPauseRecord {
   paused_at: string;
   resumed_at?: string;
@@ -296,6 +302,8 @@ export interface Task {
   is_recurring: boolean;
   recurrence_pattern?: string; // RRULE string
   source_recurring_task_id?: string;
+  exceptions: RecurrenceException[]; // Exceptions for specific occurrences
+  is_virtual?: boolean; // True if this is a virtual instance (not stored in DB)
 
   // Blocking & Interruption (Unified Model - replaces TimeBlock)
   is_informational: boolean; // Informational tasks (school time, sleep) - no start/complete buttons
