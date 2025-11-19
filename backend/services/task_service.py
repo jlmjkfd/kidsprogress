@@ -375,6 +375,8 @@ class TaskService:
             # Ensure _id is a string
             if "_id" in task_dict and not isinstance(task_dict["_id"], str):
                 task_dict["_id"] = str(task_dict["_id"])
+            # Mark as not virtual (one-time tasks are real tasks, not virtual instances)
+            task_dict["is_virtual"] = False
             tasks.append(task_dict)
 
         # Get recurring task templates (no date filter, no status filter)

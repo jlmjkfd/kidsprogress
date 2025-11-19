@@ -79,9 +79,15 @@ export function TaskCalendar({
     });
   };
 
-  // Get tasks for calendar display (excluding deleted)
+  // Get tasks for calendar display (excluding deleted and templates)
   const getTasksForDisplay = (day: number): Task[] => {
-    return getTasksForDate(day).filter(task => !task.is_deleted);
+    return getTasksForDate(day).filter(task => {
+      // Filter out deleted tasks
+      if (task.is_deleted) return false;
+      // Filter out recurring templates (only show virtual instances)
+      if (task.is_recurring && !task.is_virtual) return false;
+      return true;
+    });
   };
 
   // Generate calendar grid

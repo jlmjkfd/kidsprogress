@@ -360,7 +360,7 @@ export default function ChildTasksPage() {
       {/* Main Content */}
       {viewMode === "calendar" ? (
         <CalendarView
-          tasks={filteredTasks}
+          tasks={tasks || []}
           childId={childId || ""}
           selectedDate={selectedDate}
           selectedDateTasks={selectedDateTasks}
