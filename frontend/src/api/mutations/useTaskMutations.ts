@@ -178,3 +178,38 @@ export const useCancelTask = () => {
     },
   });
 };
+
+export const useAddRecurrenceException = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      taskId,
+      exceptionDate,
+      exceptionType,
+      overrides,
+    }: {
+      taskId: string;
+      exceptionDate: string; // YYYY-MM-DD
+      exceptionType: "deleted" | "modified";
+      overrides?: Record<string, any>;
+    }) => {
+      const response = await apiClient.post<Task>(
+        `/api/tasks/${taskId}/exceptions`,
+        overrides || {},
+        {
+          params: {
+            exception_date: exceptionDate,
+            exception_type: exceptionType,
+          },
+        }
+      );
+      return response.data;
+    },
+    onSuccess: (data) => {
+      // Invalidate all tasks queries to refresh virtual instances
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["task", data._id] });
+    },
+  });
+};

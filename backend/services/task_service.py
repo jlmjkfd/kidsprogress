@@ -547,6 +547,65 @@ class TaskService:
         )
         return result.deleted_count > 0
 
+    async def add_recurrence_exception(
+        self,
+        task_id: str,
+        parent_id: str,
+        exception_date: str,
+        exception_type: str,
+        overrides: Optional[Dict[str, Any]] = None,
+    ) -> Optional[Task]:
+        """Add an exception to a recurring task (for editing/deleting single occurrence).
+
+        Args:
+            task_id: Recurring task template's ObjectId as string
+            parent_id: Parent's ObjectId as string (for authorization)
+            exception_date: Date of the exception (YYYY-MM-DD)
+            exception_type: "deleted" or "modified"
+            overrides: Optional dict of field overrides for "modified" type
+
+        Returns:
+            Updated task template or None if not found/unauthorized
+        """
+        if not ObjectId.is_valid(task_id) or not ObjectId.is_valid(parent_id):
+            return None
+
+        # Get the task
+        task = await self.tasks_collection.find_one(
+            {"_id": ObjectId(task_id), "parent_id": ObjectId(parent_id), "is_recurring": True}
+        )
+        if not task:
+            return None
+
+        # Get existing exceptions
+        exceptions = task.get("exceptions", [])
+
+        # Remove existing exception for this date if any
+        exceptions = [e for e in exceptions if e.get("date") != exception_date]
+
+        # Add new exception
+        new_exception = {
+            "date": exception_date,
+            "type": exception_type,
+        }
+        if overrides:
+            new_exception["overrides"] = overrides
+
+        exceptions.append(new_exception)
+
+        # Update task
+        result = await self.tasks_collection.update_one(
+            {"_id": ObjectId(task_id)},
+            {"$set": {"exceptions": exceptions, "updated_at": utcnow()}},
+        )
+
+        if result.modified_count == 0:
+            return None
+
+        # Fetch and return updated task
+        updated_doc = await self.tasks_collection.find_one({"_id": ObjectId(task_id)})
+        return Task(**updated_doc) if updated_doc else None
+
     # ==================== Lifecycle Methods ====================
 
     async def activate_task(self, task_id: str, parent_id: str) -> Optional[Task]:

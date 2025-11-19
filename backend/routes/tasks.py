@@ -102,6 +102,42 @@ async def delete_task(
         raise HTTPException(status_code=404, detail="Task not found")
 
 
+@router.post("/{task_id}/exceptions", response_model=Task)
+async def add_recurrence_exception(
+    task_id: str,
+    exception_date: str = Query(..., description="Date of exception (YYYY-MM-DD)"),
+    exception_type: str = Query(..., description="Exception type: deleted or modified"),
+    current_user: User = Depends(get_current_user),
+    service: TaskService = Depends(get_task_service),
+    overrides: Optional[dict] = None,
+):
+    """Add an exception to a recurring task to edit/delete a single occurrence.
+
+    Args:
+        task_id: The recurring task template ID
+        exception_date: Date of the occurrence to modify (YYYY-MM-DD)
+        exception_type: "deleted" (skip this occurrence) or "modified" (override fields)
+        overrides: Dict of field overrides for "modified" type (e.g., {"fixed_time_slot": {...}})
+
+    Example:
+        POST /api/tasks/123/exceptions?exception_date=2024-05-15&exception_type=modified
+        Body: {"fixed_time_slot": {"start": "08:30", "end": "12:00"}}
+    """
+    if exception_type not in ["deleted", "modified"]:
+        raise HTTPException(status_code=400, detail="exception_type must be 'deleted' or 'modified'")
+
+    task = await service.add_recurrence_exception(
+        task_id,
+        str(current_user.id),
+        exception_date,
+        exception_type,
+        overrides,
+    )
+    if not task:
+        raise HTTPException(status_code=404, detail="Recurring task not found")
+    return task
+
+
 # ==================== Lifecycle Operations ====================
 
 
