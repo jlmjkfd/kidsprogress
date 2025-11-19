@@ -20,6 +20,7 @@ import {
   IconRepeat,
   IconLock,
   IconSchool,
+  IconTrash,
 } from "@tabler/icons-react";
 import { useTasksByChild } from "@/api/queries/useTasks";
 import {
@@ -29,6 +30,7 @@ import {
   useCreateTask,
   useResumeTask,
   useUpdateTask,
+  useDeleteTask,
 } from "@/api/mutations/useTaskMutations";
 import {
   Task,
@@ -74,6 +76,7 @@ export default function ChildTasksPage() {
   const { data: conflicts } = useScheduleConflicts(childId || "");
   const createTaskMutation = useCreateTask();
   const updateTaskMutation = useUpdateTask();
+  const deleteTaskMutation = useDeleteTask();
   const startTaskMutation = useStartTask();
   const pauseTaskMutation = usePauseTask();
   const resumeTaskMutation = useResumeTask();
@@ -154,6 +157,17 @@ export default function ChildTasksPage() {
         data: data as TaskUpdate,
       });
       setEditingTask(null);
+    }
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    if (!window.confirm(t("tasks:confirm_delete"))) {
+      return;
+    }
+    try {
+      await deleteTaskMutation.mutateAsync(taskId);
+    } catch (error) {
+      console.error("Failed to delete task:", error);
     }
   };
 
@@ -724,6 +738,13 @@ export default function ChildTasksPage() {
                           title={t("tasks:edit_task")}
                         >
                           <IconEdit size={18} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteTask(task._id)}
+                          className="min-h-[44px] min-w-[44px] rounded-md p-2 text-red-600 transition-colors hover:bg-red-50"
+                          title={t("tasks:delete_task")}
+                        >
+                          <IconTrash size={18} />
                         </button>
                         <button
                           onClick={() => {

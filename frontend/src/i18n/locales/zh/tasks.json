@@ -3,6 +3,8 @@
   "new_task": "新任务",
   "create_task": "创建任务",
   "edit_task": "编辑任务",
+  "delete_task": "删除任务",
+  "confirm_delete": "确定要删除此任务吗？此操作无法撤销。",
   "create_new_task": "创建新任务",
   "scheduled_date": "计划日期",
   "task_title": "任务标题",

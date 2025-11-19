@@ -3,6 +3,8 @@
   "new_task": "New Task",
   "create_task": "Create Task",
   "edit_task": "Edit Task",
+  "delete_task": "Delete Task",
+  "confirm_delete": "Are you sure you want to delete this task? This action cannot be undone.",
   "create_new_task": "Create New Task",
   "scheduled_date": "Scheduled Date",
   "task_title": "Task Title",
