@@ -14,6 +14,7 @@ from backend.models.task import (
     ActivationType,
 )
 from backend.utils.datetime_utils import utcnow
+from backend.services.virtual_instance_service import VirtualInstanceService
 
 
 class TaskService:
@@ -130,25 +131,20 @@ class TaskService:
         result = await self.tasks_collection.insert_one(task_doc)
         task_doc["_id"] = result.inserted_id
 
-        # Generate recurring task instances if this is a recurring task
-        # NOTE: This is a TEMPORARY implementation that creates all instances upfront.
-        # For production, this should be replaced with dynamic virtual instance expansion.
-        # See: docs/features/task-management/recurring-tasks-improvement-plan.md
-        if task_data.is_recurring and task_data.recurrence_pattern:
-            await self._generate_recurring_instances(
-                str(result.inserted_id),
-                task_data,
-                parent_id
-            )
+        # NOTE: Recurring tasks are now handled via virtual instance expansion
+        # No need to pre-generate instances - they're created on-demand in get_tasks_by_child()
+        # See: backend/services/virtual_instance_service.py
 
         return Task(**task_doc)
 
-    async def _generate_recurring_instances(
+    # DEPRECATED: Old pre-generation method - kept for reference
+    # Use VirtualInstanceService.expand_recurring_task() instead
+    async def _generate_recurring_instances_DEPRECATED(
         self, source_task_id: str, task_data: TaskCreate, parent_id: str
     ):
-        """Generate task instances for a recurring task.
+        """DEPRECATED: Generate task instances for a recurring task.
 
-        TEMPORARY IMPLEMENTATION: This creates all instances upfront, which has limitations:
+        OLD IMPLEMENTATION: This creates all instances upfront, which has limitations:
         - Database bloat for long-running recurrences
         - No dynamic updates when school calendar changes
         - Storage waste for far-future tasks
@@ -330,30 +326,83 @@ class TaskService:
         return tasks
 
     async def get_tasks_by_child(
-        self, child_id: str, parent_id: str, status: Optional[TaskStatus] = None
+        self, child_id: str, parent_id: str, status: Optional[TaskStatus] = None,
+        start_date: Optional[date] = None, end_date: Optional[date] = None
     ) -> List[Task]:
-        """Get all tasks for a child.
+        """Get all tasks for a child, including virtual instances from recurring tasks.
 
         Args:
             child_id: Child's ObjectId as string
             parent_id: Parent's ObjectId as string (for authorization)
             status: Optional status filter
+            start_date: Optional start date for virtual instance expansion (defaults to 30 days ago)
+            end_date: Optional end date for virtual instance expansion (defaults to 60 days ahead)
 
         Returns:
-            List of tasks
+            List of tasks (includes both one-time tasks and virtual instances)
         """
         if not ObjectId.is_valid(child_id) or not ObjectId.is_valid(parent_id):
             raise ValueError("Invalid child_id or parent_id")
 
-        query: Dict[str, Any] = {"child_id": ObjectId(child_id), "parent_id": ObjectId(parent_id)}
+        # Default date range for virtual expansion
+        if not start_date:
+            start_date = date.today() - timedelta(days=30)
+        if not end_date:
+            end_date = date.today() + timedelta(days=60)
+
+        # Query for non-recurring tasks within date range
+        query: Dict[str, Any] = {
+            "child_id": ObjectId(child_id),
+            "parent_id": ObjectId(parent_id),
+            "is_recurring": False  # Get one-time tasks only
+        }
         if status:
             query["status"] = status.value
 
-        cursor = self.tasks_collection.find(query).sort("created_at", -1)
+        # Add date filter for one-time tasks
+        query["scheduled_date"] = {
+            "$gte": datetime.combine(start_date, datetime.min.time()),
+            "$lte": datetime.combine(end_date, datetime.max.time())
+        }
+
+        cursor = self.tasks_collection.find(query).sort("scheduled_date", 1)
         tasks = []
 
         async for doc in cursor:
             tasks.append(Task(**doc))
+
+        # Get recurring task templates (no date filter, no status filter)
+        recurring_query: Dict[str, Any] = {
+            "child_id": ObjectId(child_id),
+            "parent_id": ObjectId(parent_id),
+            "is_recurring": True
+        }
+
+        recurring_cursor = self.tasks_collection.find(recurring_query)
+        recurring_templates = []
+
+        async for doc in recurring_cursor:
+            recurring_templates.append(Task(**doc))
+
+        # Expand recurring templates into virtual instances
+        for template in recurring_templates:
+            virtual_instances = VirtualInstanceService.expand_recurring_task(
+                template,
+                start_date,
+                end_date,
+                self.school_calendar_service
+            )
+
+            # Convert virtual instance dicts to Task objects
+            for instance_data in virtual_instances:
+                # Apply status filter if specified
+                if status and instance_data.get("status") != status.value:
+                    continue
+
+                tasks.append(Task(**instance_data))
+
+        # Sort by scheduled_date
+        tasks.sort(key=lambda t: t.scheduled_date if t.scheduled_date else datetime.max)
 
         return tasks
 

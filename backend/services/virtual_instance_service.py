@@ -1,0 +1,198 @@
+"""Virtual instance expansion service for recurring tasks.
+
+This service generates task instances on-the-fly from recurring task templates,
+avoiding database bloat from pre-generating all instances.
+"""
+
+from datetime import datetime, date, timedelta
+from typing import List, Optional, Dict, Any
+from dateutil.rrule import rrulestr, rrule, DAILY, WEEKLY, MONTHLY
+from copy import deepcopy
+
+from backend.models.task import Task, RecurrenceException
+
+
+class VirtualInstanceService:
+    """Service for expanding recurring tasks into virtual instances."""
+
+    @staticmethod
+    def expand_recurring_task(
+        template: Task,
+        start_date: date,
+        end_date: date,
+        school_calendar_service=None,
+    ) -> List[Dict[str, Any]]:
+        """Expand a recurring task template into virtual instances for a date range.
+
+        Args:
+            template: The recurring task template
+            start_date: Start of date range (inclusive)
+            end_date: End of date range (inclusive)
+            school_calendar_service: Optional service for school day patterns
+
+        Returns:
+            List of virtual task instances (as dicts, not stored in DB)
+        """
+        if not template.is_recurring or not template.recurrence_pattern:
+            return []
+
+        # Get occurrence dates from RRULE
+        occurrence_dates = VirtualInstanceService._expand_rrule(
+            template.recurrence_pattern,
+            start_date,
+            end_date,
+            template.scheduled_date,
+            school_calendar_service,
+            str(template.child_id) if template.child_id else None,
+        )
+
+        # Create virtual instances
+        instances = []
+        for occurrence_date in occurrence_dates:
+            # Check if this occurrence is in exceptions
+            exception = VirtualInstanceService._find_exception(
+                template.exceptions, occurrence_date
+            )
+
+            if exception and exception.type == "deleted":
+                # Skip deleted occurrences
+                continue
+
+            # Create virtual instance
+            instance = VirtualInstanceService._create_virtual_instance(
+                template, occurrence_date, exception
+            )
+            instances.append(instance)
+
+        return instances
+
+    @staticmethod
+    def _expand_rrule(
+        rrule_str: str,
+        start_date: date,
+        end_date: date,
+        dtstart: Optional[datetime] = None,
+        school_calendar_service=None,
+        child_id: Optional[str] = None,
+    ) -> List[date]:
+        """Expand RRULE string into list of dates within range.
+
+        Args:
+            rrule_str: RRULE string (e.g., "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR")
+            start_date: Start of range
+            end_date: End of range
+            dtstart: Start date for recurrence (defaults to start_date)
+            school_calendar_service: Optional for school day patterns
+            child_id: Child ID for school calendar lookup
+
+        Returns:
+            List of dates where task occurs
+        """
+        # Handle school day patterns
+        if rrule_str.startswith("FREQ=SCHOOL_DAYS") or rrule_str.startswith("FREQ=HOLIDAYS"):
+            if school_calendar_service and child_id:
+                # Use school calendar service for school day expansion
+                dates_str = school_calendar_service.expand_school_day_rrule(
+                    child_id, rrule_str, start_date.isoformat()
+                )
+                return [date.fromisoformat(d) for d in dates_str]
+            else:
+                # Fallback: just return start_date
+                return [start_date]
+
+        # Parse standard RRULE
+        try:
+            # Add DTSTART if not present
+            if "DTSTART" not in rrule_str:
+                dt = dtstart or datetime.combine(start_date, datetime.min.time())
+                dtstart_str = dt.strftime("%Y%m%dT%H%M%SZ")
+                rrule_str = f"DTSTART:{dtstart_str}\n{rrule_str}"
+
+            # Parse RRULE
+            rule = rrulestr(rrule_str)
+
+            # Get occurrences in range
+            # Convert dates to datetime for rrule
+            start_dt = datetime.combine(start_date, datetime.min.time())
+            end_dt = datetime.combine(end_date, datetime.max.time())
+
+            occurrences = rule.between(start_dt, end_dt, inc=True)
+
+            # Convert back to dates
+            return [occ.date() for occ in occurrences]
+
+        except Exception as e:
+            print(f"Error parsing RRULE '{rrule_str}': {e}")
+            return []
+
+    @staticmethod
+    def _find_exception(
+        exceptions: List[RecurrenceException], occurrence_date: date
+    ) -> Optional[RecurrenceException]:
+        """Find exception for a specific occurrence date.
+
+        Args:
+            exceptions: List of exceptions
+            occurrence_date: Date to check
+
+        Returns:
+            Exception if found, None otherwise
+        """
+        date_str = occurrence_date.isoformat()
+        for exception in exceptions:
+            if exception.date == date_str:
+                return exception
+        return None
+
+    @staticmethod
+    def _create_virtual_instance(
+        template: Task,
+        occurrence_date: date,
+        exception: Optional[RecurrenceException] = None,
+    ) -> Dict[str, Any]:
+        """Create a virtual task instance from template.
+
+        Args:
+            template: The recurring task template
+            occurrence_date: Date for this instance
+            exception: Optional exception with overrides
+
+        Returns:
+            Virtual task instance as dict
+        """
+        # Start with template data
+        instance_data = template.model_dump(exclude={"id"})
+
+        # Generate virtual ID (template_id + date)
+        instance_data["_id"] = f"{template.id}_{occurrence_date.isoformat()}"
+
+        # Mark as non-recurring instance
+        instance_data["is_recurring"] = False
+        instance_data["recurrence_pattern"] = None
+        instance_data["source_recurring_task_id"] = str(template.id)
+        instance_data["exceptions"] = []  # Instances don't have exceptions
+
+        # Set scheduled date for this occurrence
+        instance_data["scheduled_date"] = datetime.combine(
+            occurrence_date, datetime.min.time()
+        )
+
+        # If has fixed_time_slot, combine with occurrence date
+        if template.fixed_time_slot:
+            # Keep the time from template, but use occurrence date
+            time_parts = template.fixed_time_slot.start.split(":")
+            hour = int(time_parts[0])
+            minute = int(time_parts[1])
+            instance_data["scheduled_date"] = datetime.combine(
+                occurrence_date, datetime.min.time()
+            ).replace(hour=hour, minute=minute)
+
+        # Apply exception overrides if present
+        if exception and exception.overrides:
+            for key, value in exception.overrides.items():
+                instance_data[key] = value
+
+        # Mark as virtual (for frontend to know)
+        instance_data["is_virtual"] = True
+
+        return instance_data

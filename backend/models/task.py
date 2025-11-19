@@ -130,6 +130,13 @@ class TaskPauseRecord(BaseModel):
     reason: Optional[str] = None
 
 
+class RecurrenceException(BaseModel):
+    """Exception for a specific occurrence of a recurring task."""
+    date: str  # YYYY-MM-DD format
+    type: str  # "deleted" or "modified"
+    overrides: Optional[Dict[str, Any]] = None  # Fields to override (e.g., {"fixed_time_slot": {...}})
+
+
 class QuantifiableMetric(BaseModel):
     """Quantifiable metric for task."""
     metric_type_code: str  # Reference to MetricTypeDefinition
@@ -225,6 +232,7 @@ class Task(BaseModel):
     is_recurring: bool = False  # Is this a recurring task template?
     recurrence_pattern: Optional[str] = None  # RRULE string for generation
     source_recurring_task_id: Optional[PyObjectId] = None  # Link to parent recurring task
+    exceptions: List[RecurrenceException] = []  # Exceptions for specific occurrences (edit/delete single instance)
 
     # Blocking & Interruption (Unified Model - replaces TimeBlock)
     is_informational: bool = False  # NEW: Informational tasks (school time, sleep) - no start/complete buttons
