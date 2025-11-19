@@ -1,0 +1,260 @@
+/**
+ * TaskCard - Displays a single task with actions
+ */
+import { useTranslation } from "react-i18next";
+import {
+  IconCalendar,
+  IconClock,
+  IconPlayerPlay,
+  IconPlayerPause,
+  IconCheck,
+  IconEdit,
+  IconTrash,
+  IconCopy,
+  IconRepeat,
+  IconLock,
+  IconAlertCircle,
+  IconSchool,
+} from "@tabler/icons-react";
+import { Task, TaskStatus, SchedulingType, ObligationLevel } from "@/types/task";
+
+interface TaskCardProps {
+  task: Task;
+  isOverdue: boolean;
+  onStart?: (taskId: string) => void;
+  onPause?: (taskId: string) => void;
+  onResume?: (taskId: string) => void;
+  onComplete?: (taskId: string) => void;
+  onEdit: (task: Task) => void;
+  onDelete?: (taskId: string) => void;
+}
+
+export function TaskCard({
+  task,
+  isOverdue,
+  onStart,
+  onPause,
+  onResume,
+  onComplete,
+  onEdit,
+  onDelete,
+}: TaskCardProps) {
+  const { t } = useTranslation(["common", "tasks"]);
+
+  const getStatusColor = (status: TaskStatus) => {
+    switch (status) {
+      case TaskStatus.COMPLETED:
+        return "bg-green-100 text-green-700";
+      case TaskStatus.IN_PROGRESS:
+        return "bg-blue-100 text-blue-700";
+      case TaskStatus.PAUSED:
+        return "bg-yellow-100 text-yellow-700";
+      case TaskStatus.CANCELLED:
+        return "bg-red-100 text-red-700";
+      case TaskStatus.ARCHIVED:
+        return "bg-gray-100 text-gray-700";
+      default:
+        return "bg-gray-100 text-gray-600";
+    }
+  };
+
+  const getSchedulingTypeBadge = (schedulingType: SchedulingType) => {
+    const badges = {
+      [SchedulingType.FLEXIBLE]: {
+        label: t("tasks:flexible"),
+        color: "bg-blue-100 text-blue-700",
+      },
+      [SchedulingType.FIXED_TIME]: {
+        label: t("tasks:fixed_time"),
+        color: "bg-purple-100 text-purple-700",
+      },
+      [SchedulingType.TIME_WINDOW]: {
+        label: t("tasks:time_window"),
+        color: "bg-cyan-100 text-cyan-700",
+      },
+      [SchedulingType.DEADLINE]: {
+        label: t("tasks:deadline"),
+        color: "bg-orange-100 text-orange-700",
+      },
+      [SchedulingType.POOL]: {
+        label: t("tasks:pool"),
+        color: "bg-green-100 text-green-700",
+      },
+    };
+    return badges[schedulingType];
+  };
+
+  const getObligationBadge = (obligationLevel: ObligationLevel) => {
+    const badges = {
+      [ObligationLevel.MUST_DO]: {
+        label: t("tasks:must_do"),
+        color: "bg-red-100 text-red-700",
+      },
+      [ObligationLevel.SHOULD_DO]: {
+        label: t("tasks:should_do"),
+        color: "bg-yellow-100 text-yellow-700",
+      },
+      [ObligationLevel.OPTIONAL]: {
+        label: t("tasks:optional"),
+        color: "bg-gray-100 text-gray-700",
+      },
+    };
+    return badges[obligationLevel];
+  };
+
+  const schedulingBadge = getSchedulingTypeBadge(task.scheduling_type);
+  const obligationBadge = getObligationBadge(task.obligation_level);
+
+  return (
+    <div
+      className={`rounded-lg p-4 shadow transition-shadow hover:shadow-md ${
+        isOverdue ? "border-2 border-red-300 bg-red-50" : "bg-white"
+      }`}
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          {/* Title and badges */}
+          <div className="mb-2 flex items-start gap-2">
+            <h3 className="flex-1 text-lg font-semibold text-gray-900">
+              {task.title}
+            </h3>
+            <div className="flex flex-shrink-0 flex-wrap gap-2">
+              <span
+                className={`rounded px-2 py-1 text-xs font-medium ${getStatusColor(task.status)}`}
+              >
+                {t(`tasks:${task.status}`)}
+              </span>
+              <span
+                className={`rounded px-2 py-1 text-xs font-medium ${schedulingBadge.color}`}
+              >
+                {schedulingBadge.label}
+              </span>
+              <span
+                className={`rounded px-2 py-1 text-xs font-medium ${obligationBadge.color}`}
+              >
+                {obligationBadge.label}
+              </span>
+              {task.is_recurring && (
+                <span className="rounded bg-indigo-100 px-2 py-1 text-xs font-medium text-indigo-700">
+                  <IconRepeat className="inline" size={12} /> {t("tasks:recurring")}
+                </span>
+              )}
+              {task.is_informational && (
+                <span className="rounded bg-blue-100 px-2 py-1 text-xs font-medium text-blue-700">
+                  <IconSchool className="inline" size={12} /> {t("tasks:informational")}
+                </span>
+              )}
+              {task.blocks_other_tasks && (
+                <span className="rounded bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">
+                  <IconLock className="inline" size={12} /> {t("tasks:blocks")}
+                </span>
+              )}
+              {isOverdue && (
+                <span className="rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-700">
+                  <IconAlertCircle className="inline" size={12} /> {t("tasks:overdue")}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Description */}
+          {task.description && (
+            <p className="mb-2 text-sm text-gray-600">{task.description}</p>
+          )}
+
+          {/* Meta info */}
+          <div className="flex flex-wrap gap-3 text-sm text-gray-600">
+            {task.scheduled_date && (
+              <div className="flex items-center gap-1">
+                <IconCalendar size={16} />
+                <span>
+                  {new Date(task.scheduled_date).toLocaleDateString()}
+                </span>
+              </div>
+            )}
+            {task.fixed_time_slot && (
+              <div className="flex items-center gap-1">
+                <IconClock size={16} />
+                <span>
+                  {task.fixed_time_slot.start} - {task.fixed_time_slot.end}
+                </span>
+              </div>
+            )}
+            {task.estimated_duration_minutes && (
+              <div className="flex items-center gap-1">
+                <IconClock size={16} />
+                <span>~{task.estimated_duration_minutes} {t("common:minutes")}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Action buttons - Only show for non-informational tasks */}
+        {!task.is_informational && (
+          <div className="flex flex-shrink-0 flex-col gap-2">
+            {task.status === TaskStatus.DRAFT && onStart && (
+              <button
+                onClick={() => onStart(task._id)}
+                className="min-h-[44px] min-w-[44px] rounded-md p-2 text-green-600 transition-colors hover:bg-green-50"
+                title={t("tasks:start")}
+              >
+                <IconPlayerPlay size={18} />
+              </button>
+            )}
+            {task.status === TaskStatus.IN_PROGRESS && (
+              <>
+                {onPause && (
+                  <button
+                    onClick={() => onPause(task._id)}
+                    className="min-h-[44px] min-w-[44px] rounded-md p-2 text-yellow-600 transition-colors hover:bg-yellow-50"
+                    title={t("tasks:pause")}
+                  >
+                    <IconPlayerPause size={18} />
+                  </button>
+                )}
+                {onComplete && (
+                  <button
+                    onClick={() => onComplete(task._id)}
+                    className="min-h-[44px] min-w-[44px] rounded-md p-2 text-blue-600 transition-colors hover:bg-blue-50"
+                    title={t("tasks:complete")}
+                  >
+                    <IconCheck size={18} />
+                  </button>
+                )}
+              </>
+            )}
+            {task.status === TaskStatus.PAUSED && onResume && (
+              <button
+                onClick={() => onResume(task._id)}
+                className="min-h-[44px] min-w-[44px] rounded-md p-2 text-green-600 transition-colors hover:bg-green-50"
+                title={t("tasks:resume")}
+              >
+                <IconPlayerPlay size={18} />
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Edit/Delete buttons */}
+        <div className="flex flex-shrink-0 gap-2">
+          <button
+            onClick={() => onEdit(task)}
+            className="min-h-[44px] min-w-[44px] rounded-md p-2 text-gray-600 transition-colors hover:bg-gray-50"
+            title={task.is_virtual ? t("tasks:edit_occurrence") : t("tasks:edit_task")}
+          >
+            <IconEdit size={18} />
+          </button>
+          {onDelete && (
+            <button
+              onClick={() => onDelete(task._id)}
+              className="min-h-[44px] min-w-[44px] rounded-md p-2 text-red-600 transition-colors hover:bg-red-50"
+              title={t("tasks:delete_task")}
+            >
+              <IconTrash size={18} />
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
