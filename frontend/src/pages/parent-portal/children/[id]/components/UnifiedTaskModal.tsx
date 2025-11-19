@@ -39,8 +39,19 @@ export function UnifiedTaskModal({
   const { t } = useTranslation(["common", "tasks"]);
   const { data: collections } = useTaskCollections(childId);
   const defaultCollection = collections?.find((c) => c.is_default);
+  const informationalCollection = collections?.find((c) => c.name === "Informational" || c.name === "信息类");
 
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [taskTemplate, setTaskTemplate] = useState<"standard" | "informational">(
+    task?.is_informational ? "informational" : "standard"
+  );
+
+  // Get current time and one hour later for defaults
+  const now = new Date();
+  const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
+  const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const oneHourLaterTime = `${String(oneHourLater.getHours()).padStart(2, '0')}:${String(oneHourLater.getMinutes()).padStart(2, '0')}`;
+  const todayDate = now.toISOString().split('T')[0];
 
   const [formData, setFormData] = useState({
     // Basic Info
@@ -51,11 +62,11 @@ export function UnifiedTaskModal({
 
     // Scheduling Type
     scheduling_type: task?.scheduling_type || SchedulingType.FLEXIBLE,
-    scheduled_date: task?.scheduled_date?.split("T")[0] || "",
+    scheduled_date: task?.scheduled_date?.split("T")[0] || todayDate,
 
     // Time attributes (different for each type)
-    fixed_start: task?.fixed_time_slot?.start || "",
-    fixed_end: task?.fixed_time_slot?.end || "",
+    fixed_start: task?.fixed_time_slot?.start || currentTime,
+    fixed_end: task?.fixed_time_slot?.end || oneHourLaterTime,
     preferred_start: task?.preferred_time_slot?.start || "",
     preferred_end: task?.preferred_time_slot?.end || "",
     window_start: task?.preferred_time_window?.start || "",
@@ -508,6 +519,65 @@ export function UnifiedTaskModal({
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-6 p-4 sm:p-6">
+            {/* Task Template Selector */}
+            {!task && (
+              <div className="space-y-3">
+                <label className="block text-sm font-medium text-gray-700">
+                  {t("tasks:task_template")}
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTaskTemplate("standard");
+                      setFormData({
+                        ...formData,
+                        is_informational: false,
+                        collection_id: defaultCollection?._id || formData.collection_id,
+                        scheduling_type: SchedulingType.FLEXIBLE,
+                        blocks_other_tasks: false,
+                        can_be_interrupted: true,
+                      });
+                    }}
+                    className={`rounded-lg border-2 p-4 text-left transition-all ${
+                      taskTemplate === "standard"
+                        ? "border-blue-600 bg-blue-50"
+                        : "border-gray-300 hover:border-gray-400"
+                    }`}
+                  >
+                    <div className="font-medium">{t("tasks:template_standard")}</div>
+                    <div className="mt-1 text-xs text-gray-600">
+                      {t("tasks:template_standard_hint")}
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTaskTemplate("informational");
+                      setFormData({
+                        ...formData,
+                        is_informational: true,
+                        collection_id: informationalCollection?._id || defaultCollection?._id || formData.collection_id,
+                        scheduling_type: SchedulingType.FIXED_TIME,
+                        blocks_other_tasks: true,
+                        can_be_interrupted: false,
+                      });
+                    }}
+                    className={`rounded-lg border-2 p-4 text-left transition-all ${
+                      taskTemplate === "informational"
+                        ? "border-blue-600 bg-blue-50"
+                        : "border-gray-300 hover:border-gray-400"
+                    }`}
+                  >
+                    <div className="font-medium">{t("tasks:template_informational")}</div>
+                    <div className="mt-1 text-xs text-gray-600">
+                      {t("tasks:template_informational_hint")}
+                    </div>
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Basic Info Section */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-900">
@@ -816,34 +886,6 @@ export function UnifiedTaskModal({
 
                   {/* Blocking & Interruption */}
                   <div className="space-y-3 rounded-lg bg-gray-50 p-4">
-                    {/* Informational Task Checkbox */}
-                    <div className="rounded-md border border-blue-200 bg-blue-50 p-3">
-                      <label className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={formData.is_informational}
-                          onChange={(e) => {
-                            const isChecked = e.target.checked;
-                            setFormData({
-                              ...formData,
-                              is_informational: isChecked,
-                              // Auto-check related fields when informational is true
-                              blocks_other_tasks: isChecked ? true : formData.blocks_other_tasks,
-                              can_be_interrupted: isChecked ? false : formData.can_be_interrupted,
-                              scheduling_type: isChecked ? SchedulingType.FIXED_TIME : formData.scheduling_type,
-                            });
-                          }}
-                          className="h-4 w-4"
-                        />
-                        <span className="font-medium text-blue-900">
-                          {t("tasks:is_informational")}
-                        </span>
-                      </label>
-                      <p className="ml-6 mt-1 text-xs text-blue-700">
-                        {t("tasks:is_informational_hint")}
-                      </p>
-                    </div>
-
                     <label className="flex items-center gap-2">
                       <input
                         type="checkbox"
