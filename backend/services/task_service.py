@@ -382,27 +382,49 @@ class TaskService:
         recurring_templates = []
 
         async for doc in recurring_cursor:
-            recurring_templates.append(Task(**doc))
+            template = Task(**doc)
+            recurring_templates.append(template)
 
         # Expand recurring templates into virtual instances
         for template in recurring_templates:
-            virtual_instances = VirtualInstanceService.expand_recurring_task(
+            virtual_instances = await VirtualInstanceService.expand_recurring_task(
                 template,
                 start_date,
                 end_date,
                 self.school_calendar_service
             )
 
-            # Convert virtual instance dicts to Task objects
+            # Add virtual instances directly as dicts (don't convert to Task objects)
+            # They have string IDs which don't validate as ObjectId
             for instance_data in virtual_instances:
                 # Apply status filter if specified
                 if status and instance_data.get("status") != status.value:
                     continue
 
-                tasks.append(Task(**instance_data))
+                tasks.append(instance_data)
+
+        # Add recurring templates to the list so they can be edited
+        # Convert templates to dicts and mark with is_virtual=False
+        for template in recurring_templates:
+            template_data = template.model_dump(mode='json')
+            template_data["is_virtual"] = False
+            tasks.append(template_data)
 
         # Sort by scheduled_date
-        tasks.sort(key=lambda t: t.scheduled_date if t.scheduled_date else datetime.max)
+        # All items are now dicts (both templates and virtual instances)
+        def get_scheduled_date(t):
+            date_val = t.get("scheduled_date")
+            if not date_val:
+                return datetime.max
+            # Handle both datetime objects and ISO strings
+            if isinstance(date_val, str):
+                try:
+                    return datetime.fromisoformat(date_val.replace('Z', '+00:00'))
+                except (ValueError, AttributeError):
+                    return datetime.max
+            return date_val
+
+        tasks.sort(key=get_scheduled_date)
 
         return tasks
 

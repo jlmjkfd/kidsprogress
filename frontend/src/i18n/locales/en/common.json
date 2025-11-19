@@ -128,6 +128,8 @@
   "completed": "Completed",
   "minutes": "min",
   "time": "Time",
+  "start_time": "Start Time",
+  "end_time": "End Time",
   "weekday_monday_short": "Mon",
   "weekday_tuesday_short": "Tue",
   "weekday_wednesday_short": "Wed",

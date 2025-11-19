@@ -1,17 +1,7 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { RemoveScroll } from "react-remove-scroll";
-import {
-  IconX,
-  IconCalendar,
-  IconClock,
-  IconRepeat,
-  IconLock,
-  IconTargetArrow,
-  IconPool,
-  IconChevronDown,
-  IconChevronUp,
-} from "@tabler/icons-react";
+import { IconX } from "@tabler/icons-react";
 import {
   Task,
   TaskCreate,
@@ -21,7 +11,12 @@ import {
   DeadlineType,
 } from "@/types/task";
 import { useTaskCollections } from "@/api/queries/useTaskCollections";
-import { RecurrencePicker } from "@/components/RecurrencePicker";
+import { TaskTemplateSelector } from "./UnifiedTaskModal/TaskTemplateSelector";
+import { BasicInfoSection } from "./UnifiedTaskModal/BasicInfoSection";
+import { SchedulingSection } from "./UnifiedTaskModal/SchedulingSection";
+import { ObligationPrioritySection } from "./UnifiedTaskModal/ObligationPrioritySection";
+import { AdvancedOptionsSection } from "./UnifiedTaskModal/AdvancedOptionsSection";
+import { TaskFormActions } from "./UnifiedTaskModal/TaskFormActions";
 
 interface UnifiedTaskModalProps {
   childId: string;
@@ -227,282 +222,11 @@ export function UnifiedTaskModal({
     }
   };
 
-  const renderTimeFields = () => {
-    switch (formData.scheduling_type) {
-      case SchedulingType.FIXED_TIME:
-        return (
-          <div className="grid grid-cols-1 gap-4 rounded-lg bg-blue-50 p-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">
-                <IconClock className="mr-1 inline" size={16} />
-                {t("tasks:unified_model.start_time")}{" "}
-                <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="time"
-                value={formData.fixed_start}
-                onChange={(e) =>
-                  setFormData({ ...formData, fixed_start: e.target.value })
-                }
-                className="w-full rounded-lg border border-gray-300 px-3 py-2"
-                required
-              />
-            </div>
-            <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">
-                {t("tasks:unified_model.end_time")}{" "}
-                <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="time"
-                value={formData.fixed_end}
-                onChange={(e) =>
-                  setFormData({ ...formData, fixed_end: e.target.value })
-                }
-                className="w-full rounded-lg border border-gray-300 px-3 py-2"
-                required
-              />
-            </div>
-          </div>
-        );
-
-      case SchedulingType.TIME_WINDOW:
-        return (
-          <div className="space-y-4 rounded-lg bg-purple-50 p-4">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">
-                  {t("tasks:unified_model.window_start")}{" "}
-                  <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="time"
-                  value={formData.window_start}
-                  onChange={(e) =>
-                    setFormData({ ...formData, window_start: e.target.value })
-                  }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2"
-                  required
-                />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">
-                  {t("tasks:unified_model.window_end")}{" "}
-                  <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="time"
-                  value={formData.window_end}
-                  onChange={(e) =>
-                    setFormData({ ...formData, window_end: e.target.value })
-                  }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2"
-                  required
-                />
-              </div>
-            </div>
-            <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">
-                {t("tasks:unified_model.window_priority")} (
-                {formData.window_priority})
-              </label>
-              <input
-                type="range"
-                min="0"
-                max="10"
-                value={formData.window_priority}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    window_priority: parseInt(e.target.value),
-                  })
-                }
-                className="w-full"
-              />
-              <div className="mt-1 flex justify-between text-xs text-gray-500">
-                <span>{t("common:flexible")}</span>
-                <span>{t("common:important")}</span>
-              </div>
-            </div>
-          </div>
-        );
-
-      case SchedulingType.DEADLINE:
-        return (
-          <div className="space-y-4 rounded-lg bg-red-50 p-4">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">
-                  {t("tasks:unified_model.deadline_date")}{" "}
-                  <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  value={formData.deadline}
-                  onChange={(e) =>
-                    setFormData({ ...formData, deadline: e.target.value })
-                  }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2"
-                  required
-                />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">
-                  {t("tasks:unified_model.deadline_time")}
-                </label>
-                <input
-                  type="time"
-                  value={formData.deadline_time}
-                  onChange={(e) =>
-                    setFormData({ ...formData, deadline_time: e.target.value })
-                  }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">
-                {t("tasks:unified_model.deadline_type")}
-              </label>
-              <select
-                value={formData.deadline_type}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    deadline_type: e.target.value as DeadlineType,
-                  })
-                }
-                className="w-full rounded-lg border border-gray-300 px-3 py-2"
-              >
-                <option value={DeadlineType.SOFT}>
-                  {t("tasks:unified_model.deadline_soft")}
-                </option>
-                <option value={DeadlineType.HARD}>
-                  {t("tasks:unified_model.deadline_hard")}
-                </option>
-              </select>
-            </div>
-          </div>
-        );
-
-      case SchedulingType.FLEXIBLE:
-        return (
-          <div className="rounded-lg bg-green-50 p-4">
-            <p className="mb-4 text-sm text-gray-600">
-              {t("tasks:unified_model.flexible_hint")}
-            </p>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">
-                  {t("tasks:unified_model.preferred_start")}
-                </label>
-                <input
-                  type="time"
-                  value={formData.preferred_start}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      preferred_start: e.target.value,
-                    })
-                  }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2"
-                />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">
-                  {t("tasks:unified_model.preferred_end")}
-                </label>
-                <input
-                  type="time"
-                  value={formData.preferred_end}
-                  onChange={(e) =>
-                    setFormData({ ...formData, preferred_end: e.target.value })
-                  }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2"
-                />
-              </div>
-            </div>
-          </div>
-        );
-
-      case SchedulingType.POOL:
-        return (
-          <div className="space-y-4 rounded-lg bg-yellow-50 p-4">
-            <p className="text-sm text-gray-600">{t("tasks:pool_hint")}</p>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">
-                  {t("tasks:unified_model.pool_max_times")}
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  value={formData.pool_max_times || ""}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      pool_max_times: e.target.value
-                        ? parseInt(e.target.value)
-                        : null,
-                    })
-                  }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2"
-                  placeholder="No limit"
-                />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">
-                  {t("tasks:unified_model.pool_max_duration")}
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  value={formData.pool_max_duration || ""}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      pool_max_duration: e.target.value
-                        ? parseInt(e.target.value)
-                        : null,
-                    })
-                  }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2"
-                  placeholder="Minutes"
-                />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">
-                  {t("tasks:unified_model.pool_cooldown")}
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={formData.pool_cooldown || ""}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      pool_cooldown: e.target.value
-                        ? parseInt(e.target.value)
-                        : null,
-                    })
-                  }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2"
-                  placeholder="Minutes"
-                />
-              </div>
-            </div>
-          </div>
-        );
-
-      default:
-        return null;
-    }
-  };
 
   return (
     <RemoveScroll>
-      <div className="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black p-4">
-        <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-lg bg-white shadow-xl">
+      <div className="bg-opacity-50 fixed inset-0 z-50 flex items-start justify-center bg-black p-4 pt-8 overflow-y-auto">
+        <div className="w-full max-w-3xl my-8 rounded-lg bg-white shadow-xl max-h-[90vh] flex flex-col">
           {/* Header */}
           <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-white p-4 sm:p-6">
             <h2 className="text-lg font-bold text-gray-900 sm:text-xl">
@@ -518,481 +242,103 @@ export function UnifiedTaskModal({
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-6 p-4 sm:p-6">
+          <form onSubmit={handleSubmit} className="space-y-6 p-4 sm:p-6 overflow-y-auto flex-1">
             {/* Task Template Selector */}
             {!task && (
-              <div className="space-y-3">
-                <label className="block text-sm font-medium text-gray-700">
-                  {t("tasks:task_template")}
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setTaskTemplate("standard");
-                      setFormData({
-                        ...formData,
-                        is_informational: false,
-                        collection_id: defaultCollection?._id || formData.collection_id,
-                        scheduling_type: SchedulingType.FLEXIBLE,
-                        blocks_other_tasks: false,
-                        can_be_interrupted: true,
-                      });
-                    }}
-                    className={`rounded-lg border-2 p-4 text-left transition-all ${
-                      taskTemplate === "standard"
-                        ? "border-blue-600 bg-blue-50"
-                        : "border-gray-300 hover:border-gray-400"
-                    }`}
-                  >
-                    <div className="font-medium">{t("tasks:template_standard")}</div>
-                    <div className="mt-1 text-xs text-gray-600">
-                      {t("tasks:template_standard_hint")}
-                    </div>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setTaskTemplate("informational");
-                      setFormData({
-                        ...formData,
-                        is_informational: true,
-                        collection_id: informationalCollection?._id || defaultCollection?._id || formData.collection_id,
-                        scheduling_type: SchedulingType.FIXED_TIME,
-                        blocks_other_tasks: true,
-                        can_be_interrupted: false,
-                      });
-                    }}
-                    className={`rounded-lg border-2 p-4 text-left transition-all ${
-                      taskTemplate === "informational"
-                        ? "border-blue-600 bg-blue-50"
-                        : "border-gray-300 hover:border-gray-400"
-                    }`}
-                  >
-                    <div className="font-medium">{t("tasks:template_informational")}</div>
-                    <div className="mt-1 text-xs text-gray-600">
-                      {t("tasks:template_informational_hint")}
-                    </div>
-                  </button>
-                </div>
-              </div>
+              <TaskTemplateSelector
+                taskTemplate={taskTemplate}
+                defaultCollection={defaultCollection}
+                informationalCollection={informationalCollection}
+                currentCollectionId={formData.collection_id}
+                onTemplateChange={(template, updates) => {
+                  setTaskTemplate(template);
+                  setFormData({ ...formData, ...updates });
+                }}
+              />
             )}
 
             {/* Basic Info Section */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900">
-                {t("tasks:unified_model.basic_info")}
-              </h3>
-
-              {/* Title */}
-              <div>
-                <label
-                  htmlFor="title"
-                  className="mb-2 block text-sm font-medium text-gray-700"
-                >
-                  {t("tasks:task_title")}{" "}
-                  <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  id="title"
-                  value={formData.title}
-                  onChange={(e) =>
-                    setFormData({ ...formData, title: e.target.value })
-                  }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2"
-                  required
-                  maxLength={200}
-                />
-              </div>
-
-              {/* Description */}
-              <div>
-                <label
-                  htmlFor="description"
-                  className="mb-2 block text-sm font-medium text-gray-700"
-                >
-                  {t("tasks:description")}
-                </label>
-                <textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
-                  }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2"
-                  rows={3}
-                />
-              </div>
-
-              {/* Collection (only for new tasks) */}
-              {!task && collections && collections.length > 0 && (
-                <div>
-                  <label
-                    htmlFor="collection"
-                    className="mb-2 block text-sm font-medium text-gray-700"
-                  >
-                    {t("common:collection")}{" "}
-                    <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    id="collection"
-                    value={formData.collection_id}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        collection_id: e.target.value,
-                      })
-                    }
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2"
-                    required
-                  >
-                    <option value="">{t("common:select")}</option>
-                    {collections.map((col) => (
-                      <option key={col._id} value={col._id}>
-                        {col.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            </div>
+            <BasicInfoSection
+              title={formData.title}
+              description={formData.description}
+              collectionId={formData.collection_id}
+              isEditMode={!!task}
+              collections={collections}
+              onTitleChange={(value) => setFormData({ ...formData, title: value })}
+              onDescriptionChange={(value) => setFormData({ ...formData, description: value })}
+              onCollectionChange={(value) => setFormData({ ...formData, collection_id: value })}
+            />
 
             {/* Scheduling Section */}
-            <div className="space-y-4 border-t pt-6">
-              <h3 className="text-lg font-semibold text-gray-900">
-                <IconCalendar className="mr-2 inline" size={20} />
-                {t("tasks:unified_model.scheduling")}
-              </h3>
-
-              {/* Scheduling Type */}
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">
-                  {t("tasks:unified_model.scheduling_type")}{" "}
-                  <span className="text-red-500">*</span>
-                </label>
-                {formData.is_informational && (
-                  <p className="mb-2 text-xs text-blue-600">
-                    {t("tasks:informational_requires_fixed_time")}
-                  </p>
-                )}
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-                  {[
-                    {
-                      value: SchedulingType.FLEXIBLE,
-                      icon: IconTargetArrow,
-                      label: t("tasks:unified_model.flexible"),
-                    },
-                    {
-                      value: SchedulingType.FIXED_TIME,
-                      icon: IconLock,
-                      label: t("tasks:unified_model.fixed"),
-                    },
-                    {
-                      value: SchedulingType.TIME_WINDOW,
-                      icon: IconClock,
-                      label: t("tasks:unified_model.window"),
-                    },
-                    {
-                      value: SchedulingType.DEADLINE,
-                      icon: IconTargetArrow,
-                      label: t("tasks:unified_model.deadline"),
-                    },
-                    {
-                      value: SchedulingType.POOL,
-                      icon: IconPool,
-                      label: t("tasks:unified_model.pool"),
-                    },
-                  ].map(({ value, icon: Icon, label }) => {
-                    const isDisabled = formData.is_informational && value !== SchedulingType.FIXED_TIME;
-                    return (
-                      <button
-                        key={value}
-                        type="button"
-                        onClick={() =>
-                          !isDisabled && setFormData({ ...formData, scheduling_type: value })
-                        }
-                        disabled={isDisabled}
-                        className={`rounded-lg border-2 px-3 py-2 transition-all ${
-                          formData.scheduling_type === value
-                            ? "border-blue-600 bg-blue-50 text-blue-700"
-                            : isDisabled
-                            ? "cursor-not-allowed border-gray-200 bg-gray-50 text-gray-400 opacity-50"
-                            : "border-gray-300 hover:border-gray-400"
-                        }`}
-                      >
-                        <Icon size={20} className="mx-auto mb-1" />
-                        <div className="text-xs">{label}</div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Scheduled Date */}
-              <div>
-                <label
-                  htmlFor="scheduled_date"
-                  className="mb-2 block text-sm font-medium text-gray-700"
-                >
-                  {t("tasks:scheduled_date")}
-                </label>
-                <input
-                  type="date"
-                  id="scheduled_date"
-                  value={formData.scheduled_date}
-                  onChange={(e) =>
-                    setFormData({ ...formData, scheduled_date: e.target.value })
-                  }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2"
-                />
-              </div>
-
-              {/* Time Fields (dynamic based on scheduling type) */}
-              {renderTimeFields()}
-
-              {/* Estimated Duration */}
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">
-                  {t("tasks:unified_model.estimated_duration")}
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  value={formData.estimated_duration || ""}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      estimated_duration: e.target.value
-                        ? parseInt(e.target.value)
-                        : null,
-                    })
-                  }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2"
-                  placeholder={t("tasks:unified_model.minutes")}
-                />
-              </div>
-            </div>
+            <SchedulingSection
+              schedulingType={formData.scheduling_type}
+              scheduledDate={formData.scheduled_date}
+              estimatedDuration={formData.estimated_duration}
+              isInformational={formData.is_informational}
+              timeFieldsData={{
+                fixed_start: formData.fixed_start,
+                fixed_end: formData.fixed_end,
+                window_start: formData.window_start,
+                window_end: formData.window_end,
+                window_priority: formData.window_priority,
+                deadline: formData.deadline,
+                deadline_time: formData.deadline_time,
+                deadline_type: formData.deadline_type,
+                preferred_start: formData.preferred_start,
+                preferred_end: formData.preferred_end,
+                pool_max_times: formData.pool_max_times,
+                pool_max_duration: formData.pool_max_duration,
+                pool_cooldown: formData.pool_cooldown,
+              }}
+              onSchedulingTypeChange={(type) => setFormData({ ...formData, scheduling_type: type })}
+              onScheduledDateChange={(date) => setFormData({ ...formData, scheduled_date: date })}
+              onTimeFieldsChange={(updates) => setFormData({ ...formData, ...updates })}
+              onEstimatedDurationChange={(duration) => setFormData({ ...formData, estimated_duration: duration })}
+            />
 
             {/* Obligation & Priority Section */}
-            <div className="space-y-4 border-t pt-6">
-              <h3 className="text-lg font-semibold text-gray-900">
-                {t("tasks:unified_model.importance")}
-              </h3>
-
-              {/* Obligation Level */}
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">
-                  {t("tasks:unified_model.obligation_level")}
-                </label>
-                <select
-                  value={formData.obligation_level}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      obligation_level: e.target.value as ObligationLevel,
-                    })
-                  }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2"
-                >
-                  <option value={ObligationLevel.MUST_DO}>
-                    {t("tasks:unified_model.must_do")}
-                  </option>
-                  <option value={ObligationLevel.SHOULD_DO}>
-                    {t("tasks:unified_model.should_do")}
-                  </option>
-                  <option value={ObligationLevel.OPTIONAL}>
-                    {t("tasks:unified_model.optional")}
-                  </option>
-                </select>
-              </div>
-
-              {/* Priority Boost */}
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">
-                  {t("tasks:unified_model.priority_boost")} (
-                  {formData.priority_boost > 0 ? "+" : ""}
-                  {formData.priority_boost})
-                </label>
-                <input
-                  type="range"
-                  min="-5"
-                  max="5"
-                  value={formData.priority_boost}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      priority_boost: parseInt(e.target.value),
-                    })
-                  }
-                  className="w-full"
-                />
-                <div className="mt-1 flex justify-between text-xs text-gray-500">
-                  <span>{t("common:low")}</span>
-                  <span>{t("common:normal")}</span>
-                  <span>{t("common:high")}</span>
-                </div>
-              </div>
-            </div>
+            <ObligationPrioritySection
+              obligationLevel={formData.obligation_level}
+              priorityBoost={formData.priority_boost}
+              isInformational={formData.is_informational}
+              onObligationLevelChange={(level) => setFormData({ ...formData, obligation_level: level })}
+              onPriorityBoostChange={(boost) => setFormData({ ...formData, priority_boost: boost })}
+            />
 
             {/* Advanced Options */}
-            <div className="border-t pt-6">
-              <button
-                type="button"
-                onClick={() => setShowAdvanced(!showAdvanced)}
-                className="flex items-center gap-2 font-medium text-blue-600 hover:text-blue-700"
-              >
-                {showAdvanced ? (
-                  <IconChevronUp size={20} />
-                ) : (
-                  <IconChevronDown size={20} />
-                )}
-                {t("tasks:unified_model.advanced_options")}
-              </button>
-
-              {showAdvanced && (
-                <div className="mt-4 space-y-4">
-                  {/* Recurrence */}
-                  <div className="space-y-3 rounded-lg bg-gray-50 p-4">
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={formData.is_recurring}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            is_recurring: e.target.checked,
-                          })
-                        }
-                        className="h-4 w-4"
-                      />
-                      <IconRepeat size={18} />
-                      <span className="font-medium">
-                        {t("tasks:unified_model.recurring")}
-                      </span>
-                    </label>
-                    {formData.is_recurring && (
-                      <RecurrencePicker
-                        value={formData.recurrence_pattern}
-                        onChange={(rrule) =>
-                          setFormData({
-                            ...formData,
-                            recurrence_pattern: rrule,
-                          })
-                        }
-                      />
-                    )}
-                  </div>
-
-                  {/* Blocking & Interruption */}
-                  <div className="space-y-3 rounded-lg bg-gray-50 p-4">
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={formData.blocks_other_tasks}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            blocks_other_tasks: e.target.checked,
-                          })
-                        }
-                        disabled={formData.is_informational}
-                        className="h-4 w-4 disabled:opacity-50"
-                      />
-                      <IconLock size={18} className={formData.is_informational ? "text-gray-400" : ""} />
-                      <span className={`font-medium ${formData.is_informational ? "text-gray-400" : ""}`}>
-                        {t("tasks:unified_model.blocks_other_tasks")}
-                      </span>
-                    </label>
-
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={formData.can_be_interrupted}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            can_be_interrupted: e.target.checked,
-                          })
-                        }
-                        disabled={formData.is_informational}
-                        className="h-4 w-4 disabled:opacity-50"
-                      />
-                      <span className={`font-medium ${formData.is_informational ? "text-gray-400" : ""}`}>
-                        {t("tasks:unified_model.can_be_interrupted")}
-                      </span>
-                    </label>
-
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={formData.can_be_split}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            can_be_split: e.target.checked,
-                          })
-                        }
-                        className="h-4 w-4"
-                      />
-                      <span className="font-medium">
-                        {t("tasks:unified_model.can_be_split")}
-                      </span>
-                    </label>
-
-                    {formData.can_be_split && (
-                      <div>
-                        <label className="mb-2 block text-sm text-gray-600">
-                          {t("tasks:unified_model.min_session_duration")}
-                        </label>
-                        <input
-                          type="number"
-                          min="1"
-                          value={formData.min_session_duration || ""}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              min_session_duration: e.target.value
-                                ? parseInt(e.target.value)
-                                : null,
-                            })
-                          }
-                          placeholder={t("tasks:unified_model.minutes")}
-                          className="w-full rounded-lg border border-gray-300 px-3 py-2"
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
+            <AdvancedOptionsSection
+              showAdvanced={showAdvanced}
+              isRecurring={formData.is_recurring}
+              recurrencePattern={formData.recurrence_pattern}
+              blocksOtherTasks={formData.blocks_other_tasks}
+              canBeInterrupted={formData.can_be_interrupted}
+              canBeSplit={formData.can_be_split}
+              minSessionDuration={formData.min_session_duration}
+              isInformational={formData.is_informational}
+              onToggleAdvanced={() => setShowAdvanced(!showAdvanced)}
+              onIsRecurringChange={(value) => setFormData({ ...formData, is_recurring: value })}
+              onRecurrencePatternChange={(pattern) => setFormData({ ...formData, recurrence_pattern: pattern })}
+              onBlocksOtherTasksChange={(value) => setFormData({ ...formData, blocks_other_tasks: value })}
+              onCanBeInterruptedChange={(value) => setFormData({ ...formData, can_be_interrupted: value })}
+              onCanBeSplitChange={(value) => setFormData({ ...formData, can_be_split: value })}
+              onMinSessionDurationChange={(duration) => setFormData({ ...formData, min_session_duration: duration })}
+            />
 
             {/* Actions */}
-            <div className="flex flex-col gap-3 border-t pt-4 sm:flex-row">
-              <button
-                type="button"
-                onClick={onClose}
-                className="min-h-[44px] flex-1 rounded-lg border border-gray-300 px-4 py-2 text-gray-700 transition-colors hover:bg-gray-50"
-                disabled={isSubmitting}
-              >
-                {t("common:cancel")}
-              </button>
-              <button
-                type="submit"
-                className="min-h-[44px] flex-1 rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400"
-                disabled={
-                  isSubmitting ||
-                  !formData.title.trim() ||
-                  (!task && !formData.collection_id)
-                }
-              >
-                {isSubmitting
-                  ? t("common:saving")
-                  : task
-                    ? t("common:save")
-                    : t("common:create")}
-              </button>
-            </div>
+            <TaskFormActions
+              isSubmitting={isSubmitting}
+              isEditMode={!!task}
+              isRecurringTemplate={
+                !!task &&
+                task.is_recurring &&
+                !task.is_virtual
+              }
+              canSubmit={
+                formData.title.trim() !== "" &&
+                (!!task || !!formData.collection_id)
+              }
+              onCancel={onClose}
+            />
           </form>
         </div>
       </div>

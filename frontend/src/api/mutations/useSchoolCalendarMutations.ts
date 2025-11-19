@@ -27,6 +27,7 @@ export function useCreateTerm() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["terms", variables.child_id] });
       queryClient.invalidateQueries({ queryKey: ["dayTypes", variables.child_id] });
+      queryClient.invalidateQueries({ queryKey: ["tasks", variables.child_id] });
     },
   });
 }
@@ -43,6 +44,7 @@ export function useUpdateTerm() {
       queryClient.invalidateQueries({ queryKey: ["terms", data.child_id] });
       queryClient.invalidateQueries({ queryKey: ["term", data._id] });
       queryClient.invalidateQueries({ queryKey: ["dayTypes", data.child_id] });
+      queryClient.invalidateQueries({ queryKey: ["tasks", data.child_id] });
     },
   });
 }
@@ -51,12 +53,13 @@ export function useDeleteTerm() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ termId, childId }: { termId: string; childId: string }): Promise<void> => {
+    mutationFn: async ({ termId }: { termId: string; childId: string }): Promise<void> => {
       await apiClient.delete(`${API_BASE}/terms/${termId}`);
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["terms", variables.childId] });
       queryClient.invalidateQueries({ queryKey: ["dayTypes", variables.childId] });
+      queryClient.invalidateQueries({ queryKey: ["tasks", variables.childId] });
     },
   });
 }
@@ -73,6 +76,7 @@ export function useCreateSpecialDay() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["specialDays", variables.child_id] });
       queryClient.invalidateQueries({ queryKey: ["dayTypes", variables.child_id] });
+      queryClient.invalidateQueries({ queryKey: ["tasks", variables.child_id] });
     },
   });
 }
@@ -95,6 +99,7 @@ export function useUpdateSpecialDay() {
       queryClient.invalidateQueries({ queryKey: ["specialDays", data.child_id] });
       queryClient.invalidateQueries({ queryKey: ["specialDay", data._id] });
       queryClient.invalidateQueries({ queryKey: ["dayTypes", data.child_id] });
+      queryClient.invalidateQueries({ queryKey: ["tasks", data.child_id] });
     },
   });
 }
@@ -103,12 +108,13 @@ export function useDeleteSpecialDay() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ dayId, childId }: { dayId: string; childId: string }): Promise<void> => {
+    mutationFn: async ({ dayId }: { dayId: string; childId: string }): Promise<void> => {
       await apiClient.delete(`${API_BASE}/special-days/${dayId}`);
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["specialDays", variables.childId] });
       queryClient.invalidateQueries({ queryKey: ["dayTypes", variables.childId] });
+      queryClient.invalidateQueries({ queryKey: ["tasks", variables.childId] });
     },
   });
 }

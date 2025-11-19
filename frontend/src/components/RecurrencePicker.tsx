@@ -2,7 +2,7 @@
  * RecurrencePicker - User-friendly recurrence pattern builder
  * Generates RRULE strings from user selections
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { IconRepeat, IconCalendar, IconX } from "@tabler/icons-react";
 
@@ -26,6 +26,8 @@ const WEEKDAYS = [
 
 export function RecurrencePicker({ value, onChange }: RecurrencePickerProps) {
   const { t } = useTranslation(["tasks", "common"]);
+  const lastEmittedValue = useRef<string>("");
+  const isParsingRef = useRef(false);
 
   const [frequency, setFrequency] = useState<Frequency>("WEEKLY");
   const [interval, setInterval] = useState(1);
@@ -34,10 +36,13 @@ export function RecurrencePicker({ value, onChange }: RecurrencePickerProps) {
   const [endDate, setEndDate] = useState("");
   const [endCount, setEndCount] = useState(10);
 
-  // Parse existing RRULE on mount
+  // Parse existing RRULE when value prop changes
   useEffect(() => {
-    if (value && value.startsWith("FREQ=")) {
+    if (value && value.startsWith("FREQ=") && value !== lastEmittedValue.current) {
+      isParsingRef.current = true;
       parseRRule(value);
+      lastEmittedValue.current = value;
+      isParsingRef.current = false;
     }
   }, [value]);
 
@@ -107,8 +112,15 @@ export function RecurrencePicker({ value, onChange }: RecurrencePickerProps) {
   };
 
   useEffect(() => {
+    // Don't trigger onChange while we're parsing incoming value
+    if (isParsingRef.current) return;
+
     const rrule = generateRRule();
-    onChange(rrule);
+    // Only call onChange if the RRULE actually changed
+    if (rrule !== lastEmittedValue.current) {
+      lastEmittedValue.current = rrule;
+      onChange(rrule);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [frequency, interval, selectedDays, endType, endDate, endCount]);
 

@@ -16,7 +16,7 @@ class VirtualInstanceService:
     """Service for expanding recurring tasks into virtual instances."""
 
     @staticmethod
-    def expand_recurring_task(
+    async def expand_recurring_task(
         template: Task,
         start_date: date,
         end_date: date,
@@ -36,10 +36,16 @@ class VirtualInstanceService:
         if not template.is_recurring or not template.recurrence_pattern:
             return []
 
+        # Use template's scheduled_date as the recurrence start date
+        recurrence_start = template.scheduled_date.date() if template.scheduled_date else start_date
+
+        # Only generate instances from recurrence_start onwards
+        effective_start = max(recurrence_start, start_date)
+
         # Get occurrence dates from RRULE
-        occurrence_dates = VirtualInstanceService._expand_rrule(
+        occurrence_dates = await VirtualInstanceService._expand_rrule(
             template.recurrence_pattern,
-            start_date,
+            effective_start,
             end_date,
             template.scheduled_date,
             school_calendar_service,
@@ -67,7 +73,7 @@ class VirtualInstanceService:
         return instances
 
     @staticmethod
-    def _expand_rrule(
+    async def _expand_rrule(
         rrule_str: str,
         start_date: date,
         end_date: date,
@@ -92,7 +98,7 @@ class VirtualInstanceService:
         if rrule_str.startswith("FREQ=SCHOOL_DAYS") or rrule_str.startswith("FREQ=HOLIDAYS"):
             if school_calendar_service and child_id:
                 # Use school calendar service for school day expansion
-                dates_str = school_calendar_service.expand_school_day_rrule(
+                dates_str = await school_calendar_service.expand_school_day_rrule(
                     child_id, rrule_str, start_date.isoformat()
                 )
                 return [date.fromisoformat(d) for d in dates_str]
@@ -161,9 +167,12 @@ class VirtualInstanceService:
             Virtual task instance as dict
         """
         # Start with template data
-        instance_data = template.model_dump(exclude={"id"})
+        # Use mode='json' to serialize enums to their string values
+        instance_data = template.model_dump(exclude={"id"}, mode='json')
 
-        # Generate virtual ID (template_id + date)
+        # Generate virtual ID (template_id + date) - keep as string for virtual instances
+        # Remove the _id from template data first since it's an ObjectId
+        instance_data.pop("_id", None)
         instance_data["_id"] = f"{template.id}_{occurrence_date.isoformat()}"
 
         # Mark as non-recurring instance
@@ -171,6 +180,10 @@ class VirtualInstanceService:
         instance_data["recurrence_pattern"] = None
         instance_data["source_recurring_task_id"] = str(template.id)
         instance_data["exceptions"] = []  # Instances don't have exceptions
+
+        # Ensure task_source is valid (one_time for manually created recurring tasks)
+        if instance_data.get("task_source") not in ["one_time", "routine", "activity"]:
+            instance_data["task_source"] = "one_time"
 
         # Set scheduled date for this occurrence
         instance_data["scheduled_date"] = datetime.combine(

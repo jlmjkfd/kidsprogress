@@ -365,7 +365,7 @@ class SchoolCalendarService:
         # Filter dates based on frequency
         matching_dates = []
         for dt in day_types:
-            if freq == "SCHOOL_DAYS" and dt.day_type == "school_day":
+            if freq == "SCHOOL_DAYS" and dt.day_type in ["school_day", "special_school_day"]:
                 matching_dates.append(dt.date)
             elif freq == "HOLIDAYS" and dt.day_type in ["holiday", "weekend"]:
                 matching_dates.append(dt.date)

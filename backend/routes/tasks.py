@@ -49,17 +49,22 @@ async def get_tasks_by_collection(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.get("/child/{child_id}", response_model=List[Task])
+@router.get("/child/{child_id}")
 async def get_tasks_by_child(
     child_id: str,
     status: Optional[TaskStatus] = Query(None, description="Filter by task status"),
     current_user: User = Depends(get_current_user),
     service: TaskService = Depends(get_task_service),
 ):
-    """Get all tasks for a child."""
+    """Get all tasks for a child (includes virtual instances as dicts)."""
     try:
         return await service.get_tasks_by_child(child_id, str(current_user.id), status)
     except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        print(f"ERROR in get_tasks_by_child: {type(e).__name__}: {e}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=400, detail=str(e))
 
 
