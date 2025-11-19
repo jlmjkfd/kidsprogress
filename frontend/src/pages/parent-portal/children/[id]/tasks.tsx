@@ -29,6 +29,7 @@ import { TaskListView } from "./components/TaskListView";
 import { CalendarView } from "./components/CalendarView";
 import { SchoolCalendarModal } from "@/components/SchoolCalendarModal";
 import { EditOccurrenceModal } from "@/components/EditOccurrenceModal";
+import { DeleteOccurrenceModal } from "@/components/DeleteOccurrenceModal";
 import { EditRecurringTemplateDialog } from "@/components/EditRecurringTemplateDialog";
 import { useScheduleConflicts } from "@/api/queries/useAISchedule";
 import { useReplanSchedule } from "@/api/mutations/useAIScheduleMutations";
@@ -55,6 +56,7 @@ export default function ChildTasksPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editingOccurrence, setEditingOccurrence] = useState<Task | null>(null);
+  const [deletingOccurrence, setDeletingOccurrence] = useState<Task | null>(null);
   const [showSchoolCalendar, setShowSchoolCalendar] = useState(false);
   const [showRecurringDialog, setShowRecurringDialog] = useState(false);
   const [pendingEditTask, setPendingEditTask] = useState<Task | null>(null);
@@ -78,11 +80,14 @@ export default function ChildTasksPage() {
 
   const parentId = tasks && tasks.length > 0 ? tasks[0].parent_id : "";
 
-  // Initialize calendar with today's tasks
+  // Initialize calendar with today's tasks (use local timezone)
   useEffect(() => {
     if (viewMode === "calendar" && tasks && selectedDateTasks.length === 0) {
-      const today = new Date().toISOString().split("T")[0];
+      const now = new Date();
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
       const todayTasks = tasks.filter((task) => {
+        // Filter out recurring templates (only show virtual instances)
+        if (task.is_recurring && !task.is_virtual) return false;
         const taskDate = task.scheduled_date?.split("T")[0];
         return taskDate === today;
       });
@@ -165,6 +170,15 @@ export default function ChildTasksPage() {
   };
 
   const handleDeleteTask = async (taskId: string) => {
+    const task = tasks?.find((t) => t._id === taskId);
+
+    // If it's a virtual instance of a recurring task, open DeleteOccurrenceModal
+    if (task && task.is_virtual && task.source_recurring_task_id) {
+      setDeletingOccurrence(task);
+      return;
+    }
+
+    // Otherwise, confirm and delete directly
     if (!window.confirm(t("tasks:confirm_delete"))) {
       return;
     }
@@ -172,6 +186,17 @@ export default function ChildTasksPage() {
       await deleteTaskMutation.mutateAsync(taskId);
     } catch (error) {
       console.error("Failed to delete task:", error);
+    }
+  };
+
+  const handleDeleteTemplate = async (templateId: string) => {
+    if (!window.confirm(t("tasks:confirm_delete"))) {
+      return;
+    }
+    try {
+      await deleteTaskMutation.mutateAsync(templateId);
+    } catch (error) {
+      console.error("Failed to delete template:", error);
     }
   };
 
@@ -201,8 +226,10 @@ export default function ChildTasksPage() {
   };
 
   const handleDayClick = (date: string, dayTasks: Task[]) => {
+    // Filter out recurring templates (only show virtual instances)
+    const filteredTasks = dayTasks.filter(task => !(task.is_recurring && !task.is_virtual));
     setSelectedDate(date);
-    setSelectedDateTasks(dayTasks);
+    setSelectedDateTasks(filteredTasks);
   };
 
   const isTaskOverdue = (task: Task): boolean => {
@@ -352,6 +379,15 @@ export default function ChildTasksPage() {
           onClose={() => setEditingOccurrence(null)}
           task={editingOccurrence}
           onEditTemplate={handleEditTemplate}
+        />
+      )}
+
+      {deletingOccurrence && (
+        <DeleteOccurrenceModal
+          isOpen={true}
+          onClose={() => setDeletingOccurrence(null)}
+          task={deletingOccurrence}
+          onDeleteTemplate={handleDeleteTemplate}
         />
       )}
 

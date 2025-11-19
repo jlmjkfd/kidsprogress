@@ -25,7 +25,7 @@ export function EditOccurrenceModal({
   const { t } = useTranslation(["tasks", "common"]);
   const addExceptionMutation = useAddRecurrenceException();
 
-  const [editOption, setEditOption] = useState<"this" | "all" | "delete">("this");
+  const [editOption, setEditOption] = useState<"this" | "all">("this");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Form state for editing this occurrence
@@ -41,14 +41,7 @@ export function EditOccurrenceModal({
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
-      if (editOption === "delete") {
-        // Delete this occurrence
-        await addExceptionMutation.mutateAsync({
-          taskId: task.source_recurring_task_id,
-          exceptionDate: occurrenceDate,
-          exceptionType: "deleted",
-        });
-      } else if (editOption === "this") {
+      if (editOption === "this") {
         // Edit only this occurrence
         const overrides: Record<string, any> = {};
 
@@ -161,25 +154,6 @@ export function EditOccurrenceModal({
                     </div>
                   </div>
                 </label>
-
-                <label className="flex items-start gap-3 rounded-lg border-2 border-red-300 p-4 cursor-pointer hover:bg-red-50 transition-colors">
-                  <input
-                    type="radio"
-                    name="editOption"
-                    value="delete"
-                    checked={editOption === "delete"}
-                    onChange={() => setEditOption("delete")}
-                    className="mt-1"
-                  />
-                  <div>
-                    <div className="font-medium text-red-900">
-                      {t("tasks:delete_only_this")}
-                    </div>
-                    <div className="mt-1 text-sm text-red-700">
-                      {t("tasks:delete_only_this_hint")}
-                    </div>
-                  </div>
-                </label>
               </div>
             </div>
 
@@ -231,14 +205,6 @@ export function EditOccurrenceModal({
               </div>
             )}
 
-            {/* Delete Confirmation */}
-            {editOption === "delete" && (
-              <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-                <p className="text-sm text-red-900">
-                  {t("tasks:delete_occurrence_confirm", { date: occurrenceDate })}
-                </p>
-              </div>
-            )}
           </div>
 
           {/* Footer */}
@@ -254,17 +220,11 @@ export function EditOccurrenceModal({
             <button
               type="button"
               onClick={handleSubmit}
-              className={`rounded-lg px-4 py-2 font-medium text-white transition-colors ${
-                editOption === "delete"
-                  ? "bg-red-600 hover:bg-red-700"
-                  : "bg-blue-600 hover:bg-blue-700"
-              }`}
+              className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-700"
               disabled={isSubmitting}
             >
               {isSubmitting
                 ? t("common:saving")
-                : editOption === "delete"
-                ? t("tasks:delete_occurrence")
                 : editOption === "all"
                 ? t("tasks:edit_template")
                 : t("common:save")}
