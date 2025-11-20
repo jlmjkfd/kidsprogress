@@ -60,12 +60,12 @@ export function SchedulingSection({
     {
       value: SchedulingType.FIXED_TIME,
       icon: IconLock,
-      label: t("tasks:unified_model.fixed"),
+      label: t("tasks:unified_model.fixed_time"),
     },
     {
       value: SchedulingType.TIME_WINDOW,
       icon: IconClock,
-      label: t("tasks:unified_model.window"),
+      label: t("tasks:unified_model.time_window"),
     },
     {
       value: SchedulingType.DEADLINE,
