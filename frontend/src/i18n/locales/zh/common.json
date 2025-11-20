@@ -163,6 +163,8 @@
   "edit_info": "编辑信息",
   "add": "添加",
   "restore": "恢复",
+  "collapse": "收起",
+  "expand": "展开",
   "child_not_found": "未找到孩子",
   "no_data_yet": "暂无数据",
   "analysis_description": "活动和进度数据将显示在这里",

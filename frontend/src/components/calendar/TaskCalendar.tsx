@@ -7,13 +7,14 @@ import { useTranslation } from "react-i18next";
 import {
   IconChevronLeft,
   IconChevronRight,
-  IconCircle,
+  IconChevronUp,
+  IconChevronDown,
   IconCheck,
   IconCalendar,
   IconCalendarWeek,
   IconCalendarEvent,
 } from "@tabler/icons-react";
-import { Task, TaskStatus, ObligationLevel } from "@/types/task";
+import { Task } from "@/types/task";
 import { useDayTypesBatch } from "@/api/queries/useSchoolCalendar";
 import { DayType } from "@/types/schoolCalendar";
 import { DayView } from "./DayView";
@@ -44,6 +45,14 @@ export function TaskCalendar({
   const [view, setView] = useState<CalendarView>(defaultView);
   const [hideInformational, setHideInformational] = useState(false);
 
+  // Selected date state (shared across all views)
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const [selectedDate, setSelectedDate] = useState<string>(todayStr);
+
+  // Month view collapse state
+  const [monthCollapsed, setMonthCollapsed] = useState(false);
+
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
 
@@ -70,41 +79,38 @@ export function TaskCalendar({
     setCurrentDate(new Date());
   };
 
-  // Get tasks for a specific date (including deleted for the list below)
-  const getTasksForDate = (day: number): Task[] => {
-    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    return tasks.filter((task) => {
-      const taskDate = task.scheduled_date?.split("T")[0];
-      return taskDate === dateStr;
-    });
-  };
 
-  // Get tasks for calendar display (excluding deleted and templates)
-  const getTasksForDisplay = (day: number): Task[] => {
-    return getTasksForDate(day).filter(task => {
-      // Filter out deleted tasks
-      if (task.is_deleted) return false;
-      // Filter out recurring templates (only show virtual instances)
-      if (task.is_recurring && !task.is_virtual) return false;
-      return true;
-    });
-  };
-
-  // Generate calendar grid
-  const calendarDays: (number | null)[] = [];
-  // Add empty cells for days before month starts
-  for (let i = 0; i < startDayOfWeek; i++) {
-    calendarDays.push(null);
+  // Generate calendar grid with full 6 weeks (42 days)
+  interface CalendarDay {
+    day: number;
+    month: 'prev' | 'current' | 'next';
   }
-  // Add days of month
+
+  const calendarDays: CalendarDay[] = [];
+
+  // Fill previous month days
+  const daysInPrevMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 0).getDate();
+  for (let i = startDayOfWeek - 1; i >= 0; i--) {
+    calendarDays.push({ day: daysInPrevMonth - i, month: 'prev' });
+  }
+
+  // Fill current month days
   for (let day = 1; day <= daysInMonth; day++) {
-    calendarDays.push(day);
+    calendarDays.push({ day, month: 'current' });
+  }
+
+  // Fill next month days only if needed to complete current week (no row with only next month days)
+  const totalDays = startDayOfWeek + daysInMonth;
+  const weeksNeeded = Math.ceil(totalDays / 7);
+  const targetDays = weeksNeeded * 7;
+  const remainingDays = targetDays - calendarDays.length;
+  for (let day = 1; day <= remainingDays; day++) {
+    calendarDays.push({ day, month: 'next' });
   }
 
   const monthName = new Date(year, month).toLocaleDateString(currentLocale, {
     month: "long",
   });
-  const today = new Date();
   const isToday = (day: number) => {
     return (
       day === today.getDate() &&
@@ -113,31 +119,6 @@ export function TaskCalendar({
     );
   };
 
-  const getStatusBadgeColor = (status: TaskStatus) => {
-    switch (status) {
-      case TaskStatus.COMPLETED:
-        return "bg-green-500";
-      case TaskStatus.IN_PROGRESS:
-        return "bg-blue-500";
-      case TaskStatus.PAUSED:
-        return "bg-yellow-500";
-      case TaskStatus.CANCELLED:
-        return "bg-gray-400";
-      default:
-        return "bg-gray-300";
-    }
-  };
-
-  const getObligationColor = (level: ObligationLevel) => {
-    switch (level) {
-      case ObligationLevel.MUST_DO:
-        return "border-l-red-500";
-      case ObligationLevel.SHOULD_DO:
-        return "border-l-orange-500";
-      default:
-        return "border-l-gray-300";
-    }
-  };
 
   const getDayTypeBgColor = (
     dayType: DayType | undefined,
@@ -161,11 +142,13 @@ export function TaskCalendar({
   // Helper functions for different views
   const goToPrevious = () => {
     if (view === "month") {
-      setCurrentDate(new Date(year, month - 1, 1));
-    } else if (view === "week") {
-      const newDate = new Date(currentDate);
-      newDate.setDate(newDate.getDate() - 7);
+      const newDate = new Date(year, month - 1, 1);
       setCurrentDate(newDate);
+      // Select first day of the new month
+      const newDateStr = `${newDate.getFullYear()}-${String(newDate.getMonth() + 1).padStart(2, '0')}-01`;
+      setSelectedDate(newDateStr);
+    } else if (view === "week") {
+      handlePrevWeek();
     } else {
       const newDate = new Date(currentDate);
       newDate.setDate(newDate.getDate() - 1);
@@ -175,16 +158,43 @@ export function TaskCalendar({
 
   const goToNext = () => {
     if (view === "month") {
-      setCurrentDate(new Date(year, month + 1, 1));
-    } else if (view === "week") {
-      const newDate = new Date(currentDate);
-      newDate.setDate(newDate.getDate() + 7);
+      const newDate = new Date(year, month + 1, 1);
       setCurrentDate(newDate);
+      // Select first day of the new month
+      const newDateStr = `${newDate.getFullYear()}-${String(newDate.getMonth() + 1).padStart(2, '0')}-01`;
+      setSelectedDate(newDateStr);
+    } else if (view === "week") {
+      handleNextWeek();
     } else {
       const newDate = new Date(currentDate);
       newDate.setDate(newDate.getDate() + 1);
       setCurrentDate(newDate);
     }
+  };
+
+  // Week navigation handlers (maintain day-of-week selection)
+  const handlePrevWeek = () => {
+    const [y, m, d] = selectedDate.split("-").map(Number);
+    const date = new Date(y, m - 1, d);
+    date.setDate(date.getDate() - 7);
+    const newDateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    setSelectedDate(newDateStr);
+    setCurrentDate(date);
+  };
+
+  const handleNextWeek = () => {
+    const [y, m, d] = selectedDate.split("-").map(Number);
+    const date = new Date(y, m - 1, d);
+    date.setDate(date.getDate() + 7);
+    const newDateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    setSelectedDate(newDateStr);
+    setCurrentDate(date);
+  };
+
+  const handleDateSelect = (date: string) => {
+    const [y, m, d] = date.split("-").map(Number);
+    setSelectedDate(date);
+    setCurrentDate(new Date(y, m - 1, d));
   };
 
   // Get week start date (Sunday, using local dates to avoid timezone issues)
@@ -208,7 +218,14 @@ export function TaskCalendar({
 
   // Handle day cell click
   const handleDayClick = (date: string, dayTasks: Task[], dayType?: DayType) => {
-    // Don't open modal - just pass to parent handler
+    // Update currentDate to the selected day so week/day views show this date
+    const [yearStr, monthStr, dayStr] = date.split("-").map(Number);
+    setCurrentDate(new Date(yearStr, monthStr - 1, dayStr));
+
+    // Update selected date
+    setSelectedDate(date);
+
+    // Pass to parent handler
     onDayClick?.(date, dayTasks, dayType);
   };
 
@@ -313,90 +330,115 @@ export function TaskCalendar({
       <div className="p-2 sm:p-4">
         {view === "month" && (
           <>
-            {/* Day headers */}
-            <div className="mb-2 grid grid-cols-7 gap-1">
-              {Array.from({ length: 7 }, (_, i) => {
-                const date = new Date(2024, 0, i); // Jan 2024 starts on Monday, so day 0 is Sunday
-                const dayName = date.toLocaleDateString(currentLocale, { weekday: "short" });
-                return (
-                  <div
-                    key={i}
-                    className="py-2 text-center text-xs font-semibold text-gray-600"
-                  >
-                    {dayName}
-                  </div>
-                );
-              })}
+            {/* Day headers with collapse/expand button */}
+            <div className="mb-2 relative">
+              <div className="grid grid-cols-7 gap-1 px-8">
+                {Array.from({ length: 7 }, (_, i) => {
+                  const date = new Date(2024, 0, i); // Jan 2024 starts on Monday, so day 0 is Sunday
+                  const dayName = date.toLocaleDateString(currentLocale, { weekday: "short" });
+                  return (
+                    <div
+                      key={i}
+                      className="py-2 text-center text-xs font-semibold text-gray-600"
+                    >
+                      {dayName}
+                    </div>
+                  );
+                })}
+              </div>
+              {/* Collapse/expand button overlaid in the right padding area */}
+              <button
+                onClick={() => setMonthCollapsed(!monthCollapsed)}
+                className="absolute right-0 top-1/2 -translate-y-1/2 rounded-lg p-1.5 transition-colors hover:bg-gray-100"
+                title={monthCollapsed ? t("common:expand") : t("common:collapse")}
+              >
+                {monthCollapsed ? <IconChevronDown size={18} /> : <IconChevronUp size={18} />}
+              </button>
             </div>
 
             {/* Calendar days */}
-            <div className="grid grid-cols-7 gap-1">
-              {calendarDays.map((day, index) => {
-                if (day === null) {
-                  return <div key={`empty-${index}`} className="aspect-square" />;
+            <div className="grid grid-cols-7 gap-1 px-8">
+              {calendarDays
+                .slice(0, monthCollapsed ? 7 : calendarDays.length)
+                .map((calDay, index) => {
+                const { day, month: monthType } = calDay;
+
+                // Calculate actual year/month for this day
+                let actualYear = year;
+                let actualMonth = month;
+                if (monthType === 'prev') {
+                  actualMonth = month - 1;
+                  if (actualMonth < 0) {
+                    actualMonth = 11;
+                    actualYear = year - 1;
+                  }
+                } else if (monthType === 'next') {
+                  actualMonth = month + 1;
+                  if (actualMonth > 11) {
+                    actualMonth = 0;
+                    actualYear = year + 1;
+                  }
                 }
 
-                const allDayTasks = getTasksForDate(day);
-                const displayTasks = getTasksForDisplay(day);
-                const isTodayDate = isToday(day);
-                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const dateStr = `${actualYear}-${String(actualMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+                // Get tasks for this date (including prev/next month)
+                const dayTasks = tasks.filter(task => {
+                  if (!task.scheduled_date) return false;
+                  return task.scheduled_date.startsWith(dateStr);
+                });
+
+                // Filter non-informational tasks for indicator
+                const nonInfoTasks = dayTasks.filter(t => !t.is_informational && !t.is_deleted);
+                const hasNonInfoTasks = nonInfoTasks.length > 0;
+
+                const isTodayDate = monthType === 'current' && isToday(day);
                 const dayType = dayTypeMap.get(dateStr);
+                const isOtherMonth = monthType !== 'current';
+                const isSelected = dateStr === selectedDate;
 
                 return (
                   <div
-                    key={day}
-                    onClick={() => handleDayClick(dateStr, allDayTasks, dayType)}
-                    className={`aspect-square overflow-hidden rounded-lg border p-1 sm:p-2 ${getDayTypeBgColor(
-                      dayType,
-                      isTodayDate
-                    )} transition-colors hover:border-gray-400 cursor-pointer`}
+                    key={`${monthType}-${day}-${index}`}
+                    onClick={() => {
+                      // If clicking on adjacent month day, switch to that month and select that day
+                      if (monthType === 'prev' || monthType === 'next') {
+                        const newDate = new Date(actualYear, actualMonth, day);
+                        setCurrentDate(newDate);
+                      }
+                      handleDayClick(dateStr, dayTasks, dayType);
+                    }}
+                    className={`flex flex-col items-center justify-center rounded-md border p-1 min-h-[48px] sm:min-h-[56px] ${
+                      isSelected
+                        ? 'border-blue-500 border-2 ring-1 ring-blue-200'
+                        : isOtherMonth
+                          ? 'bg-gray-50 border-gray-200'
+                          : getDayTypeBgColor(dayType, isTodayDate)
+                    } transition-colors hover:border-gray-400 cursor-pointer ${
+                      hasNonInfoTasks && !isOtherMonth ? 'font-semibold' : ''
+                    }`}
                   >
                     {/* Day number */}
                     <div
-                      className={`mb-1 text-xs font-semibold sm:text-sm ${
-                        isTodayDate ? "text-blue-700" : "text-gray-700"
+                      className={`text-sm ${
+                        isOtherMonth
+                          ? 'text-gray-400'
+                          : isTodayDate
+                            ? 'text-blue-700'
+                            : 'text-gray-700'
                       }`}
                     >
                       {day}
                     </div>
 
-                    {/* Tasks */}
-                    <div className="space-y-0.5">
-                      {displayTasks.slice(0, 3).map((task) => (
-                        <div
-                          key={task._id}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (editable) onTaskClick?.(task);
-                          }}
-                          className={`w-full truncate rounded border-l-2 px-1 py-0.5 text-left text-xs ${getObligationColor(
-                            task.obligation_level
-                          )} ${
-                            task.status === TaskStatus.COMPLETED
-                              ? "bg-green-50 text-green-700 line-through"
-                              : "bg-gray-50 text-gray-700 hover:bg-gray-100"
-                          } ${editable ? "cursor-pointer" : "cursor-default"} transition-colors`}
-                          title={task.title}
-                        >
-                          <div className="flex items-center gap-1">
-                            {task.status === TaskStatus.COMPLETED ? (
-                              <IconCheck size={10} />
-                            ) : (
-                              <IconCircle
-                                size={8}
-                                className={getStatusBadgeColor(task.status)}
-                              />
-                            )}
-                            <span className="truncate">{task.title}</span>
-                          </div>
-                        </div>
-                      ))}
-                      {displayTasks.length > 3 && (
-                        <div className="px-1 text-xs text-gray-500">
-                          +{displayTasks.length - 3} more
-                        </div>
-                      )}
-                    </div>
+                    {/* Task indicator dot */}
+                    {hasNonInfoTasks && (
+                      <div className="mt-0.5">
+                        <div className={`h-1 w-1 rounded-full ${
+                          isOtherMonth ? 'bg-gray-400' : 'bg-blue-500'
+                        }`} />
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -407,20 +449,41 @@ export function TaskCalendar({
         {view === "week" && (
           <WeekView
             startDate={getWeekStartDate()}
-            tasks={tasks}
+            tasks={tasks.filter(t => {
+              // Filter out deleted tasks
+              if (t.is_deleted) return false;
+              // Filter out recurring templates (only show virtual instances)
+              if (t.is_recurring && !t.is_virtual) return false;
+              return true;
+            })}
             dayTypes={dayTypeMap}
             onTaskClick={onTaskClick}
             hideInformational={hideInformational}
+            selectedDate={selectedDate}
+            onDateSelect={handleDateSelect}
+            onPrevWeek={handlePrevWeek}
+            onNextWeek={handleNextWeek}
           />
         )}
 
         {view === "day" && (
           <DayView
             date={getCurrentDayString()}
-            tasks={tasks.filter(t => t.scheduled_date?.startsWith(getCurrentDayString()))}
+            tasks={tasks.filter(t => {
+              if (!t.scheduled_date?.startsWith(getCurrentDayString())) return false;
+              // Filter out deleted tasks
+              if (t.is_deleted) return false;
+              // Filter out recurring templates (only show virtual instances)
+              if (t.is_recurring && !t.is_virtual) return false;
+              return true;
+            })}
             dayType={dayTypeMap.get(getCurrentDayString())}
             onTaskClick={onTaskClick}
             hideInformational={hideInformational}
+            selectedDate={selectedDate}
+            onDateSelect={handleDateSelect}
+            onPrevWeek={handlePrevWeek}
+            onNextWeek={handleNextWeek}
           />
         )}
       </div>

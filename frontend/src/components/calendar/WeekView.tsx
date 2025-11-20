@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { IconCircle, IconCheck } from "@tabler/icons-react";
 import { Task, TaskStatus, ObligationLevel } from "@/types/task";
 import { DayType } from "@/types/schoolCalendar";
+import { WeekSelector } from "./WeekSelector";
 
 interface WeekViewProps {
   startDate: string; // YYYY-MM-DD of week start (Sunday or Monday)
@@ -13,6 +14,10 @@ interface WeekViewProps {
   dayTypes?: Map<string, DayType>; // Map of date -> dayType
   onTaskClick?: (task: Task) => void;
   hideInformational?: boolean;
+  selectedDate: string; // YYYY-MM-DD of selected day
+  onDateSelect: (date: string) => void;
+  onPrevWeek: () => void;
+  onNextWeek: () => void;
 }
 
 export function WeekView({
@@ -21,15 +26,13 @@ export function WeekView({
   dayTypes,
   onTaskClick,
   hideInformational = false,
+  selectedDate,
+  onDateSelect,
+  onPrevWeek,
+  onNextWeek,
 }: WeekViewProps) {
-  const { t, i18n } = useTranslation(["common"]);
+  const { i18n } = useTranslation(["common"]);
   const currentLocale = i18n.language || "en";
-
-  // Helper to parse YYYY-MM-DD as local date (avoid timezone issues)
-  const parseLocalDate = (dateStr: string): Date => {
-    const [year, month, day] = dateStr.split("-").map(Number);
-    return new Date(year, month - 1, day);
-  };
 
   // Check if task is informational
   const isInformationalTask = (task: Task): boolean => {
@@ -37,7 +40,7 @@ export function WeekView({
   };
 
   // Filter tasks
-  const visibleTasks = tasks.filter(task => {
+  const visibleTasks = tasks.filter((task) => {
     if (hideInformational && isInformationalTask(task)) return false;
     return true;
   });
@@ -51,7 +54,7 @@ export function WeekView({
     const day = parseInt(dayStr);
 
     const date = new Date(year, month, day + i);
-    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
     return {
       date: dateStr,
@@ -63,9 +66,9 @@ export function WeekView({
 
   // Group tasks by date
   const tasksByDate = new Map<string, Task[]>();
-  weekDays.forEach(day => tasksByDate.set(day.date, []));
+  weekDays.forEach((day) => tasksByDate.set(day.date, []));
 
-  visibleTasks.forEach(task => {
+  visibleTasks.forEach((task) => {
     const taskDate = task.scheduled_date?.split("T")[0];
     if (taskDate && tasksByDate.has(taskDate)) {
       tasksByDate.get(taskDate)!.push(task);
@@ -79,11 +82,15 @@ export function WeekView({
       return date.getHours() * 60 + date.getMinutes();
     }
     if (task.fixed_time_slot?.start) {
-      const [hours, minutes] = task.fixed_time_slot.start.split(":").map(Number);
+      const [hours, minutes] = task.fixed_time_slot.start
+        .split(":")
+        .map(Number);
       return hours * 60 + minutes;
     }
     if (task.preferred_time_slot?.start) {
-      const [hours, minutes] = task.preferred_time_slot.start.split(":").map(Number);
+      const [hours, minutes] = task.preferred_time_slot.start
+        .split(":")
+        .map(Number);
       return hours * 60 + minutes;
     }
     return null;
@@ -97,21 +104,28 @@ export function WeekView({
       return (end.getTime() - start.getTime()) / 60000;
     }
     if (task.fixed_time_slot?.start && task.fixed_time_slot?.end) {
-      const [startH, startM] = task.fixed_time_slot.start.split(":").map(Number);
+      const [startH, startM] = task.fixed_time_slot.start
+        .split(":")
+        .map(Number);
       const [endH, endM] = task.fixed_time_slot.end.split(":").map(Number);
-      return (endH * 60 + endM) - (startH * 60 + startM);
+      return endH * 60 + endM - (startH * 60 + startM);
     }
     if (task.preferred_time_slot?.start && task.preferred_time_slot?.end) {
-      const [startH, startM] = task.preferred_time_slot.start.split(":").map(Number);
+      const [startH, startM] = task.preferred_time_slot.start
+        .split(":")
+        .map(Number);
       const [endH, endM] = task.preferred_time_slot.end.split(":").map(Number);
-      return (endH * 60 + endM) - (startH * 60 + startM);
+      return endH * 60 + endM - (startH * 60 + startM);
     }
     return task.estimated_duration_minutes || 30;
   };
 
   const hours = Array.from({ length: 24 }, (_, i) => i);
 
-  const getObligationColor = (level: ObligationLevel, isInfo: boolean): string => {
+  const getObligationColor = (
+    level: ObligationLevel,
+    isInfo: boolean
+  ): string => {
     if (isInfo) return "bg-gray-200 border-l-2 border-l-gray-400";
     switch (level) {
       case ObligationLevel.MUST_DO:
@@ -151,8 +165,8 @@ export function WeekView({
       <div
         key={task._id}
         onClick={() => onTaskClick?.(task)}
-        className={`absolute left-0 right-0 mx-0.5 overflow-hidden rounded p-1 text-xs transition-all ${
-          onTaskClick ? "cursor-pointer hover:shadow-md hover:z-20" : ""
+        className={`absolute right-0 left-0 mx-0.5 overflow-hidden rounded p-1 text-xs transition-all ${
+          onTaskClick ? "cursor-pointer hover:z-20 hover:shadow-md" : ""
         } ${getObligationColor(task.obligation_level, isInfo)} ${
           task.status === TaskStatus.COMPLETED ? "opacity-50" : ""
         }`}
@@ -165,9 +179,12 @@ export function WeekView({
       >
         <div className="flex items-center gap-0.5 truncate">
           {task.status === TaskStatus.COMPLETED ? (
-            <IconCheck size={10} className="text-green-600 flex-shrink-0" />
+            <IconCheck size={10} className="flex-shrink-0 text-green-600" />
           ) : task.status === TaskStatus.IN_PROGRESS ? (
-            <IconCircle size={8} className="animate-pulse text-blue-500 flex-shrink-0" />
+            <IconCircle
+              size={8}
+              className="flex-shrink-0 animate-pulse text-blue-500"
+            />
           ) : null}
           <span className="truncate font-medium">{task.title}</span>
         </div>
@@ -177,89 +194,69 @@ export function WeekView({
 
   return (
     <div className="space-y-2">
-      {/* Week Header */}
-      <div className="flex items-center justify-between text-sm text-gray-600">
-        <span>
-          {parseLocalDate(weekDays[0].date).toLocaleDateString(currentLocale, { month: "long", day: "numeric" })}
-          {" - "}
-          {parseLocalDate(weekDays[6].date).toLocaleDateString(currentLocale, { month: "long", day: "numeric" })}
-        </span>
-        <span>{visibleTasks.length} {t('common:tasks')}</span>
-      </div>
+      {/* Week Selector Header */}
+      <WeekSelector
+        selectedDate={selectedDate}
+        onDateSelect={onDateSelect}
+        onPrevWeek={onPrevWeek}
+        onNextWeek={onNextWeek}
+      />
 
       {/* Week Grid */}
       <div className="overflow-x-auto">
-        <div className="min-w-[800px] rounded-lg border bg-white">
-          {/* Day Headers */}
-          <div className="grid grid-cols-8 border-b bg-gray-50 sticky top-0 z-20">
-            <div className="border-r p-2 text-xs font-medium text-gray-500">{t("common:time")}</div>
-            {weekDays.map((day) => {
-              const dayType = dayTypes?.get(day.date);
-              return (
-                <div
-                  key={day.date}
-                  className={`border-r last:border-r-0 p-2 text-center ${getDayTypeBgClass(dayType)}`}
-                >
-                  <div className={`text-xs font-semibold ${day.isToday ? "text-blue-700" : "text-gray-700"}`}>
-                    {day.dayName}
-                  </div>
-                  <div
-                    className={`text-lg font-bold ${
-                      day.isToday ? "text-blue-700" : "text-gray-900"
-                    }`}
-                  >
-                    {day.dayNumber}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
+        <div className="min-w-[800px] rounded-xl bg-white shadow-sm">
           {/* Time Grid with Tasks */}
-          <div className="relative" style={{ minHeight: "1152px" }}>
+          <div className="flex gap-2 p-3" style={{ minHeight: "1152px" }}>
             {/* 48px per hour × 24 hours = 1152px */}
-            <div className="grid grid-cols-8">
-              {/* Hour Labels Column */}
-              <div className="border-r">
-                {hours.map((hour) => (
-                  <div
-                    key={hour}
-                    className="border-b border-gray-100 px-2 py-1 text-xs text-gray-500"
-                    style={{ height: "48px" }}
-                  >
-                    {hour.toString().padStart(2, "0")}:00
-                  </div>
-                ))}
-              </div>
+            {/* Hour Labels Column - same width as left button (44px) */}
+            <div className="flex-shrink-0" style={{ width: "44px" }}>
+              {hours.map((hour, idx) => (
+                <div
+                  key={hour}
+                  className={`py-1 pr-2 text-right text-xs text-gray-400 ${
+                    idx % 2 === 0 ? "" : "opacity-60"
+                  }`}
+                  style={{ height: "48px" }}
+                >
+                  {hour.toString().padStart(2, "0")}:00
+                </div>
+              ))}
+            </div>
 
-              {/* Day Columns */}
+            {/* Day Columns - table content */}
+            <div className="flex min-w-0 flex-1 gap-1 overflow-hidden rounded-lg bg-white">
               {weekDays.map((day) => {
                 const dayType = dayTypes?.get(day.date);
                 const dayTasks = tasksByDate.get(day.date) || [];
-                const scheduledDayTasks = dayTasks.filter(t => getTaskTime(t) !== null);
+                const scheduledDayTasks = dayTasks.filter(
+                  (t) => getTaskTime(t) !== null
+                );
 
                 return (
                   <div
                     key={day.date}
-                    className={`relative border-r last:border-r-0 ${getDayTypeBgClass(dayType)}`}
+                    className={`relative flex-1 ${getDayTypeBgClass(dayType)}`}
                   >
-                    {/* Hour Grid Lines */}
-                    {hours.map((hour) => (
+                    {/* Hour Grid Lines - subtle dotted lines */}
+                    {hours.map((hour, idx) => (
                       <div
                         key={hour}
-                        className="border-b border-gray-100"
+                        className={`${idx === 0 ? "" : "border-t border-dashed border-gray-200"}`}
                         style={{ height: "48px" }}
                       />
                     ))}
 
                     {/* Task Blocks Overlay */}
-                    <div className="absolute inset-0">
+                    <div className="absolute inset-0 px-1">
                       {scheduledDayTasks.map((task) => renderTaskBlock(task))}
                     </div>
                   </div>
                 );
               })}
             </div>
+
+            {/* Right spacer - same width as right button (44px) */}
+            <div className="flex-shrink-0" style={{ width: "44px" }}></div>
           </div>
         </div>
       </div>

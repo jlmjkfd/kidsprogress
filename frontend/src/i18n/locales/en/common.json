@@ -161,6 +161,8 @@
   "edit_info": "Edit Information",
   "add": "Add",
   "restore": "Restore",
+  "collapse": "Collapse",
+  "expand": "Expand",
   "child_not_found": "Child not found",
   "no_data_yet": "No data available yet",
   "analysis_description": "Activity and progress data will appear here",
