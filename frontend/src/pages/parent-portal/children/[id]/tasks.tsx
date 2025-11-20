@@ -7,11 +7,11 @@ import { useTranslation } from "react-i18next";
 import { IconPlus, IconCalendar, IconList } from "@tabler/icons-react";
 import { useTasksByChild } from "@/api/queries/useTasks";
 import {
-  useStartTask,
-  usePauseTask,
-  useCompleteTask,
+  useCompleteTaskWithTimes,
+  useUncompleteTask,
+  useSkipTask,
+  useRestoreSkippedTask,
   useCreateTask,
-  useResumeTask,
   useUpdateTask,
   useDeleteTask,
   useRemoveRecurrenceException,
@@ -32,6 +32,7 @@ import { SchoolCalendarModal } from "@/components/SchoolCalendarModal";
 import { EditOccurrenceModal } from "@/components/EditOccurrenceModal";
 import { DeleteOccurrenceModal } from "@/components/DeleteOccurrenceModal";
 import { EditRecurringTemplateDialog } from "@/components/EditRecurringTemplateDialog";
+import { CompleteTaskModal } from "@/components/CompleteTaskModal";
 import { useReplanSchedule } from "@/api/mutations/useAIScheduleMutations";
 
 type ViewMode = "list" | "calendar";
@@ -60,6 +61,7 @@ export default function ChildTasksPage() {
   const [showSchoolCalendar, setShowSchoolCalendar] = useState(false);
   const [showRecurringDialog, setShowRecurringDialog] = useState(false);
   const [pendingEditTask, setPendingEditTask] = useState<Task | null>(null);
+  const [completingTask, setCompletingTask] = useState<Task | null>(null);
 
   // Calendar state
   const [selectedDate, setSelectedDate] = useState<string>("");
@@ -72,10 +74,10 @@ export default function ChildTasksPage() {
   const createTaskMutation = useCreateTask();
   const updateTaskMutation = useUpdateTask();
   const deleteTaskMutation = useDeleteTask();
-  const startTaskMutation = useStartTask();
-  const pauseTaskMutation = usePauseTask();
-  const resumeTaskMutation = useResumeTask();
-  const completeTaskMutation = useCompleteTask();
+  const completeWithTimesMutation = useCompleteTaskWithTimes();
+  const uncompleteMutation = useUncompleteTask();
+  const skipMutation = useSkipTask();
+  const restoreSkippedMutation = useRestoreSkippedTask();
   const replanMutation = useReplanSchedule();
   const removeExceptionMutation = useRemoveRecurrenceException();
 
@@ -111,59 +113,49 @@ export default function ChildTasksPage() {
   }, [tasks, selectedDate]);
 
   // Task action handlers
-  const handleStartTask = async (taskId: string) => {
-    try {
-      await startTaskMutation.mutateAsync({ taskId, childId: childId || "" });
-    } catch (error) {
-      console.error("Failed to start task:", error);
-    }
+  const handleCompleteTask = (task: Task) => {
+    // Open modal to get completion time
+    setCompletingTask(task);
   };
 
-  const handlePauseTask = async (taskId: string) => {
-    try {
-      await pauseTaskMutation.mutateAsync({ taskId, pausedBy: "PARENT" });
-    } catch (error) {
-      console.error("Failed to pause task:", error);
-    }
-  };
+  const handleConfirmComplete = async (startTime: string, endTime: string) => {
+    if (!completingTask) return;
 
-  const handleResumeTask = async (taskId: string) => {
     try {
-      await resumeTaskMutation.mutateAsync(taskId);
-    } catch (error) {
-      console.error("Failed to resume task:", error);
-    }
-  };
-
-  const handleCompleteTask = async (taskId: string) => {
-    try {
-      const task = tasks?.find((t) => t._id === taskId);
-      const startTime = task?.started_at
-        ? new Date(task.started_at)
-        : new Date();
-      const endTime = new Date();
-      const actualDuration = Math.round(
-        (endTime.getTime() - startTime.getTime()) / 60000
-      );
-      const estimatedDuration =
-        task?.ai_attributes?.estimated_duration_minutes || 30;
-
-      await completeTaskMutation.mutateAsync({
-        taskId,
+      await completeWithTimesMutation.mutateAsync({
+        taskId: completingTask._id,
         childId: childId || "",
+        startTime,
+        endTime,
       });
 
-      if (actualDuration > estimatedDuration + 10) {
-        replanMutation.mutate({
-          child_id: childId || "",
-          parent_id: parentId,
-          current_task_id: taskId,
-          actual_duration: actualDuration,
-          estimated_duration: estimatedDuration,
-        });
-      }
+      setCompletingTask(null);
     } catch (error) {
       console.error("Failed to complete task:", error);
+    }
+  };
+
+  const handleUncompleteTask = async (taskId: string) => {
+    try {
+      await uncompleteMutation.mutateAsync(taskId);
+    } catch (error) {
+      console.error("Failed to uncomplete task:", error);
+    }
+  };
+
+  const handleSkipTask = async (taskId: string) => {
+    try {
+      await skipMutation.mutateAsync(taskId);
+    } catch (error) {
+      console.error("Failed to skip task:", error);
+    }
+  };
+
+  const handleRestoreSkippedTask = async (taskId: string) => {
+    try {
+      await restoreSkippedMutation.mutateAsync(taskId);
+    } catch (error) {
+      console.error("Failed to restore skipped task:", error);
     }
   };
 
@@ -269,7 +261,7 @@ export default function ChildTasksPage() {
       taskDate &&
       taskDate < today &&
       task.status !== TaskStatus.COMPLETED &&
-      task.status !== TaskStatus.CANCELLED
+      task.status !== TaskStatus.SKIPPED
     );
   };
 
@@ -367,10 +359,10 @@ export default function ChildTasksPage() {
           onDayClick={handleDayClick}
           onTaskDelete={handleDeleteTask}
           onRestoreOccurrence={handleRestoreOccurrence}
-          onTaskStart={handleStartTask}
-          onTaskPause={handlePauseTask}
-          onTaskResume={handleResumeTask}
           onTaskComplete={handleCompleteTask}
+          onTaskUncomplete={handleUncompleteTask}
+          onTaskSkip={handleSkipTask}
+          onRestoreSkipped={handleRestoreSkippedTask}
           isTaskOverdue={isTaskOverdue}
         />
       ) : (
@@ -379,13 +371,13 @@ export default function ChildTasksPage() {
           childId={childId || ""}
           onTaskEdit={handleTaskEdit}
           onTaskDelete={handleDeleteTask}
-          onTaskStart={handleStartTask}
-          onTaskPause={handlePauseTask}
-          onTaskResume={handleResumeTask}
           onTaskComplete={handleCompleteTask}
+          onTaskUncomplete={handleUncompleteTask}
+          onTaskSkip={handleSkipTask}
           onCreateClick={() => setShowCreateModal(true)}
           isTaskOverdue={isTaskOverdue}
           onRestoreOccurrence={handleRestoreOccurrence}
+          onRestoreSkipped={handleRestoreSkippedTask}
         />
       )}
 
@@ -450,6 +442,15 @@ export default function ChildTasksPage() {
             setPendingEditTask(null);
           }}
           taskTitle={pendingEditTask.title}
+        />
+      )}
+
+      {/* Complete Task Modal */}
+      {completingTask && (
+        <CompleteTaskModal
+          task={completingTask}
+          onClose={() => setCompletingTask(null)}
+          onConfirm={handleConfirmComplete}
         />
       )}
     </div>

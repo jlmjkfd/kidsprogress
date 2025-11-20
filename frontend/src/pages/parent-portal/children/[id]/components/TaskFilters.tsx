@@ -43,12 +43,11 @@ export function TaskFilters({
             className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           >
             <option value="all">{t("tasks:all_statuses")}</option>
-            <option value={TaskStatus.DRAFT}>{t("tasks:draft")}</option>
-            <option value={TaskStatus.SCHEDULED}>{t("tasks:scheduled")}</option>
+            <option value={TaskStatus.PENDING}>{t("tasks:pending")}</option>
             <option value={TaskStatus.IN_PROGRESS}>{t("tasks:in_progress")}</option>
             <option value={TaskStatus.PAUSED}>{t("tasks:paused")}</option>
             <option value={TaskStatus.COMPLETED}>{t("tasks:completed")}</option>
-            <option value={TaskStatus.CANCELLED}>{t("tasks:cancelled")}</option>
+            <option value={TaskStatus.SKIPPED}>{t("tasks:skipped")}</option>
           </select>
         </div>
 

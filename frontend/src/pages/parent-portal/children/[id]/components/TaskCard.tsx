@@ -5,8 +5,6 @@ import { useTranslation } from "react-i18next";
 import {
   IconCalendar,
   IconClock,
-  IconPlayerPlay,
-  IconPlayerPause,
   IconCheck,
   IconEdit,
   IconTrash,
@@ -16,31 +14,33 @@ import {
   IconAlertCircle,
   IconSchool,
   IconRestore,
+  IconX,
+  IconCircleX,
 } from "@tabler/icons-react";
 import { Task, TaskStatus, SchedulingType, ObligationLevel } from "@/types/task";
 
 interface TaskCardProps {
   task: Task;
   isOverdue: boolean;
-  onStart?: (taskId: string) => void;
-  onPause?: (taskId: string) => void;
-  onResume?: (taskId: string) => void;
-  onComplete?: (taskId: string) => void;
+  onComplete?: (task: Task) => void; // Parent complete with time modal
+  onUncomplete?: (taskId: string) => void;
+  onSkip?: (taskId: string) => void;
+  onRestore?: (templateId: string, occurrenceDate: string) => void; // For deleted virtual occurrences
+  onRestoreSkipped?: (taskId: string) => void; // For skipped tasks
   onEdit: (task: Task) => void;
   onDelete?: (taskId: string) => void;
-  onRestore?: (taskId: string, date: string) => void;
 }
 
 export function TaskCard({
   task,
   isOverdue,
-  onStart,
-  onPause,
-  onResume,
   onComplete,
+  onUncomplete,
+  onSkip,
+  onRestore,
+  onRestoreSkipped,
   onEdit,
   onDelete,
-  onRestore,
 }: TaskCardProps) {
   const { t } = useTranslation(["common", "tasks"]);
 
@@ -84,8 +84,8 @@ export function TaskCard({
         return "bg-blue-100 text-blue-700";
       case TaskStatus.PAUSED:
         return "bg-yellow-100 text-yellow-700";
-      case TaskStatus.CANCELLED:
-        return "bg-red-100 text-red-700";
+      case TaskStatus.SKIPPED:
+        return "bg-orange-100 text-orange-700";
       case TaskStatus.ARCHIVED:
         return "bg-gray-100 text-gray-700";
       default:
@@ -249,44 +249,52 @@ export function TaskCard({
         {/* Action buttons - Only show for non-informational tasks */}
         {!task.is_informational && (
           <div className="flex flex-shrink-0 flex-col gap-2">
-            {task.status === TaskStatus.DRAFT && onStart && (
+            {/* Complete Button - for PENDING, IN_PROGRESS, PAUSED tasks */}
+            {(task.status === TaskStatus.PENDING ||
+              task.status === TaskStatus.IN_PROGRESS ||
+              task.status === TaskStatus.PAUSED) && onComplete && (
               <button
-                onClick={() => onStart(task._id)}
+                onClick={() => onComplete(task)}
                 className="min-h-[44px] min-w-[44px] rounded-md p-2 text-green-600 transition-colors hover:bg-green-50"
-                title={t("tasks:start")}
+                title={t("tasks:complete")}
               >
-                <IconPlayerPlay size={18} />
+                <IconCheck size={18} />
               </button>
             )}
-            {task.status === TaskStatus.IN_PROGRESS && (
-              <>
-                {onPause && (
-                  <button
-                    onClick={() => onPause(task._id)}
-                    className="min-h-[44px] min-w-[44px] rounded-md p-2 text-yellow-600 transition-colors hover:bg-yellow-50"
-                    title={t("tasks:pause")}
-                  >
-                    <IconPlayerPause size={18} />
-                  </button>
-                )}
-                {onComplete && (
-                  <button
-                    onClick={() => onComplete(task._id)}
-                    className="min-h-[44px] min-w-[44px] rounded-md p-2 text-blue-600 transition-colors hover:bg-blue-50"
-                    title={t("tasks:complete")}
-                  >
-                    <IconCheck size={18} />
-                  </button>
-                )}
-              </>
-            )}
-            {task.status === TaskStatus.PAUSED && onResume && (
+
+            {/* Uncomplete Button - for COMPLETED tasks */}
+            {task.status === TaskStatus.COMPLETED && onUncomplete && (
               <button
-                onClick={() => onResume(task._id)}
-                className="min-h-[44px] min-w-[44px] rounded-md p-2 text-green-600 transition-colors hover:bg-green-50"
-                title={t("tasks:resume")}
+                onClick={() => onUncomplete(task._id)}
+                className="min-h-[44px] min-w-[44px] rounded-md p-2 text-blue-600 transition-colors hover:bg-blue-50"
+                title={t("tasks:uncomplete")}
               >
-                <IconPlayerPlay size={18} />
+                <IconX size={18} />
+              </button>
+            )}
+
+            {/* Skip Button - only for PENDING must_do/should_do tasks */}
+            {task.status === TaskStatus.PENDING &&
+             (task.obligation_level === ObligationLevel.MUST_DO ||
+              task.obligation_level === ObligationLevel.SHOULD_DO) &&
+             onSkip && (
+              <button
+                onClick={() => onSkip(task._id)}
+                className="min-h-[44px] min-w-[44px] rounded-md p-2 text-orange-600 transition-colors hover:bg-orange-50"
+                title={t("tasks:skip")}
+              >
+                <IconCircleX size={18} />
+              </button>
+            )}
+
+            {/* Restore Button - for SKIPPED tasks */}
+            {task.status === TaskStatus.SKIPPED && onRestoreSkipped && (
+              <button
+                onClick={() => onRestoreSkipped(task._id)}
+                className="min-h-[44px] min-w-[44px] rounded-md p-2 text-blue-600 transition-colors hover:bg-blue-50"
+                title={t("tasks:restore")}
+              >
+                <IconRestore size={18} />
               </button>
             )}
           </div>

@@ -14,13 +14,13 @@ interface TaskListViewProps {
   childId: string;
   onTaskEdit: (task: Task) => void;
   onTaskDelete: (taskId: string) => void;
-  onTaskStart: (taskId: string) => void;
-  onTaskPause: (taskId: string) => void;
-  onTaskResume: (taskId: string) => void;
-  onTaskComplete: (taskId: string) => void;
+  onTaskComplete: (task: Task) => void; // Parent complete with time modal
+  onTaskUncomplete: (taskId: string) => void;
+  onTaskSkip: (taskId: string) => void;
   onCreateClick: () => void;
   isTaskOverdue: (task: Task) => boolean;
   onRestoreOccurrence?: (templateId: string, occurrenceDate: string) => void;
+  onRestoreSkipped?: (taskId: string) => void;
 }
 
 // Helper function to add/subtract days from a date string (YYYY-MM-DD)
@@ -35,13 +35,13 @@ export function TaskListView({
   childId,
   onTaskEdit,
   onTaskDelete,
-  onTaskStart,
-  onTaskPause,
-  onTaskResume,
   onTaskComplete,
+  onTaskUncomplete,
+  onTaskSkip,
   onCreateClick,
   isTaskOverdue,
   onRestoreOccurrence,
+  onRestoreSkipped,
 }: TaskListViewProps) {
   const { t } = useTranslation(["common", "tasks"]);
   const todayRef = useRef<HTMLDivElement>(null);
@@ -328,13 +328,13 @@ export function TaskListView({
                       key={task._id}
                       task={task}
                       isOverdue={isTaskOverdue(task)}
-                      onStart={onTaskStart}
-                      onPause={onTaskPause}
-                      onResume={onTaskResume}
                       onComplete={onTaskComplete}
+                      onUncomplete={onTaskUncomplete}
+                      onSkip={onTaskSkip}
                       onEdit={onTaskEdit}
                       onDelete={onTaskDelete}
                       onRestore={onRestoreOccurrence}
+                      onRestoreSkipped={onRestoreSkipped}
                     />
                   ))}
                 </div>

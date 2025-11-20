@@ -18,12 +18,12 @@ interface TaskStatusBadgeProps {
 }
 
 const statusConfig = {
-  [TaskStatus.DRAFT]: {
+  [TaskStatus.PENDING]: {
     label: "Draft",
     className: "bg-gray-100 text-gray-700 border-gray-300",
     Icon: IconFileText,
   },
-  [TaskStatus.SCHEDULED]: {
+  [TaskStatus.PENDING]: {
     label: "Scheduled",
     className: "bg-blue-100 text-blue-700 border-blue-300",
     Icon: IconCalendar,
@@ -43,7 +43,7 @@ const statusConfig = {
     className: "bg-purple-100 text-purple-700 border-purple-300",
     Icon: IconCircleCheck,
   },
-  [TaskStatus.CANCELLED]: {
+  [TaskStatus.SKIPPED]: {
     label: "Cancelled",
     className: "bg-red-100 text-red-700 border-red-300",
     Icon: IconX,

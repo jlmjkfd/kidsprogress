@@ -79,6 +79,7 @@ class TaskService:
 
             # Recurrence (Unified Model - replaces Routine)
             "is_recurring": task_data.is_recurring,
+            "is_virtual": False,  # New tasks are real (not virtual instances)
             "recurrence_pattern": task_data.recurrence_pattern,
             "source_recurring_task_id": None,
 
@@ -107,7 +108,7 @@ class TaskService:
             "concurrent_allowed": False,
             "concurrent_compatible_with": [],
 
-            "status": TaskStatus.DRAFT.value,
+            "status": TaskStatus.PENDING.value,
             "activation_rule": (
                 task_data.activation_rule.model_dump() if task_data.activation_rule else None
             ),
@@ -209,7 +210,7 @@ class TaskService:
                 "is_delayed": False,
                 "concurrent_allowed": False,
                 "concurrent_compatible_with": [],
-                "status": TaskStatus.DRAFT.value,
+                "status": TaskStatus.PENDING.value,
                 "activation_rule": task_data.activation_rule.model_dump() if task_data.activation_rule else None,
                 "constraints": task_data.constraints.model_dump() if task_data.constraints else None,
                 "pause_history": [],
@@ -728,14 +729,14 @@ class TaskService:
         if not existing:
             return None
 
-        if existing.get("status") != TaskStatus.DRAFT.value:
+        if existing.get("status") != TaskStatus.PENDING.value:
             raise ValueError("Can only activate tasks in DRAFT status")
 
         result = await self.tasks_collection.find_one_and_update(
             {"_id": ObjectId(task_id), "parent_id": ObjectId(parent_id)},
             {
                 "$set": {
-                    "status": TaskStatus.SCHEDULED.value,
+                    "status": TaskStatus.PENDING.value,
                     "activated_at": utcnow(),
                     "updated_at": utcnow(),
                 }
@@ -870,7 +871,7 @@ class TaskService:
         if not existing:
             raise ValueError("Task not found")
 
-        if existing.get("status") != TaskStatus.SCHEDULED.value:
+        if existing.get("status") != TaskStatus.PENDING.value:
             raise ValueError("Can only start tasks in SCHEDULED status")
 
         # Check for concurrent tasks
@@ -1097,7 +1098,7 @@ class TaskService:
             {"_id": ObjectId(task_id), "parent_id": ObjectId(parent_id)},
             {
                 "$set": {
-                    "status": TaskStatus.CANCELLED.value,
+                    "status": TaskStatus.SKIPPED.value,
                     "updated_at": utcnow(),
                 }
             },
@@ -1106,6 +1107,193 @@ class TaskService:
 
         # Remove active session if exists
         await self._remove_active_session(task_id)
+
+        if not result:
+            return None
+
+        return Task(**result)
+
+    async def complete_task_with_times(
+        self, task_id: str, child_id: str, start_time: str, end_time: str
+    ) -> Optional[Task]:
+        """Complete a task with custom start and end times (parent action).
+
+        Args:
+            task_id: Task's ObjectId as string (or virtual task ID)
+            child_id: Child's ObjectId as string
+            start_time: Start time in HH:MM format
+            end_time: End time in HH:MM format
+
+        Returns:
+            Updated task or None if not found
+        """
+        # Check if this is a virtual task
+        is_virtual = "_" in task_id and not ObjectId.is_valid(task_id)
+
+        if is_virtual:
+            # Materialize virtual task first
+            child = await self.db.children.find_one({"_id": ObjectId(child_id)})
+            if not child:
+                raise ValueError("Child not found")
+            parent_id = str(child.get("parent_id"))
+
+            all_tasks = await self.get_tasks_by_child(child_id, parent_id)
+            virtual_task = None
+            for task in all_tasks:
+                if task.get("_id") == task_id and task.get("is_virtual"):
+                    virtual_task = task
+                    break
+
+            if not virtual_task:
+                raise ValueError(f"Virtual task not found: {task_id}")
+
+            materialized = await self._materialize_virtual_task(task_id, virtual_task)
+            task_id = str(materialized.id)
+
+        if not ObjectId.is_valid(task_id) or not ObjectId.is_valid(child_id):
+            return None
+
+        # Get task's scheduled date to construct full datetime
+        existing = await self.tasks_collection.find_one(
+            {"_id": ObjectId(task_id), "child_id": ObjectId(child_id)}
+        )
+        if not existing:
+            return None
+
+        # Parse scheduled date
+        scheduled_date_str = existing.get("scheduled_date")
+        if scheduled_date_str:
+            if isinstance(scheduled_date_str, datetime):
+                scheduled_date = scheduled_date_str.date()
+            else:
+                scheduled_date = datetime.fromisoformat(scheduled_date_str.replace("Z", "+00:00")).date()
+        else:
+            # Fallback to today
+            scheduled_date = datetime.now(timezone.utc).date()
+
+        # Parse start and end times
+        start_h, start_m = map(int, start_time.split(":"))
+        end_h, end_m = map(int, end_time.split(":"))
+
+        # Construct full datetime objects
+        started_at = datetime(
+            scheduled_date.year, scheduled_date.month, scheduled_date.day,
+            start_h, start_m, 0, tzinfo=timezone.utc
+        )
+        completed_at = datetime(
+            scheduled_date.year, scheduled_date.month, scheduled_date.day,
+            end_h, end_m, 0, tzinfo=timezone.utc
+        )
+
+        result = await self.tasks_collection.find_one_and_update(
+            {"_id": ObjectId(task_id), "child_id": ObjectId(child_id)},
+            {
+                "$set": {
+                    "status": TaskStatus.COMPLETED.value,
+                    "started_at": started_at,
+                    "completed_at": completed_at,
+                    "updated_at": utcnow(),
+                }
+            },
+            return_document=True,
+        )
+
+        # Remove active session if exists
+        await self._remove_active_session(task_id)
+
+        if not result:
+            return None
+
+        return Task(**result)
+
+    async def uncomplete_task(self, task_id: str, parent_id: str) -> Optional[Task]:
+        """Mark a completed task as pending again (parent action).
+
+        Args:
+            task_id: Task's ObjectId as string
+            parent_id: Parent's ObjectId as string (for authorization)
+
+        Returns:
+            Updated task or None if not found
+        """
+        if not ObjectId.is_valid(task_id) or not ObjectId.is_valid(parent_id):
+            return None
+
+        result = await self.tasks_collection.find_one_and_update(
+            {"_id": ObjectId(task_id), "parent_id": ObjectId(parent_id)},
+            {
+                "$set": {
+                    "status": TaskStatus.PENDING.value,
+                    "updated_at": utcnow(),
+                },
+                "$unset": {
+                    "started_at": "",
+                    "completed_at": "",
+                },
+            },
+            return_document=True,
+        )
+
+        if not result:
+            return None
+
+        return Task(**result)
+
+    async def skip_task(self, task_id: str, parent_id: str) -> Optional[Task]:
+        """Mark a task as skipped (parent action for must_do/should_do tasks).
+
+        Args:
+            task_id: Task's ObjectId as string
+            parent_id: Parent's ObjectId as string (for authorization)
+
+        Returns:
+            Updated task or None if not found
+        """
+        if not ObjectId.is_valid(task_id) or not ObjectId.is_valid(parent_id):
+            return None
+
+        result = await self.tasks_collection.find_one_and_update(
+            {"_id": ObjectId(task_id), "parent_id": ObjectId(parent_id)},
+            {
+                "$set": {
+                    "status": TaskStatus.SKIPPED.value,
+                    "updated_at": utcnow(),
+                }
+            },
+            return_document=True,
+        )
+
+        # Remove active session if exists
+        await self._remove_active_session(task_id)
+
+        if not result:
+            return None
+
+        return Task(**result)
+
+    async def restore_skipped_task(self, task_id: str, parent_id: str) -> Optional[Task]:
+        """Restore a skipped task to pending (parent action).
+
+        Args:
+            task_id: Task's ObjectId as string
+            parent_id: Parent's ObjectId as string (for authorization)
+
+        Returns:
+            Updated task or None if not found
+        """
+        if not ObjectId.is_valid(task_id) or not ObjectId.is_valid(parent_id):
+            return None
+
+        result = await self.tasks_collection.find_one_and_update(
+            {"_id": ObjectId(task_id), "parent_id": ObjectId(parent_id)},
+            {
+                "$set": {
+                    "status": TaskStatus.PENDING.value,
+                    "updated_at": utcnow(),
+                }
+            },
+            return_document=True,
+        )
 
         if not result:
             return None
@@ -1225,7 +1413,7 @@ class TaskService:
             {
                 "$set": {
                     "is_in_backlog": True,
-                    "status": TaskStatus.SCHEDULED.value,  # Keep scheduled for later activation
+                    "status": TaskStatus.PENDING.value,  # Keep scheduled for later activation
                     "updated_at": utcnow(),
                 }
             },
@@ -1233,6 +1421,59 @@ class TaskService:
         )
 
         return Task(**result) if result else None
+
+    async def process_overdue_tasks(self, child_id: str, date: datetime) -> dict:
+        """Process overdue tasks at end of day: skip should_do/optional, rollover must_do.
+
+        Args:
+            child_id: Child's ObjectId as string
+            date: The date that just ended (tasks scheduled for this date)
+
+        Returns:
+            Dict with counts of skipped and rolled over tasks
+        """
+        from backend.models.task import ObligationLevel
+
+        # Get incomplete tasks for the specified date
+        start_of_day = datetime.combine(date.date(), datetime.min.time())
+        end_of_day = datetime.combine(date.date(), datetime.max.time())
+
+        incomplete_tasks = await self.tasks_collection.find({
+            "child_id": ObjectId(child_id),
+            "scheduled_date": {"$gte": start_of_day, "$lte": end_of_day},
+            "status": {"$in": [TaskStatus.PENDING.value, TaskStatus.IN_PROGRESS.value, TaskStatus.PAUSED.value]},
+            "is_virtual": {"$ne": True},  # Don't process virtual instances
+        }).to_list(None)
+
+        skipped_count = 0
+        rollover_count = 0
+
+        for task_doc in incomplete_tasks:
+            task = Task(**task_doc)
+
+            # Skip must_do tasks - they will be rolled over to next day
+            if task.obligation_level == ObligationLevel.MUST_DO:
+                # Rollover to next day
+                next_day = date + timedelta(days=1)
+                await self.rollover_task(str(task.id), next_day)
+                rollover_count += 1
+            else:
+                # Mark should_do and optional tasks as skipped
+                await self.tasks_collection.update_one(
+                    {"_id": task.id},
+                    {
+                        "$set": {
+                            "status": TaskStatus.SKIPPED.value,
+                            "updated_at": utcnow(),
+                        }
+                    }
+                )
+                skipped_count += 1
+
+        return {
+            "skipped": skipped_count,
+            "rolled_over": rollover_count,
+        }
 
     async def validate_concurrent_tasks(self, task: Task, child_id: ObjectId) -> dict:
         """Validate if task can run concurrently with active tasks.

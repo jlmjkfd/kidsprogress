@@ -11,12 +11,11 @@ from backend.utils.datetime_utils import utcnow
 # Enums
 class TaskStatus(str, Enum):
     """Task lifecycle status."""
-    DRAFT = "draft"  # Created but not activated
-    SCHEDULED = "scheduled"  # Activated, waiting for start
-    IN_PROGRESS = "in_progress"  # Child is working on it
-    PAUSED = "paused"  # Temporarily paused
-    COMPLETED = "completed"  # Finished
-    CANCELLED = "cancelled"  # Cancelled by parent or child
+    PENDING = "pending"  # Task waiting to be done (replaces DRAFT + SCHEDULED)
+    IN_PROGRESS = "in_progress"  # Child clicked start
+    PAUSED = "paused"  # Child paused
+    COMPLETED = "completed"  # Task finished
+    SKIPPED = "skipped"  # Task was not done (overdue or manually skipped)
     ARCHIVED = "archived"  # Completed and archived
 
 
@@ -260,7 +259,7 @@ class Task(BaseModel):
     obligation_level: ObligationLevel = ObligationLevel.OPTIONAL
 
     # Lifecycle
-    status: TaskStatus = TaskStatus.DRAFT
+    status: TaskStatus = TaskStatus.PENDING
     activation_rule: Optional[ActivationRule] = None
     constraints: Optional[TaskConstraints] = None
 

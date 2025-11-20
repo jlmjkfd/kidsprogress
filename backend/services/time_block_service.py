@@ -59,7 +59,7 @@ class TimeBlockService:
                 fixed_time_slot=data.time_slot,
                 concurrent_allowed=data.allows_concurrent,
                 subtasks=data.subtasks,
-                status=TaskStatus.SCHEDULED,
+                status=TaskStatus.PENDING,
             )
 
             task_result = await self.tasks.insert_one(task.model_dump(by_alias=True))

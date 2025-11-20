@@ -126,7 +126,7 @@ class RoutineService:
                 "scheduled_date": {"$gte": datetime.combine(skip_date, datetime.min.time()),
                                    "$lt": datetime.combine(skip_date + timedelta(days=1), datetime.min.time())}
             },
-            {"$set": {"status": "cancelled", "updated_at": utcnow()}}
+            {"$set": {"status": "skipped", "updated_at": utcnow()}}
         )
 
         return True
@@ -218,7 +218,7 @@ class RoutineService:
             quality_aspects=routine.quality_aspects,
             tools=routine.tools,
             subtasks=routine.subtasks,
-            status=TaskStatus.SCHEDULED,  # Auto-activate tasks from routines
+            status=TaskStatus.PENDING,  # Auto-activate tasks from routines
         )
 
         result = await self.tasks.insert_one(task.model_dump(by_alias=True))

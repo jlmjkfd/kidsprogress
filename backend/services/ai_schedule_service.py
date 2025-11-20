@@ -83,7 +83,7 @@ class AIScheduleService:
                 # Overdue tasks (past scheduled tasks that are incomplete)
                 {
                     "scheduled_date": {"$lt": start_of_day},
-                    "status": {"$nin": ["completed", "cancelled"]}
+                    "status": {"$nin": ["completed", "skipped"]}
                 }
             ]
         }).sort("scheduled_date", 1)
@@ -299,7 +299,7 @@ class AIScheduleService:
             tasks_cursor = self.db.tasks.find({
                 "child_id": ObjectId(child_id),
                 "scheduled_date": {"$gte": today_start, "$lte": today_end},
-                "status": {"$in": ["draft", "scheduled", "in_progress"]}
+                "status": {"$in": ["pending", "in_progress"]}
             })
 
             tasks_to_check = []
@@ -343,7 +343,7 @@ class AIScheduleService:
             if task.constraints and task.constraints.prerequisite_tasks:
                 for prereq_id in task.constraints.prerequisite_tasks:
                     prereq_task = await self.db.tasks.find_one({"_id": ObjectId(prereq_id)})
-                    if prereq_task and prereq_task["status"] not in ["completed", "cancelled"]:
+                    if prereq_task and prereq_task["status"] not in ["completed", "skipped"]:
                         conflicts.append(ScheduleConflict(
                             type="prerequisite",
                             description=f"Must complete '{prereq_task['title']}' first",
@@ -405,7 +405,7 @@ class AIScheduleService:
         remaining_tasks_cursor = self.db.tasks.find({
             "child_id": ObjectId(child_id),
             "scheduled_date": {"$gte": current_time, "$lte": today_end},
-            "status": {"$in": ["draft", "scheduled"]},
+            "status": {"$in": ["pending"]},
             "_id": {"$ne": ObjectId(current_task_id)}
         }).sort("scheduled_date", 1)
 

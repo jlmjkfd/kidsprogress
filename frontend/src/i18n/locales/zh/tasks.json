@@ -66,6 +66,7 @@
   "description_placeholder": "添加有关此任务的更多详细信息...",
   "filter_by_status": "按状态筛选：",
   "all": "全部",
+  "pending": "待处理",
   "draft": "草稿",
   "scheduled": "已安排",
   "in_progress": "进行中",
@@ -325,5 +326,19 @@
   "view_week": "周视图",
   "view_day": "日视图",
   "deleted": "已删除",
-  "restore_occurrence": "恢复此事件"
+  "restore_occurrence": "恢复此事件",
+  "actual_completion": "实际",
+  "skipped": "已跳过",
+  "skip": "跳过",
+  "restore": "恢复",
+  "uncomplete": "标记为未完成",
+  "complete_modal": {
+    "title": "完成任务",
+    "set_actual_time": "设置任务实际完成的时间",
+    "start_time": "开始时间",
+    "end_time": "结束时间",
+    "duration": "时长",
+    "time_required": "开始和结束时间都是必需的",
+    "end_after_start": "结束时间必须晚于开始时间"
+  }
 }

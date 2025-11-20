@@ -64,7 +64,7 @@ class ScheduleService:
     ) -> List[Dict]:
         """Detect time conflicts for a specific date."""
         tasks = await self.get_tasks_for_date(
-            child_id, target_date, include_status=["scheduled", "in_progress"]
+            child_id, target_date, include_status=["pending", "in_progress"]
         )
         time_blocks = await self.get_time_blocks_for_date(child_id, target_date)
 
@@ -115,7 +115,7 @@ class ScheduleService:
         """Get available time slots for a given duration."""
         # Get blocked times
         tasks = await self.get_tasks_for_date(
-            child_id, target_date, include_status=["scheduled", "in_progress"]
+            child_id, target_date, include_status=["pending", "in_progress"]
         )
         time_blocks = await self.get_time_blocks_for_date(child_id, target_date)
 
@@ -175,7 +175,7 @@ class ScheduleService:
     ) -> Dict:
         """Calculate schedule load for overload detection."""
         tasks = await self.get_tasks_for_date(
-            child_id, target_date, include_status=["scheduled", "in_progress"]
+            child_id, target_date, include_status=["pending", "in_progress"]
         )
 
         must_do_tasks = [t for t in tasks if t.obligation_level.value == "must_do"]

@@ -106,7 +106,7 @@ class TaskInstanceGenerator:
             )
 
         # Set status to SCHEDULED (auto-activated)
-        instance_dict["status"] = TaskStatus.SCHEDULED.value
+        instance_dict["status"] = TaskStatus.PENDING.value
         instance_dict["activated_at"] = utcnow()
 
         # Update metadata
@@ -187,7 +187,7 @@ class TaskInstanceGenerator:
                 "source_recurring_task_id": str(recurring_task.id),
                 "scheduled_date": {"$gte": start_date},
                 "status": {
-                    "$in": [TaskStatus.DRAFT.value, TaskStatus.SCHEDULED.value]
+                    "$in": [TaskStatus.PENDING.value, TaskStatus.PENDING.value]
                 },
             }
         )

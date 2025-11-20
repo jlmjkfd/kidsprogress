@@ -66,6 +66,7 @@
   "description_placeholder": "Add more details about this task...",
   "filter_by_status": "Filter by status:",
   "all": "All",
+  "pending": "Pending",
   "draft": "Draft",
   "scheduled": "Scheduled",
   "in_progress": "In Progress",
@@ -324,5 +325,19 @@
   "view_week": "Week",
   "view_day": "Day",
   "deleted": "Deleted",
-  "restore_occurrence": "Restore this occurrence"
+  "restore_occurrence": "Restore this occurrence",
+  "actual_completion": "Actual",
+  "skipped": "Skipped",
+  "skip": "Skip",
+  "restore": "Restore",
+  "uncomplete": "Mark as Incomplete",
+  "complete_modal": {
+    "title": "Complete Task",
+    "set_actual_time": "Set the actual time this task was completed",
+    "start_time": "Start Time",
+    "end_time": "End Time",
+    "duration": "Duration",
+    "time_required": "Both start and end times are required",
+    "end_after_start": "End time must be after start time"
+  }
 }

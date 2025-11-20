@@ -221,7 +221,7 @@ class ActivityService:
             quality_aspects=activity.quality_aspects,
             tools=activity.tools,
             subtasks=activity.subtasks,
-            status=TaskStatus.SCHEDULED,
+            status=TaskStatus.PENDING,
         )
 
         result = await self.tasks.insert_one(task.model_dump(by_alias=True))

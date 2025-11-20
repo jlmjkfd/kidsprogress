@@ -77,7 +77,7 @@ export function DayDetailModal({
         return "bg-blue-500";
       case TaskStatus.PAUSED:
         return "bg-yellow-500";
-      case TaskStatus.CANCELLED:
+      case TaskStatus.SKIPPED:
         return "bg-gray-400";
       default:
         return "bg-gray-300";
@@ -173,10 +173,10 @@ export function DayDetailModal({
 
   // Separate overdue tasks (past tasks not completed)
   const overdueTasks = isPast
-    ? filteredTasks.filter((t) => t.status !== TaskStatus.COMPLETED && t.status !== TaskStatus.CANCELLED)
+    ? filteredTasks.filter((t) => t.status !== TaskStatus.COMPLETED && t.status !== TaskStatus.SKIPPED)
     : [];
   const regularTasks = isPast
-    ? filteredTasks.filter((t) => t.status === TaskStatus.COMPLETED || t.status === TaskStatus.CANCELLED)
+    ? filteredTasks.filter((t) => t.status === TaskStatus.COMPLETED || t.status === TaskStatus.SKIPPED)
     : filteredTasks;
 
   return (

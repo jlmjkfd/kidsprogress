@@ -46,8 +46,8 @@ export default function TaskListPage() {
 
   const statusFilters = [
     { label: t("tasks:all"), value: undefined },
-    { label: t("tasks:draft"), value: TaskStatus.DRAFT },
-    { label: t("tasks:scheduled"), value: TaskStatus.SCHEDULED },
+    { label: t("tasks:draft"), value: TaskStatus.PENDING },
+    { label: t("tasks:scheduled"), value: TaskStatus.PENDING },
     { label: t("tasks:in_progress"), value: TaskStatus.IN_PROGRESS },
     { label: t("tasks:completed"), value: TaskStatus.COMPLETED },
   ];

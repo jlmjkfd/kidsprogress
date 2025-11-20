@@ -28,7 +28,7 @@ async def rollover_incomplete_tasks(db: AsyncIOMotorDatabase):
         # Find incomplete must-do tasks scheduled for today
         query = {
             "obligation_level": ObligationLevel.MUST_DO.value,
-            "status": {"$in": [TaskStatus.SCHEDULED.value, TaskStatus.IN_PROGRESS.value]},
+            "status": {"$in": [TaskStatus.PENDING.value, TaskStatus.IN_PROGRESS.value]},
             "scheduled_date": {
                 "$gte": datetime.combine(today, datetime.min.time()),
                 "$lt": datetime.combine(today + timedelta(days=1), datetime.min.time())

@@ -263,6 +263,66 @@ async def cancel_task(
     return task
 
 
+# ==================== Parent Actions ====================
+
+@router.post("/{task_id}/complete-with-times", response_model=Task)
+async def complete_task_with_times(
+    task_id: str,
+    child_id: str = Query(..., description="Child's ID"),
+    start_time: str = Query(..., description="Start time in HH:MM format"),
+    end_time: str = Query(..., description="End time in HH:MM format"),
+    current_user: User = Depends(get_current_user),
+    service: TaskService = Depends(get_task_service),
+):
+    """Complete a task with custom start and end times (parent action)."""
+    try:
+        task = await service.complete_task_with_times(task_id, child_id, start_time, end_time)
+        if not task:
+            raise HTTPException(status_code=404, detail="Task not found")
+        return task
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/{task_id}/uncomplete", response_model=Task)
+async def uncomplete_task(
+    task_id: str,
+    current_user: User = Depends(get_current_user),
+    service: TaskService = Depends(get_task_service),
+):
+    """Mark a completed task as pending again (parent action)."""
+    task = await service.uncomplete_task(task_id, str(current_user.id))
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return task
+
+
+@router.post("/{task_id}/skip", response_model=Task)
+async def skip_task(
+    task_id: str,
+    current_user: User = Depends(get_current_user),
+    service: TaskService = Depends(get_task_service),
+):
+    """Mark a task as skipped (parent action)."""
+    task = await service.skip_task(task_id, str(current_user.id))
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return task
+
+
+@router.post("/{task_id}/restore-skipped", response_model=Task)
+async def restore_skipped_task(
+    task_id: str,
+    current_user: User = Depends(get_current_user),
+    service: TaskService = Depends(get_task_service),
+):
+    """Restore a skipped task to pending (parent action)."""
+    task = await service.restore_skipped_task(task_id, str(current_user.id))
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return task
+
+
 # ==================== Concurrent Task Management ====================
 
 

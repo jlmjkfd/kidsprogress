@@ -182,6 +182,93 @@ export const useCancelTask = () => {
   });
 };
 
+// ==================== Parent Actions ====================
+
+export const useCompleteTaskWithTimes = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      taskId,
+      childId,
+      startTime,
+      endTime,
+    }: {
+      taskId: string;
+      childId: string;
+      startTime: string;
+      endTime: string;
+    }) => {
+      const response = await apiClient.post<Task>(
+        `/api/tasks/${taskId}/complete-with-times`,
+        null,
+        {
+          params: {
+            child_id: childId,
+            start_time: startTime,
+            end_time: endTime,
+          },
+        }
+      );
+      return response.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["task", data._id] });
+      queryClient.invalidateQueries({ queryKey: ["tasks", "collection", data.collection_id] });
+      queryClient.invalidateQueries({ queryKey: ["tasks", "child", data.child_id] });
+      queryClient.invalidateQueries({ queryKey: ["activeTasks", data.child_id] });
+    },
+  });
+};
+
+export const useUncompleteTask = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (taskId: string) => {
+      const response = await apiClient.post<Task>(`/api/tasks/${taskId}/uncomplete`);
+      return response.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["task", data._id] });
+      queryClient.invalidateQueries({ queryKey: ["tasks", "collection", data.collection_id] });
+      queryClient.invalidateQueries({ queryKey: ["tasks", "child", data.child_id] });
+    },
+  });
+};
+
+export const useSkipTask = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (taskId: string) => {
+      const response = await apiClient.post<Task>(`/api/tasks/${taskId}/skip`);
+      return response.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["task", data._id] });
+      queryClient.invalidateQueries({ queryKey: ["tasks", "collection", data.collection_id] });
+      queryClient.invalidateQueries({ queryKey: ["tasks", "child", data.child_id] });
+    },
+  });
+};
+
+export const useRestoreSkippedTask = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (taskId: string) => {
+      const response = await apiClient.post<Task>(`/api/tasks/${taskId}/restore-skipped`);
+      return response.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["task", data._id] });
+      queryClient.invalidateQueries({ queryKey: ["tasks", "collection", data.collection_id] });
+      queryClient.invalidateQueries({ queryKey: ["tasks", "child", data.child_id] });
+    },
+  });
+};
+
 export const useAddRecurrenceException = () => {
   const queryClient = useQueryClient();
 

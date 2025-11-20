@@ -15,10 +15,10 @@ interface CalendarViewProps {
   onDayClick: (date: string, dayTasks: Task[]) => void;
   onTaskDelete?: (taskId: string) => void;
   onRestoreOccurrence?: (templateId: string, occurrenceDate: string) => void;
-  onTaskStart?: (taskId: string) => void;
-  onTaskPause?: (taskId: string) => void;
-  onTaskResume?: (taskId: string) => void;
-  onTaskComplete?: (taskId: string) => void;
+  onTaskComplete?: (task: Task) => void; // Parent complete with time modal
+  onTaskUncomplete?: (taskId: string) => void;
+  onTaskSkip?: (taskId: string) => void;
+  onRestoreSkipped?: (taskId: string) => void;
   isTaskOverdue?: (task: Task) => boolean;
 }
 
@@ -31,10 +31,10 @@ export function CalendarView({
   onDayClick,
   onTaskDelete,
   onRestoreOccurrence,
-  onTaskStart,
-  onTaskPause,
-  onTaskResume,
   onTaskComplete,
+  onTaskUncomplete,
+  onTaskSkip,
+  onRestoreSkipped,
   isTaskOverdue,
 }: CalendarViewProps) {
   const { t } = useTranslation(["common", "tasks"]);
@@ -66,13 +66,13 @@ export function CalendarView({
                 key={task._id}
                 task={task}
                 isOverdue={isTaskOverdue?.(task) ?? false}
-                onStart={onTaskStart}
-                onPause={onTaskPause}
-                onResume={onTaskResume}
                 onComplete={onTaskComplete}
+                onUncomplete={onTaskUncomplete}
+                onSkip={onTaskSkip}
                 onEdit={onTaskClick}
                 onDelete={onTaskDelete}
                 onRestore={onRestoreOccurrence}
+                onRestoreSkipped={onRestoreSkipped}
               />
             ))}
           </div>

@@ -51,7 +51,7 @@ export default function ChildTasksPage() {
   // Separate tasks by status for better organization
   const inProgressTasks = tasks.filter(t => t.status === TaskStatus.IN_PROGRESS);
   const pausedTasks = tasks.filter(t => t.status === TaskStatus.PAUSED);
-  const todoTasks = tasks.filter(t => t.status === TaskStatus.SCHEDULED || t.status === TaskStatus.DRAFT);
+  const todoTasks = tasks.filter(t => t.status === TaskStatus.PENDING || t.status === TaskStatus.PENDING);
   const completedToday = allTasks?.filter(t => {
     const today = new Date().toISOString().split("T")[0];
     const completedDate = t.completed_at?.split("T")[0];
