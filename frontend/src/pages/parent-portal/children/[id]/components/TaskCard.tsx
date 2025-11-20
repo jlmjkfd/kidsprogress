@@ -210,8 +210,30 @@ export function TaskCard({
             {task.fixed_time_slot && (
               <div className="flex items-center gap-1">
                 <IconClock size={16} />
-                <span>
+                <span className="font-medium text-purple-700">
                   {task.fixed_time_slot.start} - {task.fixed_time_slot.end}
+                </span>
+              </div>
+            )}
+            {task.preferred_time_window && (
+              <div className="flex items-center gap-1">
+                <IconClock size={16} />
+                <span className="font-medium text-cyan-700">
+                  {task.preferred_time_window.start} - {task.preferred_time_window.end}
+                  <span className="ml-1 text-xs text-gray-500">
+                    ({t("tasks:time_window")})
+                  </span>
+                </span>
+              </div>
+            )}
+            {task.preferred_time_slot && !task.fixed_time_slot && !task.preferred_time_window && (
+              <div className="flex items-center gap-1">
+                <IconClock size={16} />
+                <span className="text-blue-700">
+                  {task.preferred_time_slot.start} - {task.preferred_time_slot.end}
+                  <span className="ml-1 text-xs text-gray-500">
+                    ({t("tasks:preferred")})
+                  </span>
                 </span>
               </div>
             )}
