@@ -32,7 +32,7 @@ export function EditOccurrenceModal({
   const occurrenceDate = task.scheduled_date?.split("T")[0] || "";
   const [fixedStart, setFixedStart] = useState(task.fixed_time_slot?.start || "");
   const [fixedEnd, setFixedEnd] = useState(task.fixed_time_slot?.end || "");
-  const [title, setTitle] = useState(task.title);
+  const [description, setDescription] = useState(task.description || "");
 
   if (!isOpen || !task.is_virtual || !task.source_recurring_task_id) {
     return null;
@@ -46,8 +46,8 @@ export function EditOccurrenceModal({
         const overrides: Record<string, any> = {};
 
         // Check what changed
-        if (title !== task.title) {
-          overrides.title = title;
+        if (description !== (task.description || "")) {
+          overrides.description = description;
         }
         if (fixedStart !== task.fixed_time_slot?.start || fixedEnd !== task.fixed_time_slot?.end) {
           overrides.fixed_time_slot = {
@@ -56,12 +56,15 @@ export function EditOccurrenceModal({
           };
         }
 
-        await addExceptionMutation.mutateAsync({
-          taskId: task.source_recurring_task_id,
-          exceptionDate: occurrenceDate,
-          exceptionType: "modified",
-          overrides,
-        });
+        // If there are any overrides, the backend will materialize this virtual task
+        if (Object.keys(overrides).length > 0) {
+          await addExceptionMutation.mutateAsync({
+            taskId: task.source_recurring_task_id,
+            exceptionDate: occurrenceDate,
+            exceptionType: "modified",
+            overrides,
+          });
+        }
       } else if (editOption === "all") {
         // Edit all occurrences - redirect to template editing
         if (onEditTemplate && task.source_recurring_task_id) {
@@ -164,17 +167,40 @@ export function EditOccurrenceModal({
               <div className="space-y-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
                 <h3 className="font-medium text-gray-900">{t("tasks:edit_details")}</h3>
 
-                {/* Title */}
+                {/* Title (Read-only) */}
                 <div>
                   <label className="mb-2 block text-sm font-medium text-gray-700">
                     {t("tasks:task_title")}
                   </label>
                   <input
                     type="text"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2"
+                    value={task.title}
+                    readOnly
+                    className="w-full rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-gray-600 cursor-not-allowed"
+                    title={t("tasks:edit_template_to_change_title")}
                   />
+                  <p className="mt-1 text-xs text-gray-500">
+                    {t("tasks:title_read_only_hint")}
+                  </p>
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-700">
+                    {t("tasks:description")}
+                  </label>
+                  <textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2"
+                    rows={3}
+                    placeholder={t("tasks:description_placeholder")}
+                  />
+                  {task.is_virtual && description !== (task.description || "") && (
+                    <p className="mt-1 text-xs text-blue-600">
+                      {t("tasks:editing_will_materialize")}
+                    </p>
+                  )}
                 </div>
 
                 {/* Time Slot */}
