@@ -368,6 +368,11 @@ export default function ChildTasksPage() {
           onDayClick={handleDayClick}
           onTaskDelete={handleDeleteTask}
           onRestoreOccurrence={handleRestoreOccurrence}
+          onTaskStart={handleStartTask}
+          onTaskPause={handlePauseTask}
+          onTaskResume={handleResumeTask}
+          onTaskComplete={handleCompleteTask}
+          isTaskOverdue={isTaskOverdue}
         />
       ) : (
         <TaskListView
