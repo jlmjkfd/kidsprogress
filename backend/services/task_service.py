@@ -565,13 +565,38 @@ class TaskService:
     async def delete_task(self, task_id: str, parent_id: str) -> bool:
         """Delete a task.
 
+        For virtual tasks, adds a 'deleted' exception to the template instead of actually deleting.
+        For real tasks, performs actual deletion from database.
+
         Args:
-            task_id: Task's ObjectId as string
+            task_id: Task's ObjectId as string (or virtual task ID: template_id_date)
             parent_id: Parent's ObjectId as string (for authorization)
 
         Returns:
-            True if deleted, False if not found or unauthorized
+            True if deleted/exception added, False if not found or unauthorized
         """
+        # Check if this is a virtual task
+        is_virtual = "_" in task_id and not ObjectId.is_valid(task_id)
+
+        if is_virtual:
+            # Parse virtual task ID to get template ID and date
+            parts = task_id.split("_")
+            if len(parts) < 2:
+                return False
+
+            template_id = parts[0]
+            occurrence_date = "_".join(parts[1:])
+
+            # Add exception to template to mark this occurrence as deleted
+            result = await self.add_recurrence_exception(
+                template_id,
+                parent_id,
+                occurrence_date,
+                "deleted"
+            )
+            return result is not None
+
+        # For real tasks, perform actual deletion
         if not ObjectId.is_valid(task_id) or not ObjectId.is_valid(parent_id):
             return False
 
@@ -723,11 +748,79 @@ class TaskService:
 
         return Task(**result)
 
+    async def _materialize_virtual_task(
+        self, virtual_task_id: str, virtual_task_data: Dict[str, Any]
+    ) -> Task:
+        """Convert a virtual task instance to a real database record.
+
+        This is called when a user interacts with a virtual task (start, complete, edit, delete).
+        The virtual task becomes a permanent record and an exception is added to the template.
+
+        Args:
+            virtual_task_id: Virtual task ID (format: template_id_date)
+            virtual_task_data: Virtual task data dict
+
+        Returns:
+            Materialized task with new ObjectId
+
+        Raises:
+            ValueError: If template not found or data invalid
+        """
+        # Parse virtual task ID to get template ID and date
+        parts = virtual_task_id.split("_")
+        if len(parts) < 2:
+            raise ValueError(f"Invalid virtual task ID format: {virtual_task_id}")
+
+        template_id = parts[0]
+        occurrence_date = "_".join(parts[1:])  # Handle dates with underscores
+
+        # Verify template exists
+        if not ObjectId.is_valid(template_id):
+            raise ValueError(f"Invalid template ID in virtual task: {template_id}")
+
+        template = await self.tasks_collection.find_one({"_id": ObjectId(template_id)})
+        if not template:
+            raise ValueError(f"Template not found: {template_id}")
+
+        # Prepare materialized task data
+        materialized_data = virtual_task_data.copy()
+        materialized_data.pop("_id", None)  # Remove virtual ID
+        materialized_data["is_virtual"] = False  # Mark as real
+        materialized_data["source_recurring_task_id"] = template_id
+
+        # Convert string dates back to datetime if needed
+        if isinstance(materialized_data.get("scheduled_date"), str):
+            materialized_data["scheduled_date"] = datetime.fromisoformat(
+                materialized_data["scheduled_date"].replace("Z", "+00:00")
+            )
+
+        # Insert materialized task into database
+        result = await self.tasks_collection.insert_one(materialized_data)
+        materialized_data["_id"] = result.inserted_id
+
+        # Add exception to template to prevent duplicate virtual instance generation
+        await self.tasks_collection.update_one(
+            {"_id": ObjectId(template_id)},
+            {
+                "$push": {
+                    "exceptions": {
+                        "date": occurrence_date,
+                        "type": "materialized",
+                        "reason": "Task was interacted with and materialized to database"
+                    }
+                }
+            }
+        )
+
+        return Task(**materialized_data)
+
     async def start_task(self, task_id: str, child_id: str) -> dict:
         """Start a task (SCHEDULED -> IN_PROGRESS).
 
+        Handles both real tasks and virtual tasks (which are materialized first).
+
         Args:
-            task_id: Task's ObjectId as string
+            task_id: Task's ObjectId as string (or virtual task ID: template_id_date)
             child_id: Child's ObjectId as string
 
         Returns:
@@ -736,6 +829,38 @@ class TaskService:
         Raises:
             ValueError: If task cannot be started
         """
+        # Check if this is a virtual task (ID contains underscore and is not a valid ObjectId)
+        is_virtual = "_" in task_id and not ObjectId.is_valid(task_id)
+
+        if is_virtual:
+            # Get virtual task data from the frontend or regenerate it
+            # For now, we need to get all tasks and find the virtual one
+            parent_id = child_id  # Will be replaced with actual parent_id lookup
+
+            # Get child to find parent
+            child = await self.db.children.find_one({"_id": ObjectId(child_id)})
+            if not child:
+                raise ValueError("Child not found")
+            parent_id = str(child.get("parent_id"))
+
+            # Get all tasks including virtual instances
+            all_tasks = await self.get_tasks_by_child(child_id, parent_id)
+
+            # Find the virtual task
+            virtual_task = None
+            for task in all_tasks:
+                if task.get("_id") == task_id and task.get("is_virtual"):
+                    virtual_task = task
+                    break
+
+            if not virtual_task:
+                raise ValueError(f"Virtual task not found: {task_id}")
+
+            # Materialize the virtual task
+            materialized = await self._materialize_virtual_task(task_id, virtual_task)
+            task_id = str(materialized.id)  # Use new ObjectId for subsequent operations
+
+        # Now proceed with normal start_task logic
         if not ObjectId.is_valid(task_id) or not ObjectId.is_valid(child_id):
             raise ValueError("Invalid task_id or child_id")
 
@@ -887,13 +1012,42 @@ class TaskService:
     async def complete_task(self, task_id: str, child_id: str) -> Optional[Task]:
         """Complete a task (IN_PROGRESS -> COMPLETED).
 
+        Handles both real tasks and virtual tasks (which are materialized first).
+
         Args:
-            task_id: Task's ObjectId as string
+            task_id: Task's ObjectId as string (or virtual task ID: template_id_date)
             child_id: Child's ObjectId as string
 
         Returns:
             Updated task or None if not found or invalid state
         """
+        # Check if this is a virtual task
+        is_virtual = "_" in task_id and not ObjectId.is_valid(task_id)
+
+        if is_virtual:
+            # Get child to find parent
+            child = await self.db.children.find_one({"_id": ObjectId(child_id)})
+            if not child:
+                raise ValueError("Child not found")
+            parent_id = str(child.get("parent_id"))
+
+            # Get all tasks including virtual instances
+            all_tasks = await self.get_tasks_by_child(child_id, parent_id)
+
+            # Find the virtual task
+            virtual_task = None
+            for task in all_tasks:
+                if task.get("_id") == task_id and task.get("is_virtual"):
+                    virtual_task = task
+                    break
+
+            if not virtual_task:
+                raise ValueError(f"Virtual task not found: {task_id}")
+
+            # Materialize the virtual task
+            materialized = await self._materialize_virtual_task(task_id, virtual_task)
+            task_id = str(materialized.id)  # Use new ObjectId for subsequent operations
+
         if not ObjectId.is_valid(task_id) or not ObjectId.is_valid(child_id):
             return None
 
