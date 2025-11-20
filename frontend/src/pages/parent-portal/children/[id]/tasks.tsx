@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { IconPlus, IconCalendar, IconList } from "@tabler/icons-react";
+import { IconPlus, IconCalendar, IconList, IconSchool } from "@tabler/icons-react";
 import { useTasksByChild } from "@/api/queries/useTasks";
 import {
   useCompleteTaskWithTimes,
@@ -291,51 +291,52 @@ export default function ChildTasksPage() {
   }
 
   return (
-    <div className="space-y-6 p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">{t("tasks:title")}</h1>
-        <div className="flex gap-3">
+    <div className="space-y-4">
+      {/* Compact Action Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-xl shadow-sm">
+        {/* View Toggle */}
+        <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+          <button
+            onClick={() => setViewMode("list")}
+            className={`flex items-center justify-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium transition-all min-h-[40px] ${
+              viewMode === "list"
+                ? "bg-white text-blue-700 shadow-sm"
+                : "text-gray-700 hover:text-gray-900"
+            }`}
+          >
+            <IconList size={18} />
+            <span className="hidden sm:inline">{t("tasks:list_view")}</span>
+          </button>
+          <button
+            onClick={() => setViewMode("calendar")}
+            className={`flex items-center justify-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium transition-all min-h-[40px] ${
+              viewMode === "calendar"
+                ? "bg-white text-blue-700 shadow-sm"
+                : "text-gray-700 hover:text-gray-900"
+            }`}
+          >
+            <IconCalendar size={18} />
+            <span className="hidden sm:inline">{t("tasks:calendar_view")}</span>
+          </button>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex gap-2 flex-wrap">
           <button
             onClick={() => setShowSchoolCalendar(true)}
-            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 min-h-[40px] transition-all"
           >
-            {t("tasks:school_calendar_button")}
+            <IconSchool size={18} />
+            <span>{t("tasks:school_calendar_button")}</span>
           </button>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2 text-sm font-medium text-white hover:from-blue-700 hover:to-indigo-700 min-h-[40px] shadow-sm hover:shadow-md transition-all"
           >
             <IconPlus size={18} />
-            {t("tasks:create_task")}
+            <span>{t("tasks:create_task")}</span>
           </button>
         </div>
-      </div>
-
-      {/* View Toggle */}
-      <div className="flex gap-2">
-        <button
-          onClick={() => setViewMode("list")}
-          className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium ${
-            viewMode === "list"
-              ? "bg-blue-600 text-white"
-              : "bg-white text-gray-700 hover:bg-gray-50"
-          }`}
-        >
-          <IconList size={18} />
-          {t("tasks:list_view")}
-        </button>
-        <button
-          onClick={() => setViewMode("calendar")}
-          className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium ${
-            viewMode === "calendar"
-              ? "bg-blue-600 text-white"
-              : "bg-white text-gray-700 hover:bg-gray-50"
-          }`}
-        >
-          <IconCalendar size={18} />
-          {t("tasks:calendar_view")}
-        </button>
       </div>
 
       {/* Filters */}

@@ -239,49 +239,49 @@ export function TaskCalendar({
             {monthName} {year}
           </h2>
 
-          {/* View Switcher */}
+          {/* View Switcher - Icon only on mobile, with text on desktop */}
           <div className="flex items-center gap-2">
             <div className="flex rounded-lg border bg-gray-50 p-1">
               <button
                 onClick={() => setView("month")}
-                className={`rounded px-3 py-1.5 text-xs font-medium transition-colors ${
+                className={`rounded px-2 md:px-3 py-1.5 text-xs font-medium transition-colors min-w-[40px] md:min-w-0 ${
                   view === "month"
                     ? "bg-white text-blue-600 shadow"
                     : "text-gray-600 hover:text-gray-900"
                 }`}
                 title={t("tasks:view_month")}
               >
-                <div className="flex items-center gap-1">
+                <div className="flex items-center justify-center gap-1">
                   <IconCalendar size={16} />
-                  <span className="hidden sm:inline">{t("tasks:view_month")}</span>
+                  <span className="hidden md:inline">{t("tasks:view_month")}</span>
                 </div>
               </button>
               <button
                 onClick={() => setView("week")}
-                className={`rounded px-3 py-1.5 text-xs font-medium transition-colors ${
+                className={`rounded px-2 md:px-3 py-1.5 text-xs font-medium transition-colors min-w-[40px] md:min-w-0 ${
                   view === "week"
                     ? "bg-white text-blue-600 shadow"
                     : "text-gray-600 hover:text-gray-900"
                 }`}
                 title={t("tasks:view_week")}
               >
-                <div className="flex items-center gap-1">
+                <div className="flex items-center justify-center gap-1">
                   <IconCalendarWeek size={16} />
-                  <span className="hidden sm:inline">{t("tasks:view_week")}</span>
+                  <span className="hidden md:inline">{t("tasks:view_week")}</span>
                 </div>
               </button>
               <button
                 onClick={() => setView("day")}
-                className={`rounded px-3 py-1.5 text-xs font-medium transition-colors ${
+                className={`rounded px-2 md:px-3 py-1.5 text-xs font-medium transition-colors min-w-[40px] md:min-w-0 ${
                   view === "day"
                     ? "bg-white text-blue-600 shadow"
                     : "text-gray-600 hover:text-gray-900"
                 }`}
                 title={t("tasks:view_day")}
               >
-                <div className="flex items-center gap-1">
+                <div className="flex items-center justify-center gap-1">
                   <IconCalendarEvent size={16} />
-                  <span className="hidden sm:inline">{t("tasks:view_day")}</span>
+                  <span className="hidden md:inline">{t("tasks:view_day")}</span>
                 </div>
               </button>
             </div>

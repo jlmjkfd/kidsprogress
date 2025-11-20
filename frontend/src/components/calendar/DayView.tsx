@@ -225,9 +225,11 @@ export function DayView({
     const isTimeWindow = !!task.preferred_time_window;
     const estimatedDuration = task.estimated_duration_minutes || 30;
 
-    // Calculate position (top offset from hour grid)
-    const topOffset = taskTime !== null ? (taskTime / 60) * 80 : 0; // 80px per hour
-    const height = (duration / 60) * 80;
+    // Calculate position (top offset from hour grid) - Responsive pixels per hour
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+    const pixelsPerHour = isMobile ? 50 : 80; // Mobile: 50px/hour, Desktop: 80px/hour
+    const topOffset = taskTime !== null ? (taskTime / 60) * pixelsPerHour : 0;
+    const height = (duration / 60) * pixelsPerHour;
 
     // Calculate horizontal position for column layout
     const columnWidth = totalColumns > 1 ? `${100 / totalColumns}%` : '100%';
@@ -247,8 +249,8 @@ export function DayView({
         const actualEndTime = completedDate.getHours() * 60 + completedDate.getMinutes();
         const actualDuration = actualEndTime - actualStartTime;
 
-        const completionTopOffset = (actualStartTime / 60) * 80;
-        const completionHeight = (actualDuration / 60) * 80;
+        const completionTopOffset = (actualStartTime / 60) * pixelsPerHour;
+        const completionHeight = (actualDuration / 60) * pixelsPerHour;
 
         completionBlock = (
           <div
@@ -371,39 +373,42 @@ export function DayView({
         </div>
       </div>
 
-      {/* Timeline */}
-      <div className="relative rounded-lg border bg-white overflow-x-auto">
-        {/* Hour Grid */}
-        <div className="relative" style={{ minHeight: "1920px" }}>
-          {/* 80px per hour × 24 hours = 1920px */}
+      {/* Timeline - Responsive height */}
+      <div className="relative rounded-lg border bg-white overflow-x-auto max-h-[70vh] md:max-h-none overflow-y-auto md:overflow-y-visible">
+        {/* Hour Grid - Smaller on mobile */}
+        <div className="relative md:min-h-[1920px]" style={{ minHeight: "1200px" }}>
+          {/* Mobile: 50px per hour × 24 = 1200px, Desktop: 80px per hour × 24 = 1920px */}
           {hours.map((hour) => (
             <div
               key={hour}
-              className="border-b border-gray-200 last:border-b-0"
-              style={{ height: "80px", position: "relative" }}
+              className="border-b border-gray-200 last:border-b-0 h-[50px] md:h-[80px]"
+              style={{ position: "relative" }}
             >
-              <div className="absolute left-0 top-0 w-16 px-2 py-1 text-xs font-medium text-gray-500">
+              <div className="absolute left-0 top-0 w-12 md:w-16 px-1 md:px-2 py-1 text-xs font-medium text-gray-500">
                 {hour.toString().padStart(2, "0")}:00
               </div>
             </div>
           ))}
 
-          {/* Scheduled Tasks Overlay */}
-          <div className="absolute inset-0 pl-16">
+          {/* Scheduled Tasks Overlay - Responsive padding */}
+          <div className="absolute inset-0 pl-12 md:pl-16">
             {taskColumns.map((pos, idx) =>
               renderTaskCard(pos.task, idx, pos.column, pos.totalColumns)
             )}
           </div>
 
-          {/* Deadline Lines */}
-          <div className="absolute inset-0 pl-16 pointer-events-none">
+          {/* Deadline Lines - Responsive */}
+          <div className="absolute inset-0 pl-12 md:pl-16 pointer-events-none">
             {tasks
               .filter(task => task.scheduling_type === SchedulingType.DEADLINE && task.deadline)
               .map((task, idx) => {
                 // Parse deadline time (format: HH:MM)
                 const [hours, minutes] = task.deadline!.split(":").map(Number);
                 const deadlineMinutes = hours * 60 + minutes;
-                const topOffset = (deadlineMinutes / 60) * 80; // 80px per hour
+                // Responsive: 50px/hour on mobile, 80px/hour on desktop
+                const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+                const pixelsPerHour = isMobile ? 50 : 80;
+                const topOffset = (deadlineMinutes / 60) * pixelsPerHour;
 
                 return (
                   <div

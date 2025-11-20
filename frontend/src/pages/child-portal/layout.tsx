@@ -67,9 +67,9 @@ export default function ChildPortalLayout() {
           {child && (
             <div className="text-center flex-1 mx-2 md:mx-4">
               <h1 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 truncate">
-                {t("common:child_portal.welcome", { name: child.name })}
+                {t("common:child_portal_page.welcome", { name: child.name })}
               </h1>
-              <p className="hidden sm:block text-xs md:text-sm text-gray-600">{t("common:child_portal.subtitle")}</p>
+              <p className="hidden sm:block text-xs md:text-sm text-gray-600">{t("common:child_portal_page.subtitle")}</p>
             </div>
           )}
 

@@ -3,7 +3,7 @@
  * Shows tasks across the week with hourly timeline
  */
 import { useTranslation } from "react-i18next";
-import { IconCircle, IconCheck } from "@tabler/icons-react";
+import { IconCircle, IconCheck, IconChevronRight } from "@tabler/icons-react";
 import { Task, TaskStatus, ObligationLevel } from "@/types/task";
 import { DayType } from "@/types/schoolCalendar";
 import { WeekSelector } from "./WeekSelector";
@@ -202,8 +202,8 @@ export function WeekView({
         onNextWeek={onNextWeek}
       />
 
-      {/* Week Grid */}
-      <div className="overflow-x-auto">
+      {/* Desktop Week Grid - Timeline View */}
+      <div className="hidden md:block overflow-x-auto">
         <div className="min-w-[800px] rounded-xl bg-white shadow-sm">
           {/* Time Grid with Tasks */}
           <div className="flex gap-2 p-3" style={{ minHeight: "1152px" }}>
@@ -259,6 +259,121 @@ export function WeekView({
             <div className="flex-shrink-0" style={{ width: "44px" }}></div>
           </div>
         </div>
+      </div>
+
+      {/* Mobile Week View - List by Day */}
+      <div className="md:hidden space-y-2">
+        {weekDays.map((day) => {
+          const dayType = dayTypes?.get(day.date);
+          const dayTasks = tasksByDate.get(day.date) || [];
+          const isSelected = day.date === selectedDate;
+
+          return (
+            <div
+              key={day.date}
+              className={`rounded-xl bg-white shadow-sm overflow-hidden transition-all ${
+                isSelected ? "ring-2 ring-blue-500" : ""
+              }`}
+            >
+              {/* Day Header */}
+              <button
+                onClick={() => onDateSelect(day.date)}
+                className={`w-full px-4 py-3 flex items-center justify-between ${getDayTypeBgClass(dayType)} hover:brightness-95 transition-all`}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`flex flex-col items-center justify-center w-12 h-12 rounded-lg ${
+                      day.isToday
+                        ? "bg-blue-600 text-white"
+                        : "bg-white text-gray-700"
+                    }`}
+                  >
+                    <span className="text-xs font-medium">{day.dayName}</span>
+                    <span className="text-lg font-bold">{day.dayNumber}</span>
+                  </div>
+                  <div className="text-left">
+                    <div className="text-sm font-medium text-gray-900">
+                      {new Date(day.date + "T00:00:00").toLocaleDateString(currentLocale, {
+                        month: "long",
+                        day: "numeric",
+                      })}
+                    </div>
+                    <div className="text-xs text-gray-600">
+                      {dayTasks.length} {dayTasks.length === 1 ? "task" : "tasks"}
+                    </div>
+                  </div>
+                </div>
+                <IconChevronRight
+                  size={20}
+                  className={`text-gray-400 transition-transform ${
+                    isSelected ? "rotate-90" : ""
+                  }`}
+                />
+              </button>
+
+              {/* Task List (Expanded when selected) */}
+              {isSelected && dayTasks.length > 0 && (
+                <div className="p-3 space-y-2 border-t">
+                  {dayTasks.map((task) => {
+                    const isInfo = isInformationalTask(task);
+                    const taskTime = getTaskTime(task);
+                    const timeStr = taskTime
+                      ? `${Math.floor(taskTime / 60)
+                          .toString()
+                          .padStart(2, "0")}:${(taskTime % 60)
+                          .toString()
+                          .padStart(2, "0")}`
+                      : "";
+
+                    return (
+                      <div
+                        key={task._id}
+                        onClick={() => onTaskClick?.(task)}
+                        className={`p-3 rounded-lg ${getObligationColor(
+                          task.obligation_level,
+                          isInfo
+                        )} ${
+                          onTaskClick ? "cursor-pointer hover:shadow-md" : ""
+                        } transition-all`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              {task.status === TaskStatus.COMPLETED ? (
+                                <IconCheck
+                                  size={16}
+                                  className="flex-shrink-0 text-green-600"
+                                />
+                              ) : task.status === TaskStatus.IN_PROGRESS ? (
+                                <IconCircle
+                                  size={14}
+                                  className="flex-shrink-0 animate-pulse text-blue-500"
+                                />
+                              ) : (
+                                <IconCircle
+                                  size={14}
+                                  className="flex-shrink-0 text-gray-400"
+                                />
+                              )}
+                              <span className="font-medium text-sm text-gray-900">
+                                {task.title}
+                              </span>
+                            </div>
+                            {timeStr && (
+                              <div className="mt-1 ml-6 text-xs text-gray-600">
+                                {timeStr} • {getTaskDuration(task)} min
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

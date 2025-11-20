@@ -103,7 +103,7 @@
     "go_back": "Go Back",
     "pin_required": "PIN Required"
   },
-  "child_portal": {
+  "child_portal_page": {
     "welcome": "{{name}}'s Portal",
     "subtitle": "Let's learn and play!",
     "back": "Back"
@@ -144,6 +144,8 @@
   "create": "Create",
   "add": "Add",
   "saving": "Saving...",
+  "filters": "Filters",
+  "active": "Active",
   "child_info": {
     "name": "Name",
     "date_of_birth": "Date of Birth",

@@ -1,8 +1,9 @@
 /**
  * TaskFilters - Filter controls for tasks
  */
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { IconFilter } from "@tabler/icons-react";
+import { IconFilter, IconChevronDown, IconChevronUp } from "@tabler/icons-react";
 import { TaskStatus, SchedulingType, ObligationLevel } from "@/types/task";
 
 interface TaskFiltersProps {
@@ -23,24 +24,43 @@ export function TaskFilters({
   onObligationFilterChange,
 }: TaskFiltersProps) {
   const { t } = useTranslation(["common", "tasks"]);
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  // Check if any filters are active
+  const hasActiveFilters = statusFilter !== "all" || schedulingTypeFilter !== "all" || obligationFilter !== "all";
 
   return (
-    <div className="mb-6 rounded-lg bg-white p-4 shadow">
-      <div className="mb-3 flex items-center gap-2">
-        <IconFilter size={20} className="text-gray-600" />
-        <h3 className="font-semibold text-gray-900">{t("common:filters")}</h3>
-      </div>
+    <div className="rounded-lg bg-white shadow-sm border border-gray-200">
+      {/* Collapsible Header */}
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full flex items-center justify-between p-3 hover:bg-gray-50 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <IconFilter size={16} className="text-gray-600" />
+          <h3 className="text-sm font-medium text-gray-900">{t("common:filters")}</h3>
+          {hasActiveFilters && (
+            <span className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full font-medium">
+              {t("common:active")}
+            </span>
+          )}
+        </div>
+        {isExpanded ? <IconChevronUp size={16} /> : <IconChevronDown size={16} />}
+      </button>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      {/* Expandable Filter Content */}
+      {isExpanded && (
+        <div className="px-3 pb-3 border-t border-gray-100">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 pt-3">
         {/* Status Filter */}
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">
+          <label className="mb-1 block text-xs font-medium text-gray-700">
             {t("tasks:status")}
           </label>
           <select
             value={statusFilter}
             onChange={(e) => onStatusFilterChange(e.target.value as TaskStatus | "all")}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           >
             <option value="all">{t("tasks:all_statuses")}</option>
             <option value={TaskStatus.PENDING}>{t("tasks:pending")}</option>
@@ -53,7 +73,7 @@ export function TaskFilters({
 
         {/* Scheduling Type Filter */}
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">
+          <label className="mb-1 block text-xs font-medium text-gray-700">
             {t("tasks:scheduling_type")}
           </label>
           <select
@@ -61,7 +81,7 @@ export function TaskFilters({
             onChange={(e) =>
               onSchedulingTypeFilterChange(e.target.value as SchedulingType | "all")
             }
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           >
             <option value="all">{t("tasks:all_types")}</option>
             <option value={SchedulingType.FLEXIBLE}>{t("tasks:flexible")}</option>
@@ -74,7 +94,7 @@ export function TaskFilters({
 
         {/* Obligation Level Filter */}
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">
+          <label className="mb-1 block text-xs font-medium text-gray-700">
             {t("tasks:obligation_level")}
           </label>
           <select
@@ -82,7 +102,7 @@ export function TaskFilters({
             onChange={(e) =>
               onObligationFilterChange(e.target.value as ObligationLevel | "all")
             }
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           >
             <option value="all">{t("tasks:all_levels")}</option>
             <option value={ObligationLevel.MUST_DO}>{t("tasks:must_do")}</option>
@@ -90,7 +110,9 @@ export function TaskFilters({
             <option value={ObligationLevel.OPTIONAL}>{t("tasks:optional")}</option>
           </select>
         </div>
-      </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

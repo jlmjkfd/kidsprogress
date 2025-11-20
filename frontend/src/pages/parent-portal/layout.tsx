@@ -9,7 +9,6 @@ import {
   IconUsers,
   IconSettings,
   IconLogout,
-  IconHome,
   IconMenu2,
   IconX,
   IconSparkles,
@@ -62,109 +61,162 @@ export default function ParentPortalLayout() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Header - Fixed at top */}
-      <div className="fixed top-0 left-0 right-0 bg-white shadow-sm z-50">
-        <div className="flex items-center justify-between px-4 py-3 md:py-4">
-          <div className="flex items-center gap-2 md:gap-4">
-            <button
-              onClick={() => handleNavClick("/portal-selection")}
-              className="text-gray-600 hover:text-gray-900 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
-              aria-label={t("common:navigation.portal_selection")}
-            >
-              <IconHome size={20} />
-            </button>
-            <button
-              onClick={() => handleNavClick("/child-selection")}
-              className="flex items-center gap-1 md:gap-2 text-purple-600 hover:text-purple-700 transition-colors min-h-[44px] px-2 md:px-3"
-              aria-label={t("common:child_portal")}
-            >
-              <IconSparkles size={20} />
-              <span className="hidden sm:inline text-sm md:text-base">{t("common:child")}</span>
-            </button>
-            <h1 className="text-lg md:text-xl font-bold text-gray-900">{t("common:portals.parent_portal")}</h1>
+    <div className="min-h-screen bg-gray-50 flex">
+      {/* Sidebar - Desktop - Fixed height to viewport */}
+      <aside className="hidden md:flex md:flex-col md:w-64 bg-white border-r fixed left-0 top-0 bottom-0 shadow-lg">
+        {/* Sidebar Header */}
+        <div className="p-6 border-b">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-md">
+              <IconUsers size={20} className="text-white" />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-gray-900">{t("common:portals.parent_portal")}</h1>
+              <p className="text-xs text-gray-500">Management Console</p>
+            </div>
           </div>
+          <button
+            onClick={() => handleNavClick("/child-selection")}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600 transition-all shadow-sm hover:shadow-md text-sm font-medium"
+          >
+            <IconSparkles size={18} />
+            <span>{t("common:child_portal")}</span>
+          </button>
+        </div>
 
-          <div className="flex items-center gap-2">
-            <LanguageSwitcher />
-            {/* Desktop logout button */}
-            <button
-              onClick={handleLogout}
-              className="hidden md:flex items-center gap-2 px-3 py-2 rounded-lg text-red-600 hover:bg-red-50 transition-colors text-sm min-h-[44px]"
-            >
-              <IconLogout size={18} />
-              <span>{t("common:logout")}</span>
-            </button>
-            {/* Mobile menu toggle */}
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden p-2 text-gray-600 hover:text-gray-900 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
-              aria-label="Toggle menu"
-            >
-              {isMobileMenuOpen ? <IconX size={24} /> : <IconMenu2 size={24} />}
-            </button>
+        {/* Sidebar Navigation */}
+        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const active = isActive(item.path, item.exact);
+            return (
+              <button
+                key={item.path}
+                onClick={() => handleNavClick(item.path)}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${
+                  active
+                    ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md"
+                    : "text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                <Icon size={20} stroke={2} />
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Sidebar Footer */}
+        <div className="p-4 border-t space-y-2 bg-gray-50">
+          <LanguageSwitcher />
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-600 hover:bg-red-50 transition-colors font-medium"
+          >
+            <IconLogout size={20} />
+            <span>{t("common:logout")}</span>
+          </button>
+        </div>
+      </aside>
+
+      {/* Mobile Header */}
+      <div className="md:hidden fixed top-0 left-0 right-0 bg-white shadow-md z-50">
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
+              <IconUsers size={16} className="text-white" />
+            </div>
+            <h1 className="text-base font-bold text-gray-900">{t("common:portals.parent_portal")}</h1>
           </div>
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="p-2 text-gray-600 hover:text-gray-900 transition-colors rounded-lg hover:bg-gray-100"
+            aria-label="Toggle menu"
+          >
+            {isMobileMenuOpen ? <IconX size={24} /> : <IconMenu2 size={24} />}
+          </button>
         </div>
       </div>
 
-      {/* Header Spacer */}
-      <div className="h-[60px] md:h-[68px]" />
-
-      {/* Navigation Tabs - Desktop: Always visible, Mobile: Dropdown when open */}
+      {/* Mobile Sidebar - Slide from right */}
       <RemoveScroll enabled={isMobileMenuOpen}>
         <div
-          className={`
-            ${isMobileMenuOpen ? 'block' : 'hidden'} md:block
-            md:static fixed top-[60px] md:top-[68px] left-0 right-0 z-40
-            bg-white border-b shadow-lg md:shadow-none
-          `}
+          className={`md:hidden fixed top-0 right-0 bottom-0 w-72 bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-out ${
+            isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
+          }`}
         >
-          <div className="max-w-7xl mx-auto px-4">
-            <nav className="flex flex-col md:flex-row gap-1 md:gap-2 py-2">
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                const active = isActive(item.path, item.exact);
-                return (
-                  <button
-                    key={item.path}
-                    onClick={() => handleNavClick(item.path)}
-                    className={`flex items-center gap-3 px-4 md:px-6 py-3 rounded-lg whitespace-nowrap transition-colors min-h-[44px] text-sm md:text-base ${
-                      active
-                        ? "bg-blue-100 text-blue-700 font-medium"
-                        : "text-gray-700 hover:bg-gray-100"
-                    }`}
-                  >
-                    <Icon size={20} stroke={2} />
-                    <span>{item.label}</span>
-                  </button>
-                );
-              })}
-              {/* Mobile-only actions */}
-              <div className="md:hidden border-t pt-2 mt-2 space-y-1">
-                <button
-                  onClick={handleLogout}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-red-600 hover:bg-red-50 transition-colors min-h-[44px] text-sm"
-                >
-                  <IconLogout size={20} />
-                  <span>{t("common:logout")}</span>
-                </button>
+          {/* Mobile Sidebar Header */}
+          <div className="p-6 border-b bg-gradient-to-br from-blue-50 to-indigo-50">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-md">
+                  <IconUsers size={20} className="text-white" />
+                </div>
+                <div>
+                  <h2 className="font-bold text-gray-900">{t("common:portals.parent_portal")}</h2>
+                  <p className="text-xs text-gray-600">Management</p>
+                </div>
               </div>
-            </nav>
+            </div>
+            <button
+              onClick={() => handleNavClick("/child-selection")}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600 transition-all shadow-sm text-sm font-medium"
+            >
+              <IconSparkles size={18} />
+              <span>{t("common:child_portal")}</span>
+            </button>
+          </div>
+
+          {/* Mobile Navigation */}
+          <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const active = isActive(item.path, item.exact);
+              return (
+                <button
+                  key={item.path}
+                  onClick={() => handleNavClick(item.path)}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${
+                    active
+                      ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`}
+                >
+                  <Icon size={20} stroke={2} />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+
+          {/* Mobile Footer */}
+          <div className="p-4 border-t bg-gray-50 space-y-2">
+            <LanguageSwitcher />
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-600 hover:bg-red-50 transition-colors font-medium"
+            >
+              <IconLogout size={20} />
+              <span>{t("common:logout")}</span>
+            </button>
           </div>
         </div>
       </RemoveScroll>
 
-      {/* Mobile Menu Overlay */}
+      {/* Mobile Overlay */}
       {isMobileMenuOpen && (
         <div
-          className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
+          className="md:hidden fixed inset-0 bg-black bg-opacity-60 z-40"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
 
-      {/* Main Content */}
-      <div className="flex-1 overflow-auto">
-        <Outlet />
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col md:ml-64">
+        <div className="md:hidden h-[60px]" />
+        <div className="flex-1 overflow-auto">
+          <Outlet />
+        </div>
       </div>
     </div>
   );

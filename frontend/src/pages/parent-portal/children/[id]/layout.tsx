@@ -10,7 +10,6 @@ import {
   IconArrowLeft,
 } from "@tabler/icons-react";
 import { useChild } from "@/api/queries/useChild";
-import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 export default function ChildManagementLayout() {
   const navigate = useNavigate();
@@ -58,31 +57,37 @@ export default function ChildManagementLayout() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between mb-4">
+      {/* Child Info Header - Professional Style */}
+      <div className="bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 md:py-6">
+          <div className="flex items-center gap-4">
+            {/* Back Button */}
             <button
               onClick={handleBack}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors min-h-[44px]"
+              className="flex-shrink-0 text-gray-600 hover:text-gray-900 transition-all p-2 hover:bg-gray-100 rounded-xl"
+              aria-label={t("common:back")}
             >
-              <IconArrowLeft size={20} />
-              <span className="text-sm md:text-base">{t("common:back")}</span>
+              <IconArrowLeft size={22} />
             </button>
-            <div className="hidden md:block">
-              <LanguageSwitcher />
+
+            {/* Child Avatar & Info */}
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center text-white text-xl font-bold flex-shrink-0 shadow-lg">
+                {child.name.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <h1 className="text-xl md:text-2xl font-bold text-gray-900">{child.name}</h1>
+                <p className="text-sm text-gray-500 flex items-center gap-2">
+                  <span>{child.date_of_birth ? new Date().getFullYear() - new Date(child.date_of_birth).getFullYear() : "N/A"} {t("common:child_info.years_old")}</span>
+                </p>
+              </div>
             </div>
           </div>
+        </div>
 
-          <div className="mb-4">
-            <h1 className="text-xl md:text-2xl font-bold text-gray-900">{child.name}</h1>
-            <p className="text-sm text-gray-600 mt-1">
-              {t("common:child_management.subtitle", { age: child.date_of_birth ? new Date().getFullYear() - new Date(child.date_of_birth).getFullYear() : "N/A" })}
-            </p>
-          </div>
-
-          {/* Tabs - Always visible (only 3 tabs, fits on mobile) */}
-          <nav className="flex gap-2 overflow-x-auto">
+        {/* Sub Navigation Tabs */}
+        <div className="max-w-7xl mx-auto px-4 md:px-6">
+          <nav className="flex gap-2 -mb-px">
             {navItems.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.path, item.exact);
@@ -90,14 +95,14 @@ export default function ChildManagementLayout() {
                 <button
                   key={item.path}
                   onClick={() => handleNavClick(item.path)}
-                  className={`flex items-center gap-2 px-4 py-3 rounded-lg whitespace-nowrap transition-colors min-h-[44px] text-sm md:text-base ${
+                  className={`flex items-center gap-2 px-5 py-3 border-b-3 transition-all font-medium ${
                     active
-                      ? "bg-blue-100 text-blue-700 font-medium"
-                      : "text-gray-700 hover:bg-gray-100"
+                      ? "border-blue-600 text-blue-700 bg-blue-50"
+                      : "border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                   }`}
                 >
-                  <Icon size={18} stroke={2} />
-                  <span>{item.label}</span>
+                  <Icon size={20} stroke={2} />
+                  <span className="text-sm md:text-base">{item.label}</span>
                 </button>
               );
             })}

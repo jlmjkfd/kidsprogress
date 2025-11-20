@@ -44,19 +44,18 @@ export function WeekSelector({
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
   return (
-    <div className="overflow-x-auto">
-      <div className="flex min-w-[800px] items-center gap-2 border-b bg-gray-50 p-3">
-        {/* Previous Week Button - fixed width */}
+    <div className="rounded-xl bg-white shadow-sm">
+      <div className="flex items-center gap-1 md:gap-2 border-b bg-gradient-to-r from-gray-50 to-blue-50 p-2 md:p-3">
+        {/* Previous Week Button */}
         <button
           onClick={onPrevWeek}
-          className="flex-shrink-0 rounded-lg p-2 transition-colors hover:bg-gray-200"
+          className="flex-shrink-0 rounded-lg p-2 transition-colors hover:bg-white/80 min-w-[40px] md:min-w-[44px]"
           aria-label="Previous week"
-          style={{ width: "44px" }}
         >
-          <IconChevronLeft size={20} />
+          <IconChevronLeft size={20} className="mx-auto" />
         </button>
 
-        {/* Week day buttons - fills available space */}
+        {/* Week day buttons - Responsive grid */}
         <div className="flex min-w-0 flex-1 gap-1">
           {weekDays.map(({ date, dateStr }) => {
             const isSelected = dateStr === selectedDate;
@@ -70,17 +69,17 @@ export function WeekSelector({
               <button
                 key={dateStr}
                 onClick={() => onDateSelect(dateStr)}
-                className={`flex min-w-0 flex-1 flex-col items-center rounded-lg p-2 transition-all ${
+                className={`flex min-w-0 flex-1 flex-col items-center justify-center rounded-lg p-1.5 md:p-2 transition-all min-h-[56px] md:min-h-[64px] ${
                   isSelected
-                    ? "bg-blue-600 text-white shadow-md"
+                    ? "bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md scale-105"
                     : isToday
-                      ? "bg-blue-100 text-blue-700 hover:bg-blue-200"
-                      : "hover:bg-gray-200"
+                      ? "bg-blue-100 text-blue-700 hover:bg-blue-200 font-semibold"
+                      : "hover:bg-gray-100 text-gray-700"
                 }`}
               >
-                <span className="truncate text-xs font-medium">{dayName}</span>
+                <span className="text-[10px] md:text-xs font-medium uppercase leading-tight">{dayName}</span>
                 <span
-                  className={`text-lg font-bold ${isSelected ? "text-white" : ""}`}
+                  className={`text-base md:text-lg font-bold leading-tight ${isSelected ? "text-white" : ""}`}
                 >
                   {dayNum}
                 </span>
@@ -89,14 +88,13 @@ export function WeekSelector({
           })}
         </div>
 
-        {/* Next Week Button - fixed width */}
+        {/* Next Week Button */}
         <button
           onClick={onNextWeek}
-          className="flex-shrink-0 rounded-lg p-2 transition-colors hover:bg-gray-200"
+          className="flex-shrink-0 rounded-lg p-2 transition-colors hover:bg-white/80 min-w-[40px] md:min-w-[44px]"
           aria-label="Next week"
-          style={{ width: "44px" }}
         >
-          <IconChevronRight size={20} />
+          <IconChevronRight size={20} className="mx-auto" />
         </button>
       </div>
     </div>

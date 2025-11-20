@@ -103,7 +103,7 @@
     "go_back": "返回",
     "pin_required": "需要PIN码"
   },
-  "child_portal": {
+  "child_portal_page": {
     "welcome": "{{name}}的入口",
     "subtitle": "让我们一起学习和玩耍！",
     "back": "返回"
@@ -146,6 +146,8 @@
   "saving": "保存中...",
   "edit": "编辑",
   "delete": "删除",
+  "filters": "筛选",
+  "active": "生效中",
   "child_info": {
     "name": "姓名",
     "date_of_birth": "出生日期",
