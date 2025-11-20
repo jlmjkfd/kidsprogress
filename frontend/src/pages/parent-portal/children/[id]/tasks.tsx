@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { IconPlus, IconCalendar, IconList, IconClock } from "@tabler/icons-react";
+import { IconPlus, IconCalendar, IconList } from "@tabler/icons-react";
 import { useTasksByChild } from "@/api/queries/useTasks";
 import {
   useStartTask,
@@ -28,14 +28,13 @@ import { UnifiedTaskModal } from "./components/UnifiedTaskModal";
 import { TaskFilters } from "./components/TaskFilters";
 import { TaskListView } from "./components/TaskListView";
 import { CalendarView } from "./components/CalendarView";
-import { TimelineView } from "./components/TimelineView";
 import { SchoolCalendarModal } from "@/components/SchoolCalendarModal";
 import { EditOccurrenceModal } from "@/components/EditOccurrenceModal";
 import { DeleteOccurrenceModal } from "@/components/DeleteOccurrenceModal";
 import { EditRecurringTemplateDialog } from "@/components/EditRecurringTemplateDialog";
 import { useReplanSchedule } from "@/api/mutations/useAIScheduleMutations";
 
-type ViewMode = "list" | "calendar" | "timeline";
+type ViewMode = "list" | "calendar";
 
 export default function ChildTasksPage() {
   const { childId } = useParams<{ childId: string }>();
@@ -345,17 +344,6 @@ export default function ChildTasksPage() {
           <IconCalendar size={18} />
           {t("tasks:calendar_view")}
         </button>
-        <button
-          onClick={() => setViewMode("timeline")}
-          className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium ${
-            viewMode === "timeline"
-              ? "bg-blue-600 text-white"
-              : "bg-white text-gray-700 hover:bg-gray-50"
-          }`}
-        >
-          <IconClock size={18} />
-          {t("tasks:timeline_view")}
-        </button>
       </div>
 
       {/* Filters */}
@@ -369,14 +357,7 @@ export default function ChildTasksPage() {
       />
 
       {/* Main Content */}
-      {viewMode === "timeline" ? (
-        <TimelineView
-          tasks={tasks || []}
-          selectedDate={selectedDate}
-          onTaskClick={handleTaskEdit}
-          onDateChange={setSelectedDate}
-        />
-      ) : viewMode === "calendar" ? (
+      {viewMode === "calendar" ? (
         <CalendarView
           tasks={tasks || []}
           childId={childId || ""}

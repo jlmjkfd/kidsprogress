@@ -48,6 +48,11 @@ export function DayView({
       const [hours, minutes] = task.fixed_time_slot.start.split(":").map(Number);
       return hours * 60 + minutes;
     }
+    // Try preferred time window
+    if (task.preferred_time_window?.start) {
+      const [hours, minutes] = task.preferred_time_window.start.split(":").map(Number);
+      return hours * 60 + minutes;
+    }
     // Try preferred time slot
     if (task.preferred_time_slot?.start) {
       const [hours, minutes] = task.preferred_time_slot.start.split(":").map(Number);
@@ -70,6 +75,12 @@ export function DayView({
       const [endH, endM] = task.fixed_time_slot.end.split(":").map(Number);
       return (endH * 60 + endM) - (startH * 60 + startM);
     }
+    // Check for preferred time window duration
+    if (task.preferred_time_window?.start && task.preferred_time_window?.end) {
+      const [startH, startM] = task.preferred_time_window.start.split(":").map(Number);
+      const [endH, endM] = task.preferred_time_window.end.split(":").map(Number);
+      return (endH * 60 + endM) - (startH * 60 + startM);
+    }
     // Check for preferred time slot duration
     if (task.preferred_time_slot?.start && task.preferred_time_slot?.end) {
       const [startH, startM] = task.preferred_time_slot.start.split(":").map(Number);
@@ -90,15 +101,29 @@ export function DayView({
   // Generate hours (0-23)
   const hours = Array.from({ length: 24 }, (_, i) => i);
 
-  const getObligationColor = (level: ObligationLevel, isInfo: boolean): string => {
-    if (isInfo) return "bg-gray-100 border-l-gray-400 text-gray-700";
-    switch (level) {
+  // Get visual styling based on task scheduling type
+  const getTaskStyling = (task: Task, isInfo: boolean): string => {
+    if (isInfo) return "bg-gray-100 border-l-4 border-l-gray-400 text-gray-700";
+
+    // Visual hierarchy: Fixed (purple) > Window (cyan) > Preferred (blue) > Flexible (gray)
+    if (task.fixed_time_slot) {
+      return "bg-purple-100 border border-purple-400 text-purple-900 shadow-sm";
+    }
+    if (task.preferred_time_window) {
+      return "bg-cyan-50 border-2 border-cyan-300 text-cyan-900 bg-opacity-60";
+    }
+    if (task.preferred_time_slot) {
+      return "bg-blue-50 border-2 border-dashed border-blue-300 text-blue-900";
+    }
+
+    // Fallback to obligation level colors
+    switch (task.obligation_level) {
       case ObligationLevel.MUST_DO:
-        return "bg-red-50 border-l-red-500";
+        return "bg-red-50 border-l-4 border-l-red-500";
       case ObligationLevel.SHOULD_DO:
-        return "bg-blue-50 border-l-blue-500";
+        return "bg-blue-50 border-l-4 border-l-blue-500";
       default:
-        return "bg-gray-50 border-l-gray-300";
+        return "bg-gray-50 border-l-4 border-l-gray-300";
     }
   };
 
@@ -143,9 +168,9 @@ export function DayView({
       <div
         key={task._id}
         onClick={() => onTaskClick?.(task)}
-        className={`absolute left-0 right-0 mx-1 overflow-hidden rounded-lg border-l-4 p-2 shadow-sm transition-all ${
+        className={`absolute left-0 right-0 mx-1 overflow-hidden rounded-lg p-2 transition-all ${
           onTaskClick ? "cursor-pointer hover:shadow-md" : ""
-        } ${getObligationColor(task.obligation_level, isInfo)} ${
+        } ${getTaskStyling(task, isInfo)} ${
           task.status === TaskStatus.COMPLETED ? "opacity-60" : ""
         }`}
         style={{
@@ -244,9 +269,9 @@ export function DayView({
                 <div
                   key={task._id}
                   onClick={() => onTaskClick?.(task)}
-                  className={`rounded-lg border-l-4 p-3 transition-all ${
+                  className={`rounded-lg p-3 transition-all ${
                     onTaskClick ? "cursor-pointer hover:shadow-md" : ""
-                  } ${getObligationColor(task.obligation_level, isInfo)}`}
+                  } ${getTaskStyling(task, isInfo)}`}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1">
