@@ -2,8 +2,9 @@
  * DayView - 24-hour timeline view for a single day
  * Shows tasks positioned at their scheduled times with hourly grid
  */
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { IconClock, IconCircle, IconCheck } from "@tabler/icons-react";
+import { IconClock, IconCircle, IconCheck, IconCalendarTime, IconPlayerPlay } from "@tabler/icons-react";
 import { Task, TaskStatus, ObligationLevel, SchedulingType } from "@/types/task";
 import { DayType } from "@/types/schoolCalendar";
 import { WeekSelector } from "./WeekSelector";
@@ -34,6 +35,9 @@ export function DayView({
   const { t, i18n } = useTranslation(["tasks", "common"]);
   const currentLocale = i18n.language || "en";
 
+  // Toggle between showing planned time vs actual execution time
+  const [showPlannedTime, setShowPlannedTime] = useState(true);
+
   // Check if task is informational (blocks other tasks, not actionable)
   const isInformationalTask = (task: Task): boolean => {
     return task.is_informational;
@@ -45,13 +49,8 @@ export function DayView({
     return true;
   });
 
-  // Get time for a task (in minutes from midnight)
-  const getTaskTime = (task: Task): number | null => {
-    // Try started_at time first
-    if (task.started_at) {
-      const date = new Date(task.started_at);
-      return date.getHours() * 60 + date.getMinutes();
-    }
+  // Get planned time for a task (in minutes from midnight)
+  const getPlannedTime = (task: Task): number | null => {
     // Try fixed time slot
     if (task.fixed_time_slot?.start) {
       const [hours, minutes] = task.fixed_time_slot.start.split(":").map(Number);
@@ -68,6 +67,27 @@ export function DayView({
       return hours * 60 + minutes;
     }
     return null;
+  };
+
+  // Get actual execution time (in minutes from midnight, local time)
+  const getActualTime = (task: Task): number | null => {
+    if (task.started_at) {
+      const date = new Date(task.started_at);
+      // Use local time (getHours returns local time)
+      return date.getHours() * 60 + date.getMinutes();
+    }
+    return null;
+  };
+
+  // Get time for display based on toggle
+  const getTaskTime = (task: Task): number | null => {
+    if (showPlannedTime) {
+      // Show planned time first, fall back to actual if no plan
+      return getPlannedTime(task) ?? getActualTime(task);
+    } else {
+      // Show actual time first, fall back to planned if not started
+      return getActualTime(task) ?? getPlannedTime(task);
+    }
   };
 
   // Get duration in minutes
@@ -368,8 +388,37 @@ export function DayView({
           <h3 className="text-lg font-bold text-gray-900">{formattedDate}</h3>
           {dayType && <div className="mt-1">{getDayTypeBadge(dayType)}</div>}
         </div>
-        <div className="text-sm text-gray-600">
-          {scheduledTasks.length} {t("tasks:scheduled_tasks").toLowerCase()}
+        <div className="flex items-center gap-4">
+          {/* Time Display Toggle */}
+          <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+            <button
+              onClick={() => setShowPlannedTime(true)}
+              className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
+                showPlannedTime
+                  ? "bg-white text-blue-600 shadow-sm"
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
+              title={t("tasks:timeline.planned_time")}
+            >
+              <IconCalendarTime size={14} />
+              <span className="hidden sm:inline">{t("tasks:timeline.planned")}</span>
+            </button>
+            <button
+              onClick={() => setShowPlannedTime(false)}
+              className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
+                !showPlannedTime
+                  ? "bg-white text-green-600 shadow-sm"
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
+              title={t("tasks:timeline.actual_time")}
+            >
+              <IconPlayerPlay size={14} />
+              <span className="hidden sm:inline">{t("tasks:timeline.actual")}</span>
+            </button>
+          </div>
+          <div className="text-sm text-gray-600">
+            {scheduledTasks.length} {t("tasks:scheduled_tasks").toLowerCase()}
+          </div>
         </div>
       </div>
 

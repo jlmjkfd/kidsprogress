@@ -17,38 +17,33 @@ interface TaskStatusBadgeProps {
   size?: "sm" | "md" | "lg";
 }
 
-const statusConfig = {
-  [TaskStatus.PENDING]: {
-    label: "Draft",
-    className: "bg-gray-100 text-gray-700 border-gray-300",
-    Icon: IconFileText,
-  },
-  [TaskStatus.PENDING]: {
-    label: "Scheduled",
+const statusConfig: Record<string, { label: string; className: string; Icon: typeof IconFileText }> = {
+  pending: {
+    label: "Pending",
     className: "bg-blue-100 text-blue-700 border-blue-300",
     Icon: IconCalendar,
   },
-  [TaskStatus.IN_PROGRESS]: {
+  in_progress: {
     label: "In Progress",
     className: "bg-green-100 text-green-700 border-green-300",
     Icon: IconPlayerPlay,
   },
-  [TaskStatus.PAUSED]: {
+  paused: {
     label: "Paused",
     className: "bg-yellow-100 text-yellow-700 border-yellow-300",
     Icon: IconPlayerPause,
   },
-  [TaskStatus.COMPLETED]: {
+  completed: {
     label: "Completed",
     className: "bg-purple-100 text-purple-700 border-purple-300",
     Icon: IconCircleCheck,
   },
-  [TaskStatus.SKIPPED]: {
-    label: "Cancelled",
+  skipped: {
+    label: "Skipped",
     className: "bg-red-100 text-red-700 border-red-300",
     Icon: IconX,
   },
-  [TaskStatus.ARCHIVED]: {
+  archived: {
     label: "Archived",
     className: "bg-gray-100 text-gray-500 border-gray-300",
     Icon: IconArchive,
@@ -62,7 +57,11 @@ const sizeConfig = {
 };
 
 export default function TaskStatusBadge({ status, size = "md" }: TaskStatusBadgeProps) {
-  const config = statusConfig[status];
+  const config = statusConfig[status] || {
+    label: status || "Unknown",
+    className: "bg-gray-100 text-gray-700 border-gray-300",
+    Icon: IconFileText,
+  };
   const sizes = sizeConfig[size];
   const Icon = config.Icon;
 

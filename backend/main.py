@@ -30,6 +30,8 @@ from backend.routes import (
     ai_routes,
     ai_schedule_routes,
     school_calendar_routes,
+    template_routes,
+    completion_routes,
 )
 from backend.jobs import init_scheduler, shutdown_scheduler
 
@@ -81,6 +83,18 @@ async def lifespan(app: FastAPI):
     await database.terms.create_index([("child_id", 1), ("is_active", 1)])
     await database.terms.create_index([("child_id", 1), ("start_date", 1), ("end_date", 1)])
     await database.special_days.create_index([("child_id", 1), ("date", 1)])
+
+    # Task template system indexes
+    await database.task_templates.create_index("template_id", unique=True)
+    await database.task_templates.create_index([("created_by", 1), ("is_public", 1)])
+    await database.task_templates.create_index("category_path")
+    await database.task_templates.create_index("execution_handler")
+    await database.task_completions.create_index("completion_id", unique=True)
+    await database.task_completions.create_index("task_id")
+    await database.task_completions.create_index([("child_id", 1), ("template_id", 1)])
+    await database.task_completions.create_index([("child_id", 1), ("completed_at", 1)])
+    await database.question_banks.create_index("question_bank_id", unique=True)
+    await database.question_banks.create_index([("created_by", 1), ("is_public", 1)])
 
 
     # Tools (still needed)
@@ -136,6 +150,10 @@ app.include_router(school_calendar_routes.router)  # School calendar (terms, hol
 # AI-powered features
 app.include_router(ai_routes.router)
 app.include_router(ai_schedule_routes.router)
+
+# Task template system
+app.include_router(template_routes.router)
+app.include_router(completion_routes.router)
 
 @app.get("/health")
 def health_check():

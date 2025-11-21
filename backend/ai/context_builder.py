@@ -44,7 +44,7 @@ class ContextBuilder:
 
         # Get all relevant data in parallel
         scheduled_tasks = await self.schedule_service.get_tasks_for_date(
-            child_obj_id, today, include_status=["scheduled", "in_progress"]
+            child_obj_id, today, include_status=["pending", "in_progress"]
         )
 
         time_blocks = await self.schedule_service.get_time_blocks_for_date(

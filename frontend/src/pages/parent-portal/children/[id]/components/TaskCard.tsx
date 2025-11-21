@@ -76,17 +76,17 @@ export function TaskCard({
     );
   }
 
-  const getStatusColor = (status: TaskStatus) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
-      case TaskStatus.COMPLETED:
+      case "completed":
         return "bg-green-100 text-green-700";
-      case TaskStatus.IN_PROGRESS:
+      case "in_progress":
         return "bg-blue-100 text-blue-700";
-      case TaskStatus.PAUSED:
+      case "paused":
         return "bg-yellow-100 text-yellow-700";
-      case TaskStatus.SKIPPED:
+      case "skipped":
         return "bg-orange-100 text-orange-700";
-      case TaskStatus.ARCHIVED:
+      case "archived":
         return "bg-gray-100 text-gray-700";
       default:
         return "bg-gray-100 text-gray-600";
@@ -250,9 +250,9 @@ export function TaskCard({
         {!task.is_informational && (
           <div className="flex flex-shrink-0 flex-col gap-2">
             {/* Complete Button - for PENDING, IN_PROGRESS, PAUSED tasks */}
-            {(task.status === TaskStatus.PENDING ||
-              task.status === TaskStatus.IN_PROGRESS ||
-              task.status === TaskStatus.PAUSED) && onComplete && (
+            {(task.status === "pending" ||
+              task.status === "in_progress" ||
+              task.status === "paused") && onComplete && (
               <button
                 onClick={() => onComplete(task)}
                 className="min-h-[44px] min-w-[44px] rounded-md p-2 text-green-600 transition-colors hover:bg-green-50"
@@ -263,7 +263,7 @@ export function TaskCard({
             )}
 
             {/* Uncomplete Button - for COMPLETED tasks */}
-            {task.status === TaskStatus.COMPLETED && onUncomplete && (
+            {task.status === "completed" && onUncomplete && (
               <button
                 onClick={() => onUncomplete(task._id)}
                 className="min-h-[44px] min-w-[44px] rounded-md p-2 text-blue-600 transition-colors hover:bg-blue-50"
@@ -274,7 +274,7 @@ export function TaskCard({
             )}
 
             {/* Skip Button - only for PENDING must_do/should_do tasks */}
-            {task.status === TaskStatus.PENDING &&
+            {task.status === "pending" &&
              (task.obligation_level === ObligationLevel.MUST_DO ||
               task.obligation_level === ObligationLevel.SHOULD_DO) &&
              onSkip && (
@@ -288,7 +288,7 @@ export function TaskCard({
             )}
 
             {/* Restore Button - for SKIPPED tasks */}
-            {task.status === TaskStatus.SKIPPED && onRestoreSkipped && (
+            {task.status === "skipped" && onRestoreSkipped && (
               <button
                 onClick={() => onRestoreSkipped(task._id)}
                 className="min-h-[44px] min-w-[44px] rounded-md p-2 text-blue-600 transition-colors hover:bg-blue-50"

@@ -11,6 +11,7 @@ import {
   DeadlineType,
 } from "@/types/task";
 import { useTaskCollections } from "@/api/queries/useTaskCollections";
+import { TaskTemplate } from "@/types/template";
 import { TaskTemplateSelector } from "./UnifiedTaskModal/TaskTemplateSelector";
 import { BasicInfoSection } from "./UnifiedTaskModal/BasicInfoSection";
 import { SchedulingSection } from "./UnifiedTaskModal/SchedulingSection";
@@ -37,16 +38,18 @@ export function UnifiedTaskModal({
   const informationalCollection = collections?.find((c) => c.collection_type === "informational");
 
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [taskTemplate, setTaskTemplate] = useState<"standard" | "informational">(
+  const [taskTemplate, setTaskTemplate] = useState<"standard" | "informational" | "from_library">(
     task?.is_informational ? "informational" : "standard"
   );
+  const [selectedTemplate, setSelectedTemplate] = useState<TaskTemplate | null>(null);
+  const [isTemplateApplied, setIsTemplateApplied] = useState(false);
 
   // Get current time and one hour later for defaults
   const now = new Date();
   const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
   const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
   const oneHourLaterTime = `${String(oneHourLater.getHours()).padStart(2, '0')}:${String(oneHourLater.getMinutes()).padStart(2, '0')}`;
-  const todayDate = now.toISOString().split('T')[0];
+  const todayDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
   const [formData, setFormData] = useState({
     // Basic Info
@@ -54,6 +57,7 @@ export function UnifiedTaskModal({
     description: task?.description || "",
     collection_id: task?.collection_id || defaultCollection?._id || "",
     task_type_code: task?.task_type_code || "default",
+    template_id: undefined as string | undefined,
 
     // Scheduling Type
     scheduling_type: task?.scheduling_type || SchedulingType.FLEXIBLE,
@@ -223,6 +227,11 @@ export function UnifiedTaskModal({
         };
       }
 
+      // Add template_id if using a template
+      if (formData.template_id) {
+        baseData.template_id = formData.template_id;
+      }
+
       if (task) {
         // Update existing task
         await onSubmit(baseData as TaskUpdate);
@@ -275,7 +284,53 @@ export function UnifiedTaskModal({
                   setTaskTemplate(template);
                   setFormData({ ...formData, ...updates });
                 }}
+                onLibraryTemplateSelect={(template) => {
+                  setSelectedTemplate(template);
+                  setTaskTemplate("from_library");
+                  setIsTemplateApplied(true);
+
+                  // Pre-fill form data from template
+                  setFormData({
+                    ...formData,
+                    title: template.name,
+                    description: template.description || "",
+                    template_id: template.template_id,
+                  });
+                }}
               />
+            )}
+
+            {/* Template Info Banner */}
+            {selectedTemplate && (
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <h4 className="font-medium text-purple-900">
+                      {t("tasks:templates.using_template")}: {selectedTemplate.name}
+                    </h4>
+                    <p className="text-sm text-purple-700 mt-1">
+                      {t("tasks:templates.template_locked_hint")}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedTemplate(null);
+                      setTaskTemplate("standard");
+                      setIsTemplateApplied(false);
+                      setFormData({
+                        ...formData,
+                        title: "",
+                        description: "",
+                        template_id: undefined,
+                      });
+                    }}
+                    className="text-purple-600 hover:text-purple-800 text-sm font-medium"
+                  >
+                    {t("tasks:templates.remove_template")}
+                  </button>
+                </div>
+              </div>
             )}
 
             {/* Basic Info Section */}
@@ -284,6 +339,7 @@ export function UnifiedTaskModal({
               description={formData.description}
               collectionId={formData.collection_id}
               isEditMode={!!task}
+              isTemplateMode={!!selectedTemplate}
               collections={collections}
               onTitleChange={(value) => setFormData({ ...formData, title: value })}
               onDescriptionChange={(value) => setFormData({ ...formData, description: value })}

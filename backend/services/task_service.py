@@ -410,17 +410,44 @@ class TaskService:
                 if status and instance_data.get("status") != status.value:
                     continue
 
-                tasks.append(instance_data)
+                # Skip virtual instance if a materialized version already exists
+                virtual_date = instance_data.get("scheduled_date")
+                if isinstance(virtual_date, datetime):
+                    virtual_date_str = virtual_date.date().isoformat()
+                else:
+                    virtual_date_str = str(virtual_date).split("T")[0] if virtual_date else None
 
-        # Add recurring templates to the list so they can be edited
-        # Convert templates to dicts and mark with is_virtual=False
-        for template in recurring_templates:
-            template_data = template.model_dump(mode='json', by_alias=True)
-            template_data["is_virtual"] = False
-            # Ensure _id is a string (model_dump with by_alias=True should handle this)
-            if "_id" in template_data and not isinstance(template_data["_id"], str):
-                template_data["_id"] = str(template_data["_id"])
-            tasks.append(template_data)
+                # Check if materialized task exists for this date
+                materialized_exists = False
+                template_id_str = str(template.id)
+                for t in tasks:
+                    t_scheduled = t.get("scheduled_date")
+                    if isinstance(t_scheduled, datetime):
+                        t_date_str = t_scheduled.date().isoformat()
+                    elif t_scheduled:
+                        t_date_str = str(t_scheduled).split("T")[0]
+                    else:
+                        t_date_str = None
+
+                    # source_recurring_task_id could be ObjectId, string, or dict with $oid
+                    t_source = t.get("source_recurring_task_id")
+                    if isinstance(t_source, dict) and "$oid" in t_source:
+                        t_source_str = t_source["$oid"]
+                    else:
+                        t_source_str = str(t_source) if t_source else None
+
+                    if (t_source_str == template_id_str and
+                        not t.get("is_virtual") and
+                        t_date_str == virtual_date_str):
+                        materialized_exists = True
+                        break
+
+                if not materialized_exists:
+                    tasks.append(instance_data)
+
+        # Note: We do NOT add recurring templates to the list anymore.
+        # They are just definitions - only virtual instances should be shown to users.
+        # Templates can be edited separately via the template edit UI.
 
         # Sort by scheduled_date
         # All items are now dicts (both templates and virtual instances)
@@ -453,9 +480,10 @@ class TaskService:
         if not ObjectId.is_valid(task_id) or not ObjectId.is_valid(parent_id):
             return None
 
-        doc = await self.tasks_collection.find_one(
-            {"_id": ObjectId(task_id), "parent_id": ObjectId(parent_id)}
-        )
+        doc = await self.tasks_collection.find_one({
+            "_id": ObjectId(task_id),
+            "$or": [{"parent_id": ObjectId(parent_id)}, {"parent_id": parent_id}]
+        })
         if not doc:
             return None
 
@@ -787,7 +815,15 @@ class TaskService:
         materialized_data = virtual_task_data.copy()
         materialized_data.pop("_id", None)  # Remove virtual ID
         materialized_data["is_virtual"] = False  # Mark as real
-        materialized_data["source_recurring_task_id"] = template_id
+        materialized_data["source_recurring_task_id"] = ObjectId(template_id)
+
+        # Convert string IDs back to ObjectIds
+        if isinstance(materialized_data.get("child_id"), str):
+            materialized_data["child_id"] = ObjectId(materialized_data["child_id"])
+        if isinstance(materialized_data.get("parent_id"), str):
+            materialized_data["parent_id"] = ObjectId(materialized_data["parent_id"])
+        if isinstance(materialized_data.get("collection_id"), str):
+            materialized_data["collection_id"] = ObjectId(materialized_data["collection_id"])
 
         # Convert string dates back to datetime if needed
         if isinstance(materialized_data.get("scheduled_date"), str):
@@ -830,49 +866,80 @@ class TaskService:
         Raises:
             ValueError: If task cannot be started
         """
-        # Check if this is a virtual task (ID contains underscore and is not a valid ObjectId)
-        is_virtual = "_" in task_id and not ObjectId.is_valid(task_id)
+        # Check if this is a virtual task ID (ID contains underscore and is not a valid ObjectId)
+        is_virtual_id = "_" in task_id and not ObjectId.is_valid(task_id)
+        print(f"DEBUG start_task: task_id={task_id}, is_virtual_id={is_virtual_id}")
 
-        if is_virtual:
-            # Get virtual task data from the frontend or regenerate it
-            # For now, we need to get all tasks and find the virtual one
-            parent_id = child_id  # Will be replaced with actual parent_id lookup
+        if is_virtual_id:
+            # First check if this virtual task was already materialized
+            parts = task_id.split("_")
+            template_id = parts[0]
+            occurrence_date = "_".join(parts[1:])
 
-            # Get child to find parent
-            child = await self.db.children.find_one({"_id": ObjectId(child_id)})
-            if not child:
-                raise ValueError("Child not found")
-            parent_id = str(child.get("parent_id"))
+            # Look for already materialized task
+            # Note: child_id may be stored as string or ObjectId
+            existing_materialized = await self.tasks_collection.find_one({
+                "source_recurring_task_id": template_id,
+                "$or": [{"child_id": ObjectId(child_id)}, {"child_id": child_id}],
+                "is_virtual": False,
+                "scheduled_date": {
+                    "$gte": datetime.fromisoformat(occurrence_date),
+                    "$lt": datetime.fromisoformat(occurrence_date) + timedelta(days=1)
+                }
+            })
 
-            # Get all tasks including virtual instances
-            all_tasks = await self.get_tasks_by_child(child_id, parent_id)
+            if existing_materialized:
+                # Use the already materialized task
+                task_id = str(existing_materialized["_id"])
+            else:
+                # Get virtual task data from the frontend or regenerate it
+                # For now, we need to get all tasks and find the virtual one
+                parent_id = child_id  # Will be replaced with actual parent_id lookup
 
-            # Find the virtual task
-            virtual_task = None
-            for task in all_tasks:
-                if task.get("_id") == task_id and task.get("is_virtual"):
-                    virtual_task = task
-                    break
+                # Get child to find parent
+                child = await self.db.children.find_one({"_id": ObjectId(child_id)})
+                if not child:
+                    raise ValueError("Child not found")
+                parent_id = str(child.get("parent_id"))
 
-            if not virtual_task:
-                raise ValueError(f"Virtual task not found: {task_id}")
+                # Get all tasks including virtual instances
+                all_tasks = await self.get_tasks_by_child(child_id, parent_id)
 
-            # Materialize the virtual task
-            materialized = await self._materialize_virtual_task(task_id, virtual_task)
-            task_id = str(materialized.id)  # Use new ObjectId for subsequent operations
+                # Find the virtual task
+                virtual_task = None
+                for task in all_tasks:
+                    task_id_in_list = task.get("_id")
+                    # Handle both string IDs and dict representations
+                    if isinstance(task_id_in_list, dict):
+                        task_id_in_list = task_id_in_list.get("$oid", str(task_id_in_list))
+                    if str(task_id_in_list) == task_id and task.get("is_virtual"):
+                        virtual_task = task
+                        break
+
+                if not virtual_task:
+                    raise ValueError("Task not found")
+
+                # Materialize the virtual task
+                materialized = await self._materialize_virtual_task(task_id, virtual_task)
+                task_id = str(materialized.id)  # Use new ObjectId for subsequent operations
 
         # Now proceed with normal start_task logic
         if not ObjectId.is_valid(task_id) or not ObjectId.is_valid(child_id):
             raise ValueError("Invalid task_id or child_id")
 
-        existing = await self.tasks_collection.find_one(
-            {"_id": ObjectId(task_id), "child_id": ObjectId(child_id)}
-        )
+        existing = await self.tasks_collection.find_one({
+            "_id": ObjectId(task_id),
+            "$or": [{"child_id": ObjectId(child_id)}, {"child_id": child_id}]
+        })
         if not existing:
             raise ValueError("Task not found")
 
+        # If already in progress, just return the task (idempotent)
+        if existing.get("status") == TaskStatus.IN_PROGRESS.value:
+            return {"task": Task(**existing), "concurrent_tasks": []}
+
         if existing.get("status") != TaskStatus.PENDING.value:
-            raise ValueError("Can only start tasks in SCHEDULED status")
+            raise ValueError(f"Can only start tasks in PENDING status, current: {existing.get('status')}")
 
         # Check for concurrent tasks
         active_sessions = await self._get_active_sessions(child_id)
@@ -892,7 +959,10 @@ class TaskService:
 
         # Update task status
         result = await self.tasks_collection.find_one_and_update(
-            {"_id": ObjectId(task_id), "child_id": ObjectId(child_id)},
+            {
+                "_id": ObjectId(task_id),
+                "$or": [{"child_id": ObjectId(child_id)}, {"child_id": child_id}]
+            },
             {
                 "$set": {
                     "status": TaskStatus.IN_PROGRESS.value,

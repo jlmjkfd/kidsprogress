@@ -286,6 +286,7 @@ export interface Task {
   task_source: TaskSource;
   source_id?: string;
   source_metadata?: TaskSourceMetadata;
+  template_id?: string; // Reference to TaskTemplate for template-based tasks
 
   // Scheduling (Enhanced - Unified Model)
   scheduling_type: SchedulingType;
@@ -372,6 +373,7 @@ export interface TaskCreate {
   title: string;
   description?: string;
   task_type_code?: string;
+  template_id?: string; // Reference to TaskTemplate for template-based tasks
 
   // Scheduling fields (Unified Model)
   scheduling_type?: SchedulingType;

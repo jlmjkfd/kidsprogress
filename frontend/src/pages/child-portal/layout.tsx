@@ -53,8 +53,8 @@ export default function ChildPortalLayout() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 flex flex-col">
-      {/* Top Bar - Fixed on Mobile */}
-      <div className="md:static fixed top-0 left-0 right-0 bg-white shadow-sm z-50">
+      {/* Top Bar - Sticky */}
+      <div className="sticky top-0 bg-white shadow-sm z-50">
         <div className="px-4 py-3 md:py-4 flex items-center justify-between">
           <button
             onClick={handleBack}
@@ -86,8 +86,6 @@ export default function ChildPortalLayout() {
         </div>
       </div>
 
-      {/* Top Bar Spacer (Mobile only) */}
-      <div className="md:hidden h-[60px]" />
 
       {/* Navigation Tabs - Desktop: Always visible, Mobile: Dropdown when open */}
       <RemoveScroll enabled={isMobileMenuOpen}>
@@ -132,7 +130,7 @@ export default function ChildPortalLayout() {
       )}
 
       {/* Main Content */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden">
         <Outlet />
       </div>
     </div>

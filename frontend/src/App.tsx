@@ -40,10 +40,14 @@ import ChildTasksPage from "@/pages/parent-portal/children/[id]/tasks";
 // import ChildTimeBlocksPage from "@/pages/parent-portal/children/[id]/time-blocks";
 import ChildAnalysisPage from "@/pages/parent-portal/children/[id]/analysis";
 import ParentPortalSettings from "@/pages/parent-portal/settings";
+import TemplatesPage from "@/pages/parent-portal/templates";
+import TemplateLibraryPage from "@/pages/parent-portal/templates/library";
 
 // Child Portal
 import ChildPortalLayout from "@/pages/child-portal/layout";
 import ChildPortalTasksPage from "@/pages/child-portal/tasks";
+import TaskExecutePage from "@/pages/child-portal/tasks/execute/[taskId]";
+import TaskResultPage from "@/pages/child-portal/tasks/result/[taskId]";
 
 import "@/i18n/config";
 import "./App.css";
@@ -124,6 +128,10 @@ function AppRoutes() {
           <Route path="analysis" element={<ChildAnalysisPage />} />
         </Route>
 
+        {/* Templates */}
+        <Route path="templates" element={<TemplatesPage />} />
+        <Route path="templates/library" element={<TemplateLibraryPage />} />
+
         {/* Settings */}
         <Route path="settings" element={<ParentPortalSettings />} />
       </Route>
@@ -147,6 +155,18 @@ function AppRoutes() {
         <Route
           path="tasks"
           element={<ChildPortalTasksPage />}
+        />
+
+        {/* Task Execution */}
+        <Route
+          path="tasks/execute/:taskId"
+          element={<TaskExecutePage />}
+        />
+
+        {/* Task Result */}
+        <Route
+          path="tasks/result/:taskId"
+          element={<TaskResultPage />}
         />
 
         {/* Tools */}

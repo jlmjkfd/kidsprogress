@@ -13,6 +13,7 @@ interface BasicInfoSectionProps {
   description: string;
   collectionId: string;
   isEditMode: boolean;
+  isTemplateMode?: boolean;
   collections?: TaskCollection[];
   onTitleChange: (value: string) => void;
   onDescriptionChange: (value: string) => void;
@@ -24,6 +25,7 @@ export function BasicInfoSection({
   description,
   collectionId,
   isEditMode,
+  isTemplateMode,
   collections,
   onTitleChange,
   onDescriptionChange,
@@ -44,13 +46,23 @@ export function BasicInfoSection({
           className="mb-2 block text-sm font-medium text-gray-700"
         >
           {t("tasks:task_title")} <span className="text-red-500">*</span>
+          {isTemplateMode && (
+            <span className="ml-2 text-xs text-purple-600">
+              ({t("tasks:templates.from_template")})
+            </span>
+          )}
         </label>
         <input
           type="text"
           id="title"
           value={title}
           onChange={(e) => onTitleChange(e.target.value)}
-          className="w-full rounded-lg border border-gray-300 px-3 py-2"
+          disabled={isTemplateMode}
+          className={`w-full rounded-lg border px-3 py-2 ${
+            isTemplateMode
+              ? "bg-gray-50 text-gray-600 cursor-not-allowed border-gray-200"
+              : "border-gray-300"
+          }`}
           required
           maxLength={200}
         />
@@ -63,12 +75,22 @@ export function BasicInfoSection({
           className="mb-2 block text-sm font-medium text-gray-700"
         >
           {t("tasks:description")}
+          {isTemplateMode && (
+            <span className="ml-2 text-xs text-purple-600">
+              ({t("tasks:templates.from_template")})
+            </span>
+          )}
         </label>
         <textarea
           id="description"
           value={description}
           onChange={(e) => onDescriptionChange(e.target.value)}
-          className="w-full rounded-lg border border-gray-300 px-3 py-2"
+          disabled={isTemplateMode}
+          className={`w-full rounded-lg border px-3 py-2 ${
+            isTemplateMode
+              ? "bg-gray-50 text-gray-600 cursor-not-allowed border-gray-200"
+              : "border-gray-300"
+          }`}
           rows={3}
         />
       </div>

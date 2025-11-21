@@ -4,6 +4,7 @@
  */
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate, useParams } from "react-router-dom";
 import { useAppSelector } from "@/store/hooks";
 import {
   IconChecklist,
@@ -26,10 +27,17 @@ type ViewMode = "list" | "calendar";
 
 export default function ChildTasksPage() {
   const { t } = useTranslation(["tasks", "common"]);
+  const navigate = useNavigate();
+  const { childId } = useParams<{ childId: string }>();
   const selectedChildId = useAppSelector((state) => state.child.selectedChildId);
 
-  const [filter, setFilter] = useState<"today" | "all">("today");
   const [viewMode, setViewMode] = useState<ViewMode>("list");
+
+  // Helper to get local date string (YYYY-MM-DD)
+  const getLocalDateString = (date: Date = new Date()) => {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  };
+  const [selectedDate, setSelectedDate] = useState<string>(getLocalDateString());
 
   // TODO: Implement proper child authentication to get child_id
   const { data: allTasks, isLoading} = useTasksByChild(selectedChildId || "");
@@ -38,29 +46,42 @@ export default function ChildTasksPage() {
   const resumeTaskMutation = useResumeTask();
   const completeTaskMutation = useCompleteTask();
 
-  // Filter tasks for display
+  // Filter tasks for today only
   const tasks = allTasks?.filter((task) => {
-    if (filter === "today") {
-      const today = new Date().toISOString().split("T")[0];
-      const taskDate = task.scheduled_date?.split("T")[0];
-      return taskDate === today || task.status === "in_progress" || task.status === "paused";
-    }
-    return task.status !== "completed" && task.status !== "cancelled";
+    const today = getLocalDateString();
+    const taskDate = task.scheduled_date?.split("T")[0];
+    return taskDate === today || task.status === "in_progress" || task.status === "paused";
   }) || [];
 
   // Separate tasks by status for better organization
-  const inProgressTasks = tasks.filter(t => t.status === TaskStatus.IN_PROGRESS);
-  const pausedTasks = tasks.filter(t => t.status === TaskStatus.PAUSED);
-  const todoTasks = tasks.filter(t => t.status === TaskStatus.PENDING || t.status === TaskStatus.PENDING);
+  // Use string comparison to ensure matching works regardless of enum typing
+  const inProgressTasks = tasks.filter(t => t.status === "in_progress");
+  const pausedTasks = tasks.filter(t => t.status === "paused");
+  const todoTasks = tasks.filter(t => t.status === "pending");
   const completedToday = allTasks?.filter(t => {
-    const today = new Date().toISOString().split("T")[0];
+    const today = getLocalDateString();
     const completedDate = t.completed_at?.split("T")[0];
-    return completedDate === today;
+    return completedDate === today && t.status === "completed";
   }) || [];
 
-  const handleStartTask = async (taskId: string) => {
+  // Tasks for selected date in calendar view
+  const selectedDateTasks = allTasks?.filter(t => {
+    const taskDate = t.scheduled_date?.split("T")[0];
+    return taskDate === selectedDate;
+  }) || [];
+
+  const handleStartTask = async (taskId: string, task: Task) => {
     try {
-      await startTaskMutation.mutateAsync({ taskId, childId: selectedChildId || "" });
+      // Start the task - this may materialize a virtual task into a real one
+      const result = await startTaskMutation.mutateAsync({ taskId, childId: selectedChildId || "" });
+      console.log("Start task result:", result);
+
+      // If task has a template, navigate to the executor page
+      // Use the returned task's ID (may be different if virtual task was materialized)
+      if (task.template_id) {
+        const realTaskId = result?.task?._id || taskId;
+        navigate(`/child-portal/${childId}/tasks/execute/${realTaskId}`);
+      }
     } catch (error) {
       console.error("Failed to start task:", error);
     }
@@ -95,6 +116,10 @@ export default function ChildTasksPage() {
     return task.blocks_other_tasks && task.scheduling_type === "fixed_time";
   };
 
+  const handleViewResult = (taskId: string) => {
+    navigate(`/child-portal/${childId}/tasks/result/${taskId}`);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4 sm:p-6 lg:p-8">
@@ -104,58 +129,36 @@ export default function ChildTasksPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4 sm:p-6 lg:p-8">
-      {/* Header */}
-      <div className="max-w-4xl mx-auto mb-6">
-        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-2 flex items-center gap-3">
-          <IconChecklist className="text-blue-600" size={48} />
-          {t("tasks:child_portal.my_tasks")}
-        </h1>
+    <div className="bg-gradient-to-br from-blue-50 to-purple-50">
+      {/* Sticky Header - uses position:sticky within flex-1 overflow container */}
+      <div className="sticky top-0 z-20 bg-gradient-to-br from-blue-50 to-purple-50 backdrop-blur-sm p-4 sm:p-6 pb-4 shadow-sm">
+        <div className="max-w-4xl mx-auto">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+            <IconChecklist className="text-blue-600" size={32} />
+            {t("tasks:child_portal.my_tasks")}
+          </h1>
 
-        {/* Points Display */}
-        <div className="flex items-center gap-4 mt-4">
-          <div className="bg-white rounded-full px-6 py-3 shadow-lg flex items-center gap-2">
-            <IconStar className="text-yellow-500" size={24} />
-            <span className="text-xl font-bold text-gray-900">
-              {completedToday.length} {t("tasks:child_portal.completed_today")}
-            </span>
-          </div>
-          <div className="bg-white rounded-full px-6 py-3 shadow-lg flex items-center gap-2">
-            <IconTrophy className="text-purple-500" size={24} />
-            <span className="text-xl font-bold text-gray-900">
-              {completedToday.reduce((sum, t) => sum + (t.points_earned || 0), 0)} {t("tasks:child_portal.points")}
-            </span>
+          {/* Points Display */}
+          <div className="flex flex-wrap items-center gap-3 mt-3">
+            <div className="bg-white rounded-full px-4 py-2 shadow flex items-center gap-2">
+              <IconStar className="text-yellow-500" size={20} />
+              <span className="text-sm sm:text-base font-bold text-gray-900">
+                {completedToday.length} {t("tasks:child_portal.completed_today")}
+              </span>
+            </div>
+            <div className="bg-white rounded-full px-4 py-2 shadow flex items-center gap-2">
+              <IconTrophy className="text-purple-500" size={20} />
+              <span className="text-sm sm:text-base font-bold text-gray-900">
+                {completedToday.reduce((sum, t) => sum + (t.points_earned || 0), 0)} {t("tasks:child_portal.points")}
+              </span>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-4xl mx-auto space-y-6 px-4 sm:px-6 pb-8 pt-4">
         {/* AI Recommendation */}
         <AIRecommendationButton childId={selectedChildId || ""} />
-
-        {/* Filter Tabs */}
-        <div className="flex gap-3">
-          <button
-            onClick={() => setFilter("today")}
-            className={`flex-1 py-4 px-6 rounded-2xl font-bold text-lg transition-all shadow-lg min-h-[60px] ${
-              filter === "today"
-                ? "bg-blue-600 text-white scale-105"
-                : "bg-white text-gray-700 hover:bg-blue-50"
-            }`}
-          >
-            {t("tasks:child_portal.today")}
-          </button>
-          <button
-            onClick={() => setFilter("all")}
-            className={`flex-1 py-4 px-6 rounded-2xl font-bold text-lg transition-all shadow-lg min-h-[60px] ${
-              filter === "all"
-                ? "bg-blue-600 text-white scale-105"
-                : "bg-white text-gray-700 hover:bg-blue-50"
-            }`}
-          >
-            {t("tasks:child_portal.all_tasks")}
-          </button>
-        </div>
 
         {/* View Toggle */}
         <div className="flex justify-center">
@@ -187,12 +190,39 @@ export default function ChildTasksPage() {
 
         {/* Calendar or List View */}
         {viewMode === "calendar" ? (
-          <TaskCalendar
-            tasks={allTasks || []}
-            childId={selectedChildId || ""}
-            onTaskClick={() => {}}
-            editable={false}
-          />
+          <div className="space-y-6">
+            <TaskCalendar
+              tasks={allTasks || []}
+              childId={selectedChildId || ""}
+              onTaskClick={() => {}}
+              onDayClick={(date) => setSelectedDate(date)}
+              editable={false}
+            />
+
+            {/* Task list for selected date */}
+            <div className="bg-white rounded-3xl shadow-xl p-6">
+              <h3 className="text-xl font-bold text-gray-900 mb-4">
+                {t("tasks:tasks_for_date")}: {new Date(selectedDate + "T00:00:00").toLocaleDateString()}
+              </h3>
+              {selectedDateTasks.length === 0 ? (
+                <p className="text-gray-600">{t("tasks:no_tasks_for_date")}</p>
+              ) : (
+                <div className="space-y-3">
+                  {selectedDateTasks.map((task) => (
+                    <TaskCard
+                      key={task._id}
+                      task={task}
+                      onStart={task.status === "pending" && !isInformationalTask(task) ? () => handleStartTask(task._id, task) : undefined}
+                      onPause={task.status === "in_progress" && !isInformationalTask(task) ? () => handlePauseTask(task._id) : undefined}
+                      onResume={task.status === "paused" && !isInformationalTask(task) ? () => handleResumeTask(task._id) : undefined}
+                      onComplete={(task.status === "in_progress" || task.status === "paused") && !isInformationalTask(task) ? () => handleCompleteTask(task._id) : undefined}
+                      onViewResult={task.status === "completed" && task.template_id ? () => handleViewResult(task._id) : undefined}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         ) : (
           <>
             {/* In Progress Tasks */}
@@ -242,14 +272,31 @@ export default function ChildTasksPage() {
                   <TaskCard
                     key={task._id}
                     task={task}
-                    onStart={!isInformationalTask(task) ? () => handleStartTask(task._id) : undefined}
+                    onStart={!isInformationalTask(task) ? () => handleStartTask(task._id, task) : undefined}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Completed Today */}
+            {completedToday.length > 0 && (
+              <div className="space-y-3">
+                <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                  <IconTrophy className="text-purple-600" size={28} />
+                  {t("tasks:child_portal.completed_today")}
+                </h2>
+                {completedToday.map((task) => (
+                  <TaskCard
+                    key={task._id}
+                    task={task}
+                    onViewResult={task.template_id ? () => handleViewResult(task._id) : undefined}
                   />
                 ))}
               </div>
             )}
 
             {/* Empty State */}
-            {tasks.length === 0 && (
+            {tasks.length === 0 && completedToday.length === 0 && (
               <div className="bg-white rounded-3xl shadow-xl p-12 text-center">
                 <IconTrophy className="mx-auto text-purple-400 mb-4" size={80} />
                 <h3 className="text-3xl font-bold text-gray-900 mb-2">
@@ -271,13 +318,14 @@ interface TaskCardProps {
   onPause?: () => void;
   onResume?: () => void;
   onComplete?: () => void;
+  onViewResult?: () => void;
 }
 
-function TaskCard({ task, onStart, onPause, onResume, onComplete }: TaskCardProps) {
+function TaskCard({ task, onStart, onPause, onResume, onComplete, onViewResult }: TaskCardProps) {
   const { t } = useTranslation(["tasks"]);
 
-  const isInProgress = task.status === TaskStatus.IN_PROGRESS;
-  const isPaused = task.status === TaskStatus.PAUSED;
+  const isInProgress = task.status === "in_progress";
+  const isPaused = task.status === "paused";
 
   return (
     <div className={`bg-white rounded-3xl shadow-xl p-6 transition-all hover:scale-102 ${
@@ -347,6 +395,16 @@ function TaskCard({ task, onStart, onPause, onResume, onComplete }: TaskCardProp
             >
               <IconCheck size={28} />
               {t("tasks:complete")}
+            </button>
+          )}
+
+          {onViewResult && (
+            <button
+              onClick={onViewResult}
+              className="flex items-center justify-center gap-3 bg-purple-600 text-white px-8 py-4 rounded-2xl font-bold text-xl hover:bg-purple-700 transition-all shadow-lg hover:scale-105 min-h-[64px]"
+            >
+              <IconStar size={28} />
+              {t("tasks:view_result")}
             </button>
           )}
         </div>

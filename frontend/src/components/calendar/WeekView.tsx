@@ -2,8 +2,9 @@
  * WeekView - 7-day week view with time grid
  * Shows tasks across the week with hourly timeline
  */
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { IconCircle, IconCheck, IconChevronRight } from "@tabler/icons-react";
+import { IconCircle, IconCheck, IconChevronRight, IconCalendarTime, IconPlayerPlay } from "@tabler/icons-react";
 import { Task, TaskStatus, ObligationLevel } from "@/types/task";
 import { DayType } from "@/types/schoolCalendar";
 import { WeekSelector } from "./WeekSelector";
@@ -31,8 +32,11 @@ export function WeekView({
   onPrevWeek,
   onNextWeek,
 }: WeekViewProps) {
-  const { i18n } = useTranslation(["common"]);
+  const { t, i18n } = useTranslation(["tasks", "common"]);
   const currentLocale = i18n.language || "en";
+
+  // Toggle between showing planned time vs actual execution time
+  const [showPlannedTime, setShowPlannedTime] = useState(true);
 
   // Check if task is informational
   const isInformationalTask = (task: Task): boolean => {
@@ -75,34 +79,44 @@ export function WeekView({
     }
   });
 
-  // Get time for a task (in minutes from midnight)
-  const getTaskTime = (task: Task): number | null => {
-    if (task.started_at) {
-      const date = new Date(task.started_at);
-      return date.getHours() * 60 + date.getMinutes();
-    }
+  // Get planned time for a task (in minutes from midnight)
+  const getPlannedTime = (task: Task): number | null => {
     if (task.fixed_time_slot?.start) {
-      const [hours, minutes] = task.fixed_time_slot.start
-        .split(":")
-        .map(Number);
+      const [hours, minutes] = task.fixed_time_slot.start.split(":").map(Number);
+      return hours * 60 + minutes;
+    }
+    if (task.preferred_time_window?.start) {
+      const [hours, minutes] = task.preferred_time_window.start.split(":").map(Number);
       return hours * 60 + minutes;
     }
     if (task.preferred_time_slot?.start) {
-      const [hours, minutes] = task.preferred_time_slot.start
-        .split(":")
-        .map(Number);
+      const [hours, minutes] = task.preferred_time_slot.start.split(":").map(Number);
       return hours * 60 + minutes;
     }
     return null;
   };
 
-  // Get duration in minutes
-  const getTaskDuration = (task: Task): number => {
-    if (task.completed_at && task.started_at) {
-      const start = new Date(task.started_at);
-      const end = new Date(task.completed_at);
-      return (end.getTime() - start.getTime()) / 60000;
+  // Get actual execution time (in minutes from midnight, local time)
+  const getActualTime = (task: Task): number | null => {
+    if (task.started_at) {
+      const date = new Date(task.started_at);
+      return date.getHours() * 60 + date.getMinutes();
     }
+    return null;
+  };
+
+  // Get time for display based on toggle
+  const getTaskTime = (task: Task): number | null => {
+    if (showPlannedTime) {
+      return getPlannedTime(task) ?? getActualTime(task);
+    } else {
+      return getActualTime(task) ?? getPlannedTime(task);
+    }
+  };
+
+  // Get duration in minutes - prioritize planned duration
+  const getTaskDuration = (task: Task): number => {
+    // Check fixed time slot duration
     if (task.fixed_time_slot?.start && task.fixed_time_slot?.end) {
       const [startH, startM] = task.fixed_time_slot.start
         .split(":")
@@ -110,12 +124,27 @@ export function WeekView({
       const [endH, endM] = task.fixed_time_slot.end.split(":").map(Number);
       return endH * 60 + endM - (startH * 60 + startM);
     }
+    // Check preferred time window duration
+    if (task.preferred_time_window?.start && task.preferred_time_window?.end) {
+      const [startH, startM] = task.preferred_time_window.start
+        .split(":")
+        .map(Number);
+      const [endH, endM] = task.preferred_time_window.end.split(":").map(Number);
+      return endH * 60 + endM - (startH * 60 + startM);
+    }
+    // Check preferred time slot duration
     if (task.preferred_time_slot?.start && task.preferred_time_slot?.end) {
       const [startH, startM] = task.preferred_time_slot.start
         .split(":")
         .map(Number);
       const [endH, endM] = task.preferred_time_slot.end.split(":").map(Number);
       return endH * 60 + endM - (startH * 60 + startM);
+    }
+    // Fall back to actual completion duration
+    if (task.completed_at && task.started_at) {
+      const start = new Date(task.started_at);
+      const end = new Date(task.completed_at);
+      return (end.getTime() - start.getTime()) / 60000;
     }
     return task.estimated_duration_minutes || 30;
   };
@@ -201,6 +230,34 @@ export function WeekView({
         onPrevWeek={onPrevWeek}
         onNextWeek={onNextWeek}
       />
+
+      {/* Planned vs Actual Time Toggle */}
+      <div className="flex justify-end px-2">
+        <div className="inline-flex rounded-lg border bg-white p-1 shadow-sm">
+          <button
+            onClick={() => setShowPlannedTime(true)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+              showPlannedTime
+                ? "bg-blue-100 text-blue-700"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            <IconCalendarTime size={16} />
+            {t("tasks:planned_time")}
+          </button>
+          <button
+            onClick={() => setShowPlannedTime(false)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+              !showPlannedTime
+                ? "bg-green-100 text-green-700"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            <IconPlayerPlay size={16} />
+            {t("tasks:actual_time")}
+          </button>
+        </div>
+      </div>
 
       {/* Desktop Week Grid - Timeline View */}
       <div className="hidden md:block overflow-x-auto">

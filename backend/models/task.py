@@ -24,6 +24,7 @@ class TaskSource(str, Enum):
     ONE_TIME = "one_time"  # Single task created by parent
     ROUTINE = "routine"  # Generated from recurring routine
     ACTIVITY = "activity"  # Created from activity pool
+    TEMPLATE = "template"  # Created from task template
 
 
 class SchedulingType(str, Enum):
@@ -214,6 +215,7 @@ class Task(BaseModel):
     task_source: TaskSource = TaskSource.ONE_TIME
     source_id: Optional[PyObjectId] = None  # Routine ID or Activity ID
     source_metadata: Optional[TaskSourceMetadata] = None
+    template_id: Optional[str] = None  # Template ID if created from template
 
     # Scheduling (Enhanced - Unified Model)
     scheduling_type: SchedulingType = SchedulingType.FLEXIBLE
