@@ -1,0 +1,12 @@
+{
+  "title": "AI Helper",
+  "subtitle": "Ask me anything!",
+  "welcome_title": "Hi there!",
+  "welcome_message": "I'm your friendly AI helper. Ask me anything about your homework, learning, or just chat with me!",
+  "input_placeholder": "Type your message...",
+  "clear_chat": "Clear chat",
+  "confirm_clear": "Are you sure you want to clear the chat history?",
+  "suggestion_1": "Help me with math",
+  "suggestion_2": "What should I learn today?",
+  "suggestion_3": "Tell me something fun"
+}

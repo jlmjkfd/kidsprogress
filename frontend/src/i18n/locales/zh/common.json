@@ -84,7 +84,9 @@
     }
   },
   "navigation": {
+    "dashboard": "仪表盘",
     "children": "孩子",
+    "templates": "模板",
     "tasks": "任务",
     "analytics": "分析",
     "settings": "设置",

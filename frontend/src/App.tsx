@@ -40,6 +40,7 @@ import ChildTasksPage from "@/pages/parent-portal/children/[id]/tasks";
 // import ChildTimeBlocksPage from "@/pages/parent-portal/children/[id]/time-blocks";
 import ChildAnalysisPage from "@/pages/parent-portal/children/[id]/analysis";
 import ParentPortalSettings from "@/pages/parent-portal/settings";
+import ParentDashboardPage from "@/pages/parent-portal/dashboard";
 import TemplatesPage from "@/pages/parent-portal/templates";
 import TemplateLibraryPage from "@/pages/parent-portal/templates/library";
 
@@ -48,6 +49,7 @@ import ChildPortalLayout from "@/pages/child-portal/layout";
 import ChildPortalTasksPage from "@/pages/child-portal/tasks";
 import TaskExecutePage from "@/pages/child-portal/tasks/execute/[taskId]";
 import TaskResultPage from "@/pages/child-portal/tasks/result/[taskId]";
+import ChildChatPage from "@/pages/child-portal/chat";
 
 import "@/i18n/config";
 import "./App.css";
@@ -114,8 +116,11 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       >
-        {/* Default: Manage Children List */}
-        <Route index element={<ManageChildrenPage />} />
+        {/* Default: Dashboard */}
+        <Route index element={<ParentDashboardPage />} />
+
+        {/* Children List */}
+        <Route path="children" element={<ManageChildrenPage />} />
 
         {/* Child Management - Nested routes with tabs */}
         <Route path="children/:childId" element={<ChildManagementLayout />}>
@@ -178,7 +183,7 @@ function AppRoutes() {
         {/* AI Chat */}
         <Route
           path="chat"
-          element={<div className="p-8">Chat with AI - Coming Soon</div>}
+          element={<ChildChatPage />}
         />
 
         {/* Progress */}

@@ -488,5 +488,20 @@
       "name_required": "模板名称为必填项",
       "category_required": "分类为必填项"
     }
+  },
+  "dashboard": {
+    "title": "仪表盘",
+    "subtitle": "孩子进度概览",
+    "children": "孩子",
+    "tasks_today": "今日任务",
+    "recent_completions": "最近完成",
+    "no_completions": "暂无已完成任务",
+    "just_now": "刚刚",
+    "mins_ago": "{{count}}分钟前",
+    "mins_ago_plural": "{{count}}分钟前",
+    "hours_ago": "{{count}}小时前",
+    "hours_ago_plural": "{{count}}小时前",
+    "days_ago": "{{count}}天前",
+    "days_ago_plural": "{{count}}天前"
   }
 }

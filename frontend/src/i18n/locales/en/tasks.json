@@ -487,5 +487,20 @@
       "name_required": "Template name is required",
       "category_required": "Category is required"
     }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "Overview of your children's progress",
+    "children": "Children",
+    "tasks_today": "tasks today",
+    "recent_completions": "Recent Completions",
+    "no_completions": "No completed tasks yet",
+    "just_now": "Just now",
+    "mins_ago": "{{count}} min ago",
+    "mins_ago_plural": "{{count}} mins ago",
+    "hours_ago": "{{count}} hour ago",
+    "hours_ago_plural": "{{count}} hours ago",
+    "days_ago": "{{count}} day ago",
+    "days_ago_plural": "{{count}} days ago"
   }
 }

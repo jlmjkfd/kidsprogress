@@ -13,6 +13,7 @@ import {
   IconX,
   IconSparkles,
   IconTemplate,
+  IconDashboard,
 } from "@tabler/icons-react";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useLogout } from "@api/mutations/useLogout";
@@ -30,7 +31,8 @@ export default function ParentPortalLayout() {
   const logoutMutation = useLogout();
 
   const navItems = [
-    { path: "/parent-portal", icon: IconUsers, label: t("common:navigation.children"), exact: true },
+    { path: "/parent-portal", icon: IconDashboard, label: t("common:navigation.dashboard"), exact: true },
+    { path: "/parent-portal/children", icon: IconUsers, label: t("common:navigation.children") },
     { path: "/parent-portal/templates", icon: IconTemplate, label: t("common:navigation.templates") },
     { path: "/parent-portal/settings", icon: IconSettings, label: t("common:navigation.settings") },
   ];

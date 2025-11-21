@@ -1,0 +1,12 @@
+{
+  "title": "AI助手",
+  "subtitle": "问我任何问题！",
+  "welcome_title": "你好！",
+  "welcome_message": "我是你的AI小助手。问我关于作业、学习的问题，或者和我聊天吧！",
+  "input_placeholder": "输入你的消息...",
+  "clear_chat": "清空聊天",
+  "confirm_clear": "确定要清空聊天记录吗？",
+  "suggestion_1": "帮我做数学题",
+  "suggestion_2": "今天我应该学什么？",
+  "suggestion_3": "告诉我一些有趣的事"
+}

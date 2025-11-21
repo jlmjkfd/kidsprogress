@@ -32,6 +32,7 @@ from backend.routes import (
     school_calendar_routes,
     template_routes,
     completion_routes,
+    chat_routes,
 )
 from backend.jobs import init_scheduler, shutdown_scheduler
 
@@ -154,6 +155,9 @@ app.include_router(ai_schedule_routes.router)
 # Task template system
 app.include_router(template_routes.router)
 app.include_router(completion_routes.router)
+
+# AI Chat
+app.include_router(chat_routes.router)
 
 @app.get("/health")
 def health_check():

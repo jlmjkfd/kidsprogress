@@ -84,6 +84,7 @@
     }
   },
   "navigation": {
+    "dashboard": "Dashboard",
     "children": "Children",
     "templates": "Templates",
     "tasks": "Tasks",
