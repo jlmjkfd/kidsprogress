@@ -9,7 +9,7 @@ export function useRemoveParentPin() {
 
   return useMutation({
     mutationFn: async (): Promise<{ message: string }> => {
-      const response = await apiClient.post("/api/auth/parent-pin/remove");
+      const response = await apiClient.delete("/api/auth/parent-pin");
       return response.data;
     },
     onSuccess: () => {

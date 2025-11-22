@@ -6,7 +6,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { RemoveScroll } from "react-remove-scroll";
 import { IconX, IconAlertCircle } from "@tabler/icons-react";
-import { Task, TimeSlot } from "@/types/task";
+import { Task } from "@/types/task";
 import { useAddRecurrenceException } from "@/api/mutations/useTaskMutations";
 
 interface EditOccurrenceModalProps {
@@ -30,7 +30,9 @@ export function EditOccurrenceModal({
 
   // Form state for editing this occurrence
   const occurrenceDate = task.scheduled_date?.split("T")[0] || "";
-  const [fixedStart, setFixedStart] = useState(task.fixed_time_slot?.start || "");
+  const [fixedStart, setFixedStart] = useState(
+    task.fixed_time_slot?.start || ""
+  );
   const [fixedEnd, setFixedEnd] = useState(task.fixed_time_slot?.end || "");
   const [description, setDescription] = useState(task.description || "");
 
@@ -43,13 +45,16 @@ export function EditOccurrenceModal({
     try {
       if (editOption === "this") {
         // Edit only this occurrence
-        const overrides: Record<string, any> = {};
+        const overrides: Record<string, string | { start: string; end: string }> = {};
 
         // Check what changed
         if (description !== (task.description || "")) {
           overrides.description = description;
         }
-        if (fixedStart !== task.fixed_time_slot?.start || fixedEnd !== task.fixed_time_slot?.end) {
+        if (
+          fixedStart !== task.fixed_time_slot?.start ||
+          fixedEnd !== task.fixed_time_slot?.end
+        ) {
           overrides.fixed_time_slot = {
             start: fixedStart,
             end: fixedEnd,
@@ -57,7 +62,7 @@ export function EditOccurrenceModal({
         }
 
         // If there are any overrides, the backend will materialize this virtual task
-        if (Object.keys(overrides).length > 0) {
+        if (Object.keys(overrides).length > 0 && task.source_recurring_task_id) {
           await addExceptionMutation.mutateAsync({
             taskId: task.source_recurring_task_id,
             exceptionDate: occurrenceDate,
@@ -86,10 +91,10 @@ export function EditOccurrenceModal({
 
   return (
     <RemoveScroll>
-      <div className="fixed inset-0 z-50 flex items-start justify-center bg-black bg-opacity-50 p-4 pt-8 overflow-y-auto">
-        <div className="w-full max-w-2xl my-8 rounded-lg bg-white shadow-xl max-h-[90vh] flex flex-col">
+      <div className="bg-opacity-50 fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black p-4 pt-8">
+        <div className="my-8 flex max-h-[90vh] w-full max-w-2xl flex-col rounded-lg bg-white shadow-xl">
           {/* Header - Sticky */}
-          <div className="flex items-center justify-between border-b p-4 sm:p-6 bg-white rounded-t-lg sticky top-0 z-10">
+          <div className="sticky top-0 z-10 flex items-center justify-between rounded-t-lg border-b bg-white p-4 sm:p-6">
             <h2 className="text-lg font-bold text-gray-900 sm:text-xl">
               {t("tasks:edit_occurrence")}
             </h2>
@@ -103,14 +108,20 @@ export function EditOccurrenceModal({
           </div>
 
           {/* Content - Scrollable */}
-          <div className="space-y-6 p-4 sm:p-6 overflow-y-auto flex-1">
+          <div className="flex-1 space-y-6 overflow-y-auto p-4 sm:p-6">
             {/* Info Banner */}
             <div className="flex gap-3 rounded-lg bg-blue-50 p-4">
-              <IconAlertCircle size={20} className="mt-0.5 flex-shrink-0 text-blue-600" />
+              <IconAlertCircle
+                size={20}
+                className="mt-0.5 flex-shrink-0 text-blue-600"
+              />
               <div className="text-sm text-blue-900">
-                <p className="font-medium">{t("tasks:recurring_task_notice")}</p>
+                <p className="font-medium">
+                  {t("tasks:recurring_task_notice")}
+                </p>
                 <p className="mt-1 text-blue-700">
-                  {t("tasks:occurrence_date")}: <strong>{occurrenceDate}</strong>
+                  {t("tasks:occurrence_date")}:{" "}
+                  <strong>{occurrenceDate}</strong>
                 </p>
               </div>
             </div>
@@ -122,7 +133,7 @@ export function EditOccurrenceModal({
               </label>
 
               <div className="space-y-2">
-                <label className="flex items-start gap-3 rounded-lg border-2 border-gray-300 p-4 cursor-pointer hover:bg-gray-50 transition-colors">
+                <label className="flex cursor-pointer items-start gap-3 rounded-lg border-2 border-gray-300 p-4 transition-colors hover:bg-gray-50">
                   <input
                     type="radio"
                     name="editOption"
@@ -141,7 +152,7 @@ export function EditOccurrenceModal({
                   </div>
                 </label>
 
-                <label className="flex items-start gap-3 rounded-lg border-2 border-gray-300 p-4 cursor-pointer hover:bg-gray-50 transition-colors">
+                <label className="flex cursor-pointer items-start gap-3 rounded-lg border-2 border-gray-300 p-4 transition-colors hover:bg-gray-50">
                   <input
                     type="radio"
                     name="editOption"
@@ -165,7 +176,9 @@ export function EditOccurrenceModal({
             {/* Edit Fields (only show when editing this occurrence) */}
             {editOption === "this" && (
               <div className="space-y-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
-                <h3 className="font-medium text-gray-900">{t("tasks:edit_details")}</h3>
+                <h3 className="font-medium text-gray-900">
+                  {t("tasks:edit_details")}
+                </h3>
 
                 {/* Title (Read-only) */}
                 <div>
@@ -176,7 +189,7 @@ export function EditOccurrenceModal({
                     type="text"
                     value={task.title}
                     readOnly
-                    className="w-full rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-gray-600 cursor-not-allowed"
+                    className="w-full cursor-not-allowed rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-gray-600"
                     title={t("tasks:edit_template_to_change_title")}
                   />
                   <p className="mt-1 text-xs text-gray-500">
@@ -196,11 +209,12 @@ export function EditOccurrenceModal({
                     rows={3}
                     placeholder={t("tasks:description_placeholder")}
                   />
-                  {task.is_virtual && description !== (task.description || "") && (
-                    <p className="mt-1 text-xs text-blue-600">
-                      {t("tasks:editing_will_materialize")}
-                    </p>
-                  )}
+                  {task.is_virtual &&
+                    description !== (task.description || "") && (
+                      <p className="mt-1 text-xs text-blue-600">
+                        {t("tasks:editing_will_materialize")}
+                      </p>
+                    )}
                 </div>
 
                 {/* Time Slot */}
@@ -232,7 +246,6 @@ export function EditOccurrenceModal({
                 )}
               </div>
             )}
-
           </div>
 
           {/* Footer */}
@@ -254,8 +267,8 @@ export function EditOccurrenceModal({
               {isSubmitting
                 ? t("common:saving")
                 : editOption === "all"
-                ? t("tasks:edit_template")
-                : t("common:save")}
+                  ? t("tasks:edit_template")
+                  : t("common:save")}
             </button>
           </div>
         </div>
