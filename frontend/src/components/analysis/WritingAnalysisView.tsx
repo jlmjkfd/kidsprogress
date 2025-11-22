@@ -14,6 +14,7 @@ import {
 } from "@tabler/icons-react";
 import { apiClient } from "@/api/client";
 import WritingCompletionViewer from "@/components/completions/WritingCompletionViewer";
+import type { TaskCompletion } from "@/types/template";
 
 interface WritingAnalysisViewProps {
   templateId: string;
@@ -27,7 +28,7 @@ export default function WritingAnalysisView({
   templateName,
 }: WritingAnalysisViewProps) {
   const { t } = useTranslation(["tasks", "common"]);
-  const [selectedCompletion, setSelectedCompletion] = useState<any>(null);
+  const [selectedCompletion, setSelectedCompletion] = useState<TaskCompletion | null>(null);
 
   // Fetch completions for this template
   const { data, isLoading, error } = useQuery({
@@ -114,10 +115,10 @@ export default function WritingAnalysisView({
       ) : (
         /* Writings List */
         <div className="space-y-3">
-          {completions.map((completion: any) => {
-            const title = completion.detailed_data?.title || t("tasks:analysis.untitled");
-            const wordCount = completion.measured_data?.word_count || 0;
-            const overallScore = completion.llm_analysis?.overall_score;
+          {completions.map((completion: TaskCompletion) => {
+            const title = (completion.detailed_data?.title as string | undefined) || t("tasks:analysis.untitled");
+            const wordCount = (completion.measured_data?.word_count as number | undefined) || 0;
+            const overallScore = completion.llm_analysis?.overall_score as number | undefined;
             const completedAt = new Date(completion.completed_at);
 
             return (
@@ -157,8 +158,8 @@ export default function WritingAnalysisView({
 
                 {/* Preview of content */}
                 <p className="mt-2 text-sm text-gray-500 line-clamp-2">
-                  {completion.detailed_data?.content?.substring(0, 150)}
-                  {(completion.detailed_data?.content?.length || 0) > 150 && "..."}
+                  {(completion.detailed_data?.content as string | undefined)?.substring(0, 150)}
+                  {((completion.detailed_data?.content as string | undefined)?.length || 0) > 150 && "..."}
                 </p>
               </button>
             );

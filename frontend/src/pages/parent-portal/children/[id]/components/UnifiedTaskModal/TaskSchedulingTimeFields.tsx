@@ -3,26 +3,13 @@
  */
 import { useTranslation } from "react-i18next";
 import { IconClock } from "@tabler/icons-react";
-import { SchedulingType, DeadlineType } from "@/types/task";
+import { SchedulingType } from "@/types/task";
+import type { TimeFieldsData } from "./SchedulingSection";
 
 interface TaskSchedulingTimeFieldsProps {
   schedulingType: SchedulingType;
-  formData: {
-    fixed_start: string;
-    fixed_end: string;
-    window_start: string;
-    window_end: string;
-    window_priority: number;
-    deadline: string;
-    deadline_time: string;
-    deadline_type: DeadlineType;
-    preferred_start: string;
-    preferred_end: string;
-    pool_max_times: number | null;
-    pool_max_duration: number | null;
-    pool_cooldown: number | null;
-  };
-  onFormChange: (updates: Partial<typeof formData>) => void;
+  formData: TimeFieldsData;
+  onFormChange: (updates: Partial<TimeFieldsData>) => void;
 }
 
 export function TaskSchedulingTimeFields({
