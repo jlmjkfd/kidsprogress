@@ -6,6 +6,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from backend.models.task import Task, TimeSlot
 from backend.models.time_block import TimeBlock
 from backend.utils.datetime_utils import utcnow
+from backend.utils.query_builders import date_range_query
 
 
 class ScheduleService:
@@ -22,11 +23,8 @@ class ScheduleService:
         """Get all tasks for a child on a specific date."""
         query: Dict[str, Any] = {
             "child_id": child_id,
-            "scheduled_date": {
-                "$gte": datetime.combine(target_date, datetime.min.time()),
-                "$lt": datetime.combine(target_date + timedelta(days=1), datetime.min.time())
-            }
         }
+        query.update(date_range_query("scheduled_date", target_date, target_date))
 
         if include_status:
             query["status"] = {"$in": include_status}

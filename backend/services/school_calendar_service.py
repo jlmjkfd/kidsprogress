@@ -4,7 +4,7 @@ Business logic for managing school terms, holidays, and determining day types
 """
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from datetime import date, datetime, timedelta
-from typing import Optional
+from typing import Optional, Dict, Any
 from bson import ObjectId
 
 from backend.models.school_calendar import (
@@ -54,7 +54,7 @@ class SchoolCalendarService:
 
     async def get_terms(self, child_id: str, include_inactive: bool = False) -> list[Term]:
         """Get all terms for a child"""
-        query = {"child_id": child_id}
+        query: Dict[str, Any] = {"child_id": child_id}
         if not include_inactive:
             query["is_active"] = True
 
@@ -137,9 +137,9 @@ class SchoolCalendarService:
         self, child_id: str, start_date: Optional[str] = None, end_date: Optional[str] = None
     ) -> list[SpecialDay]:
         """Get special days for a child, optionally filtered by date range"""
-        query = {"child_id": child_id}
+        query: Dict[str, Any] = {"child_id": child_id}
         if start_date or end_date:
-            date_query = {}
+            date_query: Dict[str, str] = {}
             if start_date:
                 date_query["$gte"] = start_date  # String comparison
             if end_date:

@@ -72,7 +72,7 @@ export default function PassiveFormConfigEditor({
         </h3>
         <button
           onClick={handleAddField}
-          className="flex items-center gap-1 px-3 py-1 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100"
+          className="flex items-center gap-1 rounded-lg bg-blue-50 px-3 py-1 text-sm text-blue-600 hover:bg-blue-100"
         >
           <IconPlus size={16} />
           <span>{t("tasks:templates.add_field")}</span>
@@ -81,13 +81,13 @@ export default function PassiveFormConfigEditor({
 
       {/* Fields List */}
       <div className="space-y-2">
-        {config.fields.map((field, index) => (
+        {config.fields.map((field) => (
           <div
             key={field.field_id}
-            className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg border"
+            className="flex items-center gap-2 rounded-lg border bg-gray-50 p-3"
           >
             <IconGripVertical size={16} className="text-gray-400" />
-            <div className="flex-1 min-w-0">
+            <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <span className="font-medium text-gray-900">{field.label}</span>
                 {field.required && (
@@ -100,13 +100,13 @@ export default function PassiveFormConfigEditor({
             </div>
             <button
               onClick={() => handleEditField(field)}
-              className="p-2 text-gray-600 hover:bg-white rounded-lg"
+              className="rounded-lg p-2 text-gray-600 hover:bg-white"
             >
               {t("common:edit")}
             </button>
             <button
               onClick={() => handleDeleteField(field.field_id)}
-              className="p-2 text-red-600 hover:bg-white rounded-lg"
+              className="rounded-lg p-2 text-red-600 hover:bg-white"
             >
               <IconTrash size={16} />
             </button>
@@ -114,7 +114,7 @@ export default function PassiveFormConfigEditor({
         ))}
 
         {config.fields.length === 0 && !showAddField && (
-          <div className="text-center py-8 text-gray-500 text-sm">
+          <div className="py-8 text-center text-sm text-gray-500">
             {t("tasks:templates.no_fields")}
           </div>
         )}
@@ -122,7 +122,7 @@ export default function PassiveFormConfigEditor({
 
       {/* Field Editor */}
       {showAddField && editingField && (
-        <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 space-y-4">
+        <div className="space-y-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
           <h4 className="font-medium text-gray-900">
             {config.fields.find((f) => f.field_id === editingField.field_id)
               ? t("tasks:templates.edit_field")
@@ -131,7 +131,7 @@ export default function PassiveFormConfigEditor({
 
           {/* Field Label */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="mb-1 block text-sm font-medium text-gray-700">
               {t("tasks:templates.field_label")}
             </label>
             <input
@@ -140,14 +140,14 @@ export default function PassiveFormConfigEditor({
               onChange={(e) =>
                 setEditingField({ ...editingField, label: e.target.value })
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500"
               placeholder={t("tasks:templates.field_label_placeholder")}
             />
           </div>
 
           {/* Field Type */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="mb-1 block text-sm font-medium text-gray-700">
               {t("tasks:templates.field_type")}
             </label>
             <select
@@ -158,20 +158,30 @@ export default function PassiveFormConfigEditor({
                   field_type: e.target.value as FormField["field_type"],
                 })
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500"
             >
-              <option value="text">{t("tasks:templates.field_types.text")}</option>
-              <option value="number">{t("tasks:templates.field_types.number")}</option>
-              <option value="textarea">{t("tasks:templates.field_types.textarea")}</option>
-              <option value="select">{t("tasks:templates.field_types.select")}</option>
-              <option value="checkbox">{t("tasks:templates.field_types.checkbox")}</option>
+              <option value="text">
+                {t("tasks:templates.field_types.text")}
+              </option>
+              <option value="number">
+                {t("tasks:templates.field_types.number")}
+              </option>
+              <option value="textarea">
+                {t("tasks:templates.field_types.textarea")}
+              </option>
+              <option value="select">
+                {t("tasks:templates.field_types.select")}
+              </option>
+              <option value="checkbox">
+                {t("tasks:templates.field_types.checkbox")}
+              </option>
             </select>
           </div>
 
           {/* Options (for select) */}
           {editingField.field_type === "select" && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="mb-1 block text-sm font-medium text-gray-700">
                 {t("tasks:templates.field_options")}
               </label>
               <input
@@ -183,7 +193,7 @@ export default function PassiveFormConfigEditor({
                     options: e.target.value.split(",").map((o) => o.trim()),
                   })
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500"
                 placeholder={t("tasks:templates.field_options_placeholder")}
               />
             </div>
@@ -198,7 +208,7 @@ export default function PassiveFormConfigEditor({
               onChange={(e) =>
                 setEditingField({ ...editingField, required: e.target.checked })
               }
-              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
             />
             <label htmlFor="field_required" className="text-sm text-gray-700">
               {t("tasks:templates.field_required")}
@@ -210,13 +220,13 @@ export default function PassiveFormConfigEditor({
             <button
               onClick={handleSaveField}
               disabled={!editingField.label.trim()}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {t("common:save")}
             </button>
             <button
               onClick={handleCancel}
-              className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+              className="rounded-lg border border-gray-300 bg-white px-4 py-2 hover:bg-gray-50"
             >
               {t("common:cancel")}
             </button>
@@ -225,14 +235,16 @@ export default function PassiveFormConfigEditor({
       )}
 
       {/* Configuration Options */}
-      <div className="space-y-3 pt-4 border-t">
+      <div className="space-y-3 border-t pt-4">
         <div className="flex items-center gap-3">
           <input
             type="checkbox"
             id="allow_photos"
             checked={config.allow_photos}
-            onChange={(e) => onChange({ ...config, allow_photos: e.target.checked })}
-            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            onChange={(e) =>
+              onChange({ ...config, allow_photos: e.target.checked })
+            }
+            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
           />
           <label htmlFor="allow_photos" className="text-sm text-gray-700">
             {t("tasks:templates.allow_photos")}
@@ -244,8 +256,10 @@ export default function PassiveFormConfigEditor({
             type="checkbox"
             id="allow_notes"
             checked={config.allow_notes}
-            onChange={(e) => onChange({ ...config, allow_notes: e.target.checked })}
-            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            onChange={(e) =>
+              onChange({ ...config, allow_notes: e.target.checked })
+            }
+            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
           />
           <label htmlFor="allow_notes" className="text-sm text-gray-700">
             {t("tasks:templates.allow_notes")}

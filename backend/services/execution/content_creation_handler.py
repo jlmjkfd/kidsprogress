@@ -2,6 +2,7 @@
 from typing import Dict, Any
 from datetime import datetime
 import uuid
+from backend.utils.datetime_utils import utcnow
 
 from backend.services.execution.base_handler import ExecutionHandler
 from backend.models.task_template import TaskCompletion
@@ -16,7 +17,8 @@ class ContentCreationHandler(ExecutionHandler):
     def __init__(self, template):
         super().__init__(template)
         # Cast config to ContentCreationConfig for type hints
-        self.config: ContentCreationConfig = template.execution_config
+        # Type assertion - we know this is ContentCreationConfig based on handler type
+        self.config: ContentCreationConfig = template.execution_config  # type: ignore
 
     async def validate_config(self) -> None:
         """Validate content creation configuration."""
@@ -95,18 +97,25 @@ class ContentCreationHandler(ExecutionHandler):
             ai_feedback = None
 
         # Create completion object
+        # Handle started_at - convert from ISO string if present, otherwise use current time
+        started_at_value = raw_data.get("started_at")
+        if isinstance(started_at_value, str):
+            started_at = datetime.fromisoformat(started_at_value.replace('Z', '+00:00'))
+        else:
+            started_at = utcnow()
+
         completion = TaskCompletion(
             completion_id=str(uuid.uuid4()),
             task_id=PyObjectId(task_id),
             child_id=PyObjectId(child_id),
             template_id=self.template.template_id,
-            started_at=raw_data.get("started_at", datetime.utcnow().isoformat()),
-            completed_at=datetime.utcnow().isoformat(),
+            started_at=started_at,
+            completed_at=utcnow(),
             measured_data=measured_data,
             detailed_data=detailed_data,
             attachments=raw_data.get("attachments", []),
             llm_analysis=ai_feedback,
-            llm_analyzed_at=datetime.utcnow().isoformat() if ai_feedback else None,
+            llm_analyzed_at=utcnow() if ai_feedback else None,
         )
 
         return completion

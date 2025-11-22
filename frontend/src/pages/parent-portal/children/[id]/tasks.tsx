@@ -4,7 +4,12 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { IconPlus, IconCalendar, IconList, IconSchool } from "@tabler/icons-react";
+import {
+  IconPlus,
+  IconCalendar,
+  IconList,
+  IconSchool,
+} from "@tabler/icons-react";
 import { useTasksByChild } from "@/api/queries/useTasks";
 import {
   useCompleteTaskWithTimes,
@@ -33,7 +38,6 @@ import { EditOccurrenceModal } from "@/components/EditOccurrenceModal";
 import { DeleteOccurrenceModal } from "@/components/DeleteOccurrenceModal";
 import { EditRecurringTemplateDialog } from "@/components/EditRecurringTemplateDialog";
 import { CompleteTaskModal } from "@/components/CompleteTaskModal";
-import { useReplanSchedule } from "@/api/mutations/useAIScheduleMutations";
 
 type ViewMode = "list" | "calendar";
 
@@ -57,7 +61,9 @@ export default function ChildTasksPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editingOccurrence, setEditingOccurrence] = useState<Task | null>(null);
-  const [deletingOccurrence, setDeletingOccurrence] = useState<Task | null>(null);
+  const [deletingOccurrence, setDeletingOccurrence] = useState<Task | null>(
+    null
+  );
   const [showSchoolCalendar, setShowSchoolCalendar] = useState(false);
   const [showRecurringDialog, setShowRecurringDialog] = useState(false);
   const [pendingEditTask, setPendingEditTask] = useState<Task | null>(null);
@@ -78,16 +84,13 @@ export default function ChildTasksPage() {
   const uncompleteMutation = useUncompleteTask();
   const skipMutation = useSkipTask();
   const restoreSkippedMutation = useRestoreSkippedTask();
-  const replanMutation = useReplanSchedule();
   const removeExceptionMutation = useRemoveRecurrenceException();
-
-  const parentId = tasks && tasks.length > 0 ? tasks[0].parent_id : "";
 
   // Initialize calendar with today's tasks (use local timezone)
   useEffect(() => {
     if (viewMode === "calendar" && tasks && !selectedDate) {
       const now = new Date();
-      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
       const todayTasks = tasks.filter((task) => {
         // Filter out recurring templates (only show virtual instances)
         if (task.is_recurring && !task.is_virtual) return false;
@@ -206,7 +209,10 @@ export default function ChildTasksPage() {
     }
   };
 
-  const handleRestoreOccurrence = async (templateId: string, occurrenceDate: string) => {
+  const handleRestoreOccurrence = async (
+    templateId: string,
+    occurrenceDate: string
+  ) => {
     try {
       await removeExceptionMutation.mutateAsync({
         taskId: templateId,
@@ -236,7 +242,9 @@ export default function ChildTasksPage() {
     setEditingOccurrence(null);
 
     // Find the template in the tasks list
-    const template = tasks?.find((t) => t._id === templateId && t.is_recurring && !t.is_virtual);
+    const template = tasks?.find(
+      (t) => t._id === templateId && t.is_recurring && !t.is_virtual
+    );
     if (template) {
       setEditingTask(template);
     }
@@ -244,7 +252,9 @@ export default function ChildTasksPage() {
 
   const handleDayClick = (date: string, dayTasks: Task[]) => {
     // Filter out recurring templates (only show virtual instances)
-    const filteredTasks = dayTasks.filter(task => !(task.is_recurring && !task.is_virtual));
+    const filteredTasks = dayTasks.filter(
+      (task) => !(task.is_recurring && !task.is_virtual)
+    );
     setSelectedDate(date);
     setSelectedDateTasks(filteredTasks);
   };
@@ -256,7 +266,7 @@ export default function ChildTasksPage() {
     }
 
     const now = new Date();
-    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
     const taskDate = task.scheduled_date?.split("T")[0];
     return !!(
       taskDate &&
@@ -294,12 +304,12 @@ export default function ChildTasksPage() {
   return (
     <div className="space-y-4">
       {/* Compact Action Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-xl shadow-sm">
+      <div className="flex flex-col justify-between gap-3 rounded-xl bg-white p-4 shadow-sm sm:flex-row sm:items-center">
         {/* View Toggle */}
-        <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+        <div className="flex gap-1 rounded-lg bg-gray-100 p-1">
           <button
             onClick={() => setViewMode("list")}
-            className={`flex items-center justify-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium transition-all min-h-[40px] ${
+            className={`flex min-h-[40px] items-center justify-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium transition-all ${
               viewMode === "list"
                 ? "bg-white text-blue-700 shadow-sm"
                 : "text-gray-700 hover:text-gray-900"
@@ -310,7 +320,7 @@ export default function ChildTasksPage() {
           </button>
           <button
             onClick={() => setViewMode("calendar")}
-            className={`flex items-center justify-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium transition-all min-h-[40px] ${
+            className={`flex min-h-[40px] items-center justify-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium transition-all ${
               viewMode === "calendar"
                 ? "bg-white text-blue-700 shadow-sm"
                 : "text-gray-700 hover:text-gray-900"
@@ -322,17 +332,17 @@ export default function ChildTasksPage() {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setShowSchoolCalendar(true)}
-            className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 min-h-[40px] transition-all"
+            className="flex min-h-[40px] items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-all hover:bg-gray-50"
           >
             <IconSchool size={18} />
             <span>{t("tasks:school_calendar_button")}</span>
           </button>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2 text-sm font-medium text-white hover:from-blue-700 hover:to-indigo-700 min-h-[40px] shadow-sm hover:shadow-md transition-all"
+            className="inline-flex min-h-[40px] items-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:from-blue-700 hover:to-indigo-700 hover:shadow-md"
           >
             <IconPlus size={18} />
             <span>{t("tasks:create_task")}</span>

@@ -1,6 +1,6 @@
 """API routes for routine management."""
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from typing import List, Optional
 from datetime import date
 from bson import ObjectId
@@ -10,6 +10,7 @@ from backend.models.user import User
 from backend.services.routine_service import RoutineService
 from backend.dependencies.database import get_db
 from backend.routes.auth import get_current_user
+from backend.utils.exceptions import not_found, bad_request, forbidden, internal_error
 
 router = APIRouter(prefix="/api/routines", tags=["routines"])
 
@@ -28,7 +29,7 @@ async def create_routine(
         {"_id": ObjectId(routine_data.child_id), "parent_id": ObjectId(current_user.id)}
     )
     if not child_doc:
-        raise HTTPException(status_code=404, detail="Child not found or unauthorized")
+        raise not_found("Child not found or unauthorized")
 
     routine = await service.create_routine(
         parent_id=ObjectId(current_user.id), data=routine_data
@@ -53,7 +54,7 @@ async def get_routines(
         {"_id": ObjectId(child_id), "parent_id": ObjectId(current_user.id)}
     )
     if not child_doc:
-        raise HTTPException(status_code=404, detail="Child not found or unauthorized")
+        raise not_found("Child not found or unauthorized")
 
     service = RoutineService(db)
     routines = await service.get_routines_by_child(
@@ -78,11 +79,11 @@ async def get_routine(
     routine = await service.get_routine(ObjectId(routine_id))
 
     if not routine:
-        raise HTTPException(status_code=404, detail="Routine not found")
+        raise not_found("Routine")
 
     # Verify ownership
     if str(routine.parent_id) != current_user.id:
-        raise HTTPException(status_code=403, detail="Unauthorized")
+        raise forbidden("Unauthorized")
 
     return {
         **routine.model_dump(by_alias=True, mode="json"),
@@ -103,16 +104,16 @@ async def update_routine(
     # Verify ownership
     existing = await service.get_routine(ObjectId(routine_id))
     if not existing:
-        raise HTTPException(status_code=404, detail="Routine not found")
+        raise not_found("Routine")
     if str(existing.parent_id) != current_user.id:
-        raise HTTPException(status_code=403, detail="Unauthorized")
+        raise forbidden("Unauthorized")
 
     routine = await service.update_routine(
         routine_id=ObjectId(routine_id), data=routine_data
     )
 
     if not routine:
-        raise HTTPException(status_code=500, detail="Failed to update routine")
+        raise internal_error("Failed to update routine")
 
     return {
         **routine.model_dump(by_alias=True, mode="json"),
@@ -130,14 +131,14 @@ async def delete_routine(
     # Verify ownership
     existing = await service.get_routine(ObjectId(routine_id))
     if not existing:
-        raise HTTPException(status_code=404, detail="Routine not found")
+        raise not_found("Routine")
     if str(existing.parent_id) != current_user.id:
-        raise HTTPException(status_code=403, detail="Unauthorized")
+        raise forbidden("Unauthorized")
 
     success = await service.delete_routine(ObjectId(routine_id))
 
     if not success:
-        raise HTTPException(status_code=400, detail="Failed to delete routine")
+        raise bad_request("Failed to delete routine")
 
     return {"message": "Routine deactivated successfully"}
 
@@ -155,17 +156,14 @@ async def generate_routine_tasks(
     # Verify ownership
     routine = await service.get_routine(ObjectId(routine_id))
     if not routine:
-        raise HTTPException(status_code=404, detail="Routine not found")
+        raise not_found("Routine")
     if str(routine.parent_id) != current_user.id:
-        raise HTTPException(status_code=403, detail="Unauthorized")
+        raise forbidden("Unauthorized")
 
     task = await service.generate_tasks_for_date(routine, target_date)
 
     if not task:
-        raise HTTPException(
-            status_code=400,
-            detail="Date is not in recurrence pattern or task already exists",
-        )
+        raise bad_request("Date is not in recurrence pattern or task already exists")
 
     return task.model_dump(by_alias=True, mode="json")
 
@@ -183,14 +181,14 @@ async def cancel_routine_instance(
     # Verify ownership
     routine = await service.get_routine(ObjectId(routine_id))
     if not routine:
-        raise HTTPException(status_code=404, detail="Routine not found")
+        raise not_found("Routine")
     if str(routine.parent_id) != current_user.id:
-        raise HTTPException(status_code=403, detail="Unauthorized")
+        raise forbidden("Unauthorized")
 
     success = await service.cancel_routine_instance(ObjectId(routine_id), skip_date)
 
     if not success:
-        raise HTTPException(status_code=400, detail="Failed to cancel routine instance")
+        raise bad_request("Failed to cancel routine instance")
 
     return {"message": f"Routine instance cancelled for {skip_date}"}
 
@@ -208,9 +206,9 @@ async def preview_routine_occurrences(
     # Verify ownership
     routine = await service.get_routine(ObjectId(routine_id))
     if not routine:
-        raise HTTPException(status_code=404, detail="Routine not found")
+        raise not_found("Routine")
     if str(routine.parent_id) != current_user.id:
-        raise HTTPException(status_code=403, detail="Unauthorized")
+        raise forbidden("Unauthorized")
 
     occurrences = service.get_next_occurrences(routine.recurrence, count=count)
 

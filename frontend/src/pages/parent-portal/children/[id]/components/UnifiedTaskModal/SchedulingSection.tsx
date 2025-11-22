@@ -12,29 +12,31 @@ import {
 import { SchedulingType, DeadlineType } from "@/types/task";
 import { TaskSchedulingTimeFields } from "./TaskSchedulingTimeFields";
 
+export interface TimeFieldsData {
+  fixed_start: string;
+  fixed_end: string;
+  window_start: string;
+  window_end: string;
+  window_priority: number;
+  deadline: string;
+  deadline_time: string;
+  deadline_type: DeadlineType;
+  preferred_start: string;
+  preferred_end: string;
+  pool_max_times: number | null;
+  pool_max_duration: number | null;
+  pool_cooldown: number | null;
+}
+
 interface SchedulingSectionProps {
   schedulingType: SchedulingType;
   scheduledDate: string;
   estimatedDuration: number | null;
   isInformational: boolean;
-  timeFieldsData: {
-    fixed_start: string;
-    fixed_end: string;
-    window_start: string;
-    window_end: string;
-    window_priority: number;
-    deadline: string;
-    deadline_time: string;
-    deadline_type: DeadlineType;
-    preferred_start: string;
-    preferred_end: string;
-    pool_max_times: number | null;
-    pool_max_duration: number | null;
-    pool_cooldown: number | null;
-  };
+  timeFieldsData: TimeFieldsData;
   onSchedulingTypeChange: (type: SchedulingType) => void;
   onScheduledDateChange: (date: string) => void;
-  onTimeFieldsChange: (updates: Partial<typeof timeFieldsData>) => void;
+  onTimeFieldsChange: (updates: Partial<TimeFieldsData>) => void;
   onEstimatedDurationChange: (duration: number | null) => void;
 }
 

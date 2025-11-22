@@ -19,6 +19,7 @@ import { calculateAge } from "@/types/child";
 import { Child } from "@/types/child";
 import { Task } from "@/types/task";
 import AddChildModal from "../children/components/AddChildModal";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 // Helper to get local date string
 const getLocalDateString = (date: Date = new Date()) => {
@@ -205,11 +206,7 @@ export default function ParentDashboardPage() {
   const [isAddChildModalOpen, setIsAddChildModalOpen] = useState(false);
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-gray-500">{t("common:loading")}</div>
-      </div>
-    );
+    return <LoadingSpinner size="lg" />;
   }
 
   return (

@@ -1,12 +1,14 @@
 """Chat service with memory and auto-summarization."""
 import os
-from datetime import datetime
+import time
+from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 from bson import ObjectId
 
 from backend.db.connection import db
 from backend.models.chat import ChatSession, ChatMessage
 from backend.services.llm_service import USE_MOCK_AI
+from backend.services.llm_logger import llm_logger
 
 # Max messages before triggering summarization
 MAX_MESSAGES_BEFORE_SUMMARY = 20
@@ -58,8 +60,8 @@ class ChatService:
             "messages": [],
             "summary": None,
             "summary_up_to_index": 0,
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc)
         }
         result = await self.sessions_collection.insert_one(session_data)
         session_data["_id"] = result.inserted_id
@@ -77,7 +79,7 @@ class ChatService:
             dob = child["date_of_birth"]
             if isinstance(dob, str):
                 dob = datetime.fromisoformat(dob.replace('Z', '+00:00'))
-            today = datetime.utcnow()
+            today = datetime.now(timezone.utc)
             age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
 
         return {
@@ -172,7 +174,7 @@ Remember: You're talking directly to {name}. Be warm and friendly!"""
         session.messages.append(ChatMessage(
             role="user",
             content=user_message,
-            timestamp=datetime.utcnow()
+            timestamp=datetime.now(timezone.utc)
         ))
 
         # Check if we need to summarize
@@ -217,11 +219,11 @@ Remember: You're talking directly to {name}. Be warm and friendly!"""
         session.messages.append(ChatMessage(
             role="assistant",
             content=ai_response,
-            timestamp=datetime.utcnow()
+            timestamp=datetime.now(timezone.utc)
         ))
 
         # Update session in database
-        session.updated_at = datetime.utcnow()
+        session.updated_at = datetime.now(timezone.utc)
         update_data = {
             "messages": [m.model_dump() for m in session.messages],
             "summary": session.summary,

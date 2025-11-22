@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { IconX, IconSearch, IconCheck } from "@tabler/icons-react";
 import { useMyTemplates } from "@/api/queries/useTemplates";
 import type { TaskTemplate } from "@/types/template";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 interface TemplateLibrarySelectorProps {
   onSelect: (template: TaskTemplate) => void;
@@ -84,10 +85,7 @@ export default function TemplateLibrarySelector({
         {/* Templates List */}
         <div className="flex-1 overflow-y-auto p-6">
           {isLoading ? (
-            <div className="text-center py-12">
-              <div className="inline-block w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
-              <p className="mt-4 text-gray-600">{t("common:loading")}</p>
-            </div>
+            <LoadingSpinner size="md" />
           ) : filteredTemplates.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-gray-600">

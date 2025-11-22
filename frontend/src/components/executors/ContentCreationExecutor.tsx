@@ -8,7 +8,6 @@ import { IconSend, IconLoader } from "@tabler/icons-react";
 import type { ExecutorProps } from "./types";
 
 export function ContentCreationExecutor({
-  taskId,
   executionData,
   onComplete,
   onCancel,
@@ -62,7 +61,7 @@ export function ContentCreationExecutor({
         started_at: startedAt,
         content_type: contentType,
       });
-    } catch (err) {
+    } catch {
       setError(t("tasks:execution.submit_failed"));
       setIsSubmitting(false);
     }

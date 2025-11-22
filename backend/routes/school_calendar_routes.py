@@ -3,7 +3,7 @@ School Calendar Routes
 API endpoints for managing school terms and special days
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from typing import Optional
 
 from backend.models.school_calendar import (
@@ -17,6 +17,7 @@ from backend.models.school_calendar import (
 )
 from backend.services.school_calendar_service import SchoolCalendarService
 from backend.dependencies.database import get_db
+from backend.utils.exceptions import not_found
 
 router = APIRouter(prefix="/api/school-calendar", tags=["school-calendar"])
 
@@ -49,7 +50,7 @@ async def get_term(term_id: str, service: SchoolCalendarService = Depends(get_se
     """Get a single term by ID"""
     term = await service.get_term(term_id)
     if not term:
-        raise HTTPException(status_code=404, detail="Term not found")
+        raise not_found("Term")
     return term
 
 
@@ -62,7 +63,7 @@ async def update_term(
     """Update a term"""
     term = await service.update_term(term_id, update)
     if not term:
-        raise HTTPException(status_code=404, detail="Term not found")
+        raise not_found("Term")
     return term
 
 
@@ -73,7 +74,7 @@ async def delete_term(
     """Delete a term"""
     success = await service.delete_term(term_id)
     if not success:
-        raise HTTPException(status_code=404, detail="Term not found")
+        raise not_found("Term")
     return {"message": "Term deleted successfully"}
 
 
@@ -104,7 +105,7 @@ async def get_special_day(
     """Get a single special day by ID"""
     day = await service.get_special_day(day_id)
     if not day:
-        raise HTTPException(status_code=404, detail="Special day not found")
+        raise not_found("Special day")
     return day
 
 
@@ -117,7 +118,7 @@ async def update_special_day(
     """Update a special day"""
     day = await service.update_special_day(day_id, update)
     if not day:
-        raise HTTPException(status_code=404, detail="Special day not found")
+        raise not_found("Special day")
     return day
 
 
@@ -128,7 +129,7 @@ async def delete_special_day(
     """Delete a special day"""
     success = await service.delete_special_day(day_id)
     if not success:
-        raise HTTPException(status_code=404, detail="Special day not found")
+        raise not_found("Special day")
     return {"message": "Special day deleted successfully"}
 
 

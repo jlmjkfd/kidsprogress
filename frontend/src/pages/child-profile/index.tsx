@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { IconLock, IconChecklist, IconArrowLeft } from "@tabler/icons-react";
 import { useChild } from "@/api/queries/useChild";
 import { calculateAge } from "@/types/child";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 export default function ChildProfilePage() {
   const { childId } = useParams<{ childId: string }>();
@@ -15,11 +16,7 @@ export default function ChildProfilePage() {
   const { data: child, isLoading, error } = useChild(childId || "");
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-gray-600">{t("common:loading")}</div>
-      </div>
-    );
+    return <LoadingSpinner fullScreen size="lg" />;
   }
 
   if (error || !child) {

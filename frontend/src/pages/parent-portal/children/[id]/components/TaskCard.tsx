@@ -8,7 +8,6 @@ import {
   IconCheck,
   IconEdit,
   IconTrash,
-  IconCopy,
   IconRepeat,
   IconLock,
   IconAlertCircle,
@@ -17,7 +16,7 @@ import {
   IconX,
   IconCircleX,
 } from "@tabler/icons-react";
-import { Task, TaskStatus, SchedulingType, ObligationLevel } from "@/types/task";
+import { Task, SchedulingType, ObligationLevel } from "@/types/task";
 
 interface TaskCardProps {
   task: Task;
@@ -64,7 +63,9 @@ export function TaskCard({
         </div>
         {onRestore && (
           <button
-            onClick={() => onRestore(task.source_recurring_task_id!, occurrenceDate)}
+            onClick={() =>
+              onRestore(task.source_recurring_task_id!, occurrenceDate)
+            }
             className="flex items-center gap-2 rounded-md bg-blue-600 px-3 py-2 text-sm text-white transition-colors hover:bg-blue-700"
             title={t("tasks:restore_occurrence")}
           >
@@ -171,12 +172,14 @@ export function TaskCard({
               </span>
               {task.is_recurring && (
                 <span className="rounded bg-indigo-100 px-2 py-1 text-xs font-medium text-indigo-700">
-                  <IconRepeat className="inline" size={12} /> {t("tasks:recurring")}
+                  <IconRepeat className="inline" size={12} />{" "}
+                  {t("tasks:recurring")}
                 </span>
               )}
               {task.is_informational && (
                 <span className="rounded bg-blue-100 px-2 py-1 text-xs font-medium text-blue-700">
-                  <IconSchool className="inline" size={12} /> {t("tasks:informational")}
+                  <IconSchool className="inline" size={12} />{" "}
+                  {t("tasks:informational")}
                 </span>
               )}
               {task.blocks_other_tasks && (
@@ -186,7 +189,8 @@ export function TaskCard({
               )}
               {isOverdue && (
                 <span className="rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-700">
-                  <IconAlertCircle className="inline" size={12} /> {t("tasks:overdue")}
+                  <IconAlertCircle className="inline" size={12} />{" "}
+                  {t("tasks:overdue")}
                 </span>
               )}
             </div>
@@ -219,28 +223,34 @@ export function TaskCard({
               <div className="flex items-center gap-1">
                 <IconClock size={16} />
                 <span className="font-medium text-cyan-700">
-                  {task.preferred_time_window.start} - {task.preferred_time_window.end}
+                  {task.preferred_time_window.start} -{" "}
+                  {task.preferred_time_window.end}
                   <span className="ml-1 text-xs text-gray-500">
                     ({t("tasks:time_window")})
                   </span>
                 </span>
               </div>
             )}
-            {task.preferred_time_slot && !task.fixed_time_slot && !task.preferred_time_window && (
-              <div className="flex items-center gap-1">
-                <IconClock size={16} />
-                <span className="text-blue-700">
-                  {task.preferred_time_slot.start} - {task.preferred_time_slot.end}
-                  <span className="ml-1 text-xs text-gray-500">
-                    ({t("tasks:preferred")})
+            {task.preferred_time_slot &&
+              !task.fixed_time_slot &&
+              !task.preferred_time_window && (
+                <div className="flex items-center gap-1">
+                  <IconClock size={16} />
+                  <span className="text-blue-700">
+                    {task.preferred_time_slot.start} -{" "}
+                    {task.preferred_time_slot.end}
+                    <span className="ml-1 text-xs text-gray-500">
+                      ({t("tasks:preferred")})
+                    </span>
                   </span>
-                </span>
-              </div>
-            )}
+                </div>
+              )}
             {task.estimated_duration_minutes && (
               <div className="flex items-center gap-1">
                 <IconClock size={16} />
-                <span>~{task.estimated_duration_minutes} {t("common:minutes")}</span>
+                <span>
+                  ~{task.estimated_duration_minutes} {t("common:minutes")}
+                </span>
               </div>
             )}
           </div>
@@ -252,15 +262,16 @@ export function TaskCard({
             {/* Complete Button - for PENDING, IN_PROGRESS, PAUSED tasks */}
             {(task.status === "pending" ||
               task.status === "in_progress" ||
-              task.status === "paused") && onComplete && (
-              <button
-                onClick={() => onComplete(task)}
-                className="min-h-[44px] min-w-[44px] rounded-md p-2 text-green-600 transition-colors hover:bg-green-50"
-                title={t("tasks:complete")}
-              >
-                <IconCheck size={18} />
-              </button>
-            )}
+              task.status === "paused") &&
+              onComplete && (
+                <button
+                  onClick={() => onComplete(task)}
+                  className="min-h-[44px] min-w-[44px] rounded-md p-2 text-green-600 transition-colors hover:bg-green-50"
+                  title={t("tasks:complete")}
+                >
+                  <IconCheck size={18} />
+                </button>
+              )}
 
             {/* Uncomplete Button - for COMPLETED tasks */}
             {task.status === "completed" && onUncomplete && (
@@ -275,17 +286,17 @@ export function TaskCard({
 
             {/* Skip Button - only for PENDING must_do/should_do tasks */}
             {task.status === "pending" &&
-             (task.obligation_level === ObligationLevel.MUST_DO ||
-              task.obligation_level === ObligationLevel.SHOULD_DO) &&
-             onSkip && (
-              <button
-                onClick={() => onSkip(task._id)}
-                className="min-h-[44px] min-w-[44px] rounded-md p-2 text-orange-600 transition-colors hover:bg-orange-50"
-                title={t("tasks:skip")}
-              >
-                <IconCircleX size={18} />
-              </button>
-            )}
+              (task.obligation_level === ObligationLevel.MUST_DO ||
+                task.obligation_level === ObligationLevel.SHOULD_DO) &&
+              onSkip && (
+                <button
+                  onClick={() => onSkip(task._id)}
+                  className="min-h-[44px] min-w-[44px] rounded-md p-2 text-orange-600 transition-colors hover:bg-orange-50"
+                  title={t("tasks:skip")}
+                >
+                  <IconCircleX size={18} />
+                </button>
+              )}
 
             {/* Restore Button - for SKIPPED tasks */}
             {task.status === "skipped" && onRestoreSkipped && (
@@ -305,7 +316,11 @@ export function TaskCard({
           <button
             onClick={() => onEdit(task)}
             className="min-h-[44px] min-w-[44px] rounded-md p-2 text-gray-600 transition-colors hover:bg-gray-50"
-            title={task.is_virtual ? t("tasks:edit_occurrence") : t("tasks:edit_task")}
+            title={
+              task.is_virtual
+                ? t("tasks:edit_occurrence")
+                : t("tasks:edit_task")
+            }
           >
             <IconEdit size={18} />
           </button>

@@ -7,6 +7,7 @@ from dateutil.rrule import rrule, DAILY, WEEKLY, MONTHLY, YEARLY, MO, TU, WE, TH
 from backend.models.routine import Routine, RoutineCreate, RoutineUpdate, RecurrencePattern, Frequency, Weekday
 from backend.models.task import Task, TaskSource, TaskSourceMetadata, TaskStatus, PyObjectId
 from backend.utils.datetime_utils import utcnow
+from backend.utils.query_builders import date_range_query
 
 
 # Mapping for dateutil.rrule
@@ -119,13 +120,14 @@ class RoutineService:
             )
 
         # Also cancel any existing task for that date
+        query = {
+            "source_id": routine_id,
+            "task_source": TaskSource.ROUTINE,
+        }
+        query.update(date_range_query("scheduled_date", skip_date, skip_date))
+
         await self.tasks.update_many(
-            {
-                "source_id": routine_id,
-                "task_source": TaskSource.ROUTINE,
-                "scheduled_date": {"$gte": datetime.combine(skip_date, datetime.min.time()),
-                                   "$lt": datetime.combine(skip_date + timedelta(days=1), datetime.min.time())}
-            },
+            query,
             {"$set": {"status": "skipped", "updated_at": utcnow()}}
         )
 
@@ -179,14 +181,13 @@ class RoutineService:
             return None
 
         # Check if task already exists for this date
-        existing = await self.tasks.find_one({
+        query = {
             "source_id": routine.id,
             "task_source": TaskSource.ROUTINE,
-            "scheduled_date": {
-                "$gte": datetime.combine(target_date, datetime.min.time()),
-                "$lt": datetime.combine(target_date + timedelta(days=1), datetime.min.time())
-            }
-        })
+        }
+        query.update(date_range_query("scheduled_date", target_date, target_date))
+
+        existing = await self.tasks.find_one(query)
         if existing:
             return Task(**existing)
 

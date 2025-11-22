@@ -1,5 +1,5 @@
 """API routes for tasks with full lifecycle support."""
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from typing import List, Optional
 
 from backend.models.task import Task, TaskCreate, TaskUpdate, TaskStatus
@@ -8,6 +8,7 @@ from backend.services.school_calendar_service import SchoolCalendarService
 from backend.models.user import User
 from backend.routes.auth import get_current_user
 from backend.db.connection import db
+from backend.utils.exceptions import not_found, bad_request
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 
@@ -32,7 +33,7 @@ async def create_task(
     try:
         return await service.create_task(str(current_user.id), task_data)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise bad_request(str(e))
 
 
 @router.get("/collection/{collection_id}", response_model=List[Task])
@@ -46,7 +47,7 @@ async def get_tasks_by_collection(
     try:
         return await service.get_tasks_by_collection(collection_id, str(current_user.id), status)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise bad_request(str(e))
 
 
 @router.get("/child/{child_id}")
@@ -60,12 +61,12 @@ async def get_tasks_by_child(
     try:
         return await service.get_tasks_by_child(child_id, str(current_user.id), status)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise bad_request(str(e))
     except Exception as e:
         print(f"ERROR in get_tasks_by_child: {type(e).__name__}: {e}")
         import traceback
         traceback.print_exc()
-        raise HTTPException(status_code=400, detail=str(e))
+        raise bad_request(str(e))
 
 
 @router.get("/{task_id}", response_model=Task)
@@ -77,7 +78,7 @@ async def get_task(
     """Get a task by ID."""
     task = await service.get_task_by_id(task_id, str(current_user.id))
     if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
+        raise not_found("Task")
     return task
 
 
@@ -91,7 +92,7 @@ async def update_task(
     """Update a task."""
     task = await service.update_task(task_id, str(current_user.id), task_data)
     if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
+        raise not_found("Task")
     return task
 
 
@@ -104,7 +105,7 @@ async def delete_task(
     """Delete a task."""
     success = await service.delete_task(task_id, str(current_user.id))
     if not success:
-        raise HTTPException(status_code=404, detail="Task not found")
+        raise not_found("Task")
 
 
 @router.post("/{task_id}/exceptions", response_model=Task)
@@ -129,7 +130,7 @@ async def add_recurrence_exception(
         Body: {"fixed_time_slot": {"start": "08:30", "end": "12:00"}}
     """
     if exception_type not in ["deleted", "modified"]:
-        raise HTTPException(status_code=400, detail="exception_type must be 'deleted' or 'modified'")
+        raise bad_request("exception_type must be 'deleted' or 'modified'")
 
     task = await service.add_recurrence_exception(
         task_id,
@@ -139,7 +140,7 @@ async def add_recurrence_exception(
         overrides,
     )
     if not task:
-        raise HTTPException(status_code=404, detail="Recurring task not found")
+        raise not_found("Recurring task")
     return task
 
 
@@ -165,7 +166,7 @@ async def remove_recurrence_exception(
         exception_date,
     )
     if not task:
-        raise HTTPException(status_code=404, detail="Recurring task not found")
+        raise not_found("Recurring task")
     return task
 
 
@@ -182,10 +183,10 @@ async def activate_task(
     try:
         task = await service.activate_task(task_id, str(current_user.id))
         if not task:
-            raise HTTPException(status_code=404, detail="Task not found")
+            raise not_found("Task")
         return task
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise bad_request(str(e))
 
 
 @router.post("/{task_id}/start")
@@ -199,7 +200,7 @@ async def start_task(
         result = await service.start_task(task_id, child_id)
         return result
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise bad_request(str(e))
 
 
 @router.post("/{task_id}/pause", response_model=Task)
@@ -213,10 +214,10 @@ async def pause_task(
     try:
         task = await service.pause_task(task_id, paused_by, reason)
         if not task:
-            raise HTTPException(status_code=404, detail="Task not found")
+            raise not_found("Task")
         return task
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise bad_request(str(e))
 
 
 @router.post("/{task_id}/resume", response_model=Task)
@@ -228,10 +229,10 @@ async def resume_task(
     try:
         task = await service.resume_task(task_id)
         if not task:
-            raise HTTPException(status_code=404, detail="Task not found")
+            raise not_found("Task")
         return task
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise bad_request(str(e))
 
 
 @router.post("/{task_id}/complete", response_model=Task)
@@ -244,10 +245,10 @@ async def complete_task(
     try:
         task = await service.complete_task(task_id, child_id)
         if not task:
-            raise HTTPException(status_code=404, detail="Task not found")
+            raise not_found("Task")
         return task
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise bad_request(str(e))
 
 
 @router.post("/{task_id}/cancel", response_model=Task)
@@ -259,7 +260,7 @@ async def cancel_task(
     """Cancel a task (any status -> CANCELLED)."""
     task = await service.cancel_task(task_id, str(current_user.id))
     if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
+        raise not_found("Task")
     return task
 
 
@@ -278,10 +279,10 @@ async def complete_task_with_times(
     try:
         task = await service.complete_task_with_times(task_id, child_id, start_time, end_time)
         if not task:
-            raise HTTPException(status_code=404, detail="Task not found")
+            raise not_found("Task")
         return task
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise bad_request(str(e))
 
 
 @router.post("/{task_id}/uncomplete", response_model=Task)
@@ -293,7 +294,7 @@ async def uncomplete_task(
     """Mark a completed task as pending again (parent action)."""
     task = await service.uncomplete_task(task_id, str(current_user.id))
     if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
+        raise not_found("Task")
     return task
 
 
@@ -306,7 +307,7 @@ async def skip_task(
     """Mark a task as skipped (parent action)."""
     task = await service.skip_task(task_id, str(current_user.id))
     if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
+        raise not_found("Task")
     return task
 
 
@@ -319,7 +320,7 @@ async def restore_skipped_task(
     """Restore a skipped task to pending (parent action)."""
     task = await service.restore_skipped_task(task_id, str(current_user.id))
     if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
+        raise not_found("Task")
     return task
 
 

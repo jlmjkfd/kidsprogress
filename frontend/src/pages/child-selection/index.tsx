@@ -13,6 +13,7 @@ import { useParentPortalAccess } from "@/hooks/useParentPortalAccess";
 import { getDeviceToken } from "@/utils/deviceToken";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { setSelectedChild } from "@/store/slices/childSlice";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 export default function ChildSelectionPage() {
   const navigate = useNavigate();
@@ -42,11 +43,7 @@ export default function ChildSelectionPage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
-        <div className="text-gray-600">{t("common:loading")}</div>
-      </div>
-    );
+    return <LoadingSpinner fullScreen size="lg" />;
   }
 
   if (isError) {

@@ -1,6 +1,6 @@
 """API routes for time blocks and day types."""
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from typing import List, Optional
 from datetime import date
 from bson import ObjectId
@@ -17,6 +17,7 @@ from backend.models.user import User
 from backend.services.time_block_service import TimeBlockService
 from backend.dependencies.database import get_db
 from backend.routes.auth import get_current_user
+from backend.utils.exceptions import not_found, bad_request, forbidden, internal_error
 
 router = APIRouter(prefix="/api/time-blocks", tags=["time_blocks"])
 
@@ -35,7 +36,7 @@ async def create_time_block(
         {"_id": ObjectId(block_data.child_id), "parent_id": ObjectId(current_user.id)}
     )
     if not child_doc:
-        raise HTTPException(status_code=404, detail="Child not found or unauthorized")
+        raise not_found("Child not found or unauthorized")
 
     time_block = await service.create_time_block(
         parent_id=ObjectId(current_user.id), data=block_data
@@ -59,7 +60,7 @@ async def get_time_blocks(
         {"_id": ObjectId(child_id), "parent_id": ObjectId(current_user.id)}
     )
     if not child_doc:
-        raise HTTPException(status_code=404, detail="Child not found or unauthorized")
+        raise not_found("Child not found or unauthorized")
 
     service = TimeBlockService(db)
 
@@ -74,10 +75,7 @@ async def get_time_blocks(
             child_id=ObjectId(child_id), start_date=start_date, end_date=end_date
         )
     else:
-        raise HTTPException(
-            status_code=400,
-            detail="Must provide either target_date or both start_date and end_date",
-        )
+        raise bad_request("Must provide either target_date or both start_date and end_date")
 
     return [b.model_dump(by_alias=True, mode="json") for b in blocks]
 
@@ -95,16 +93,16 @@ async def update_time_block(
     # Verify ownership
     existing = await service.get_time_block(ObjectId(block_id))
     if not existing:
-        raise HTTPException(status_code=404, detail="Time block not found")
+        raise not_found("Time block")
     if str(existing.parent_id) != current_user.id:
-        raise HTTPException(status_code=403, detail="Unauthorized")
+        raise forbidden("Unauthorized")
 
     time_block = await service.update_time_block(
         block_id=ObjectId(block_id), data=block_data
     )
 
     if not time_block:
-        raise HTTPException(status_code=500, detail="Failed to update time block")
+        raise internal_error("Failed to update time block")
 
     return time_block.model_dump(by_alias=True, mode="json")
 
@@ -119,14 +117,14 @@ async def delete_time_block(
     # Verify ownership
     existing = await service.get_time_block(ObjectId(block_id))
     if not existing:
-        raise HTTPException(status_code=404, detail="Time block not found")
+        raise not_found("Time block")
     if str(existing.parent_id) != current_user.id:
-        raise HTTPException(status_code=403, detail="Unauthorized")
+        raise forbidden("Unauthorized")
 
     success = await service.delete_time_block(ObjectId(block_id))
 
     if not success:
-        raise HTTPException(status_code=400, detail="Failed to delete time block")
+        raise bad_request("Failed to delete time block")
 
     return {"message": "Time block deleted successfully"}
 
@@ -152,7 +150,7 @@ async def create_day_type(
         }
     )
     if not child_doc:
-        raise HTTPException(status_code=404, detail="Child not found or unauthorized")
+        raise not_found("Child not found or unauthorized")
 
     day_type = await service.create_day_type(
         parent_id=ObjectId(current_user.id), data=day_type_data
@@ -176,7 +174,7 @@ async def get_day_types(
         {"_id": ObjectId(child_id), "parent_id": ObjectId(current_user.id)}
     )
     if not child_doc:
-        raise HTTPException(status_code=404, detail="Child not found or unauthorized")
+        raise not_found("Child not found or unauthorized")
 
     service = TimeBlockService(db)
 
@@ -193,7 +191,4 @@ async def get_day_types(
         )
         return [d.model_dump(by_alias=True, mode="json") for d in day_types]
     else:
-        raise HTTPException(
-            status_code=400,
-            detail="Must provide either target_date or both start_date and end_date",
-        )
+        raise bad_request("Must provide either target_date or both start_date and end_date")

@@ -187,7 +187,7 @@ class ContextBuilder:
                 routine.recurrence, count=5
             )
 
-            if occurrences and occurrences[0].date() == target_date:
+            if occurrences and occurrences[0] == target_date:
                 time_info = ""
                 if routine.preferred_time_slot:
                     time_info = f" [Prefer: {routine.preferred_time_slot.start}-{routine.preferred_time_slot.end}]"

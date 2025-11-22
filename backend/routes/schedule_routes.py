@@ -1,6 +1,6 @@
 """API routes for schedule management and AI recommendations."""
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from datetime import date
 from bson import ObjectId
 
@@ -8,6 +8,7 @@ from backend.models.user import User
 from backend.services.schedule_service import ScheduleService
 from backend.dependencies.database import get_db
 from backend.routes.auth import get_current_user
+from backend.utils.exceptions import not_found
 
 router = APIRouter(prefix="/api/schedule", tags=["schedule"])
 
@@ -25,7 +26,7 @@ async def get_daily_schedule(
         {"_id": ObjectId(child_id), "parent_id": ObjectId(current_user.id)}
     )
     if not child_doc:
-        raise HTTPException(status_code=404, detail="Child not found or unauthorized")
+        raise not_found("Child not found or unauthorized")
 
     service = ScheduleService(db)
     schedule = await service.generate_daily_schedule(
@@ -48,7 +49,7 @@ async def get_schedule_conflicts(
         {"_id": ObjectId(child_id), "parent_id": ObjectId(current_user.id)}
     )
     if not child_doc:
-        raise HTTPException(status_code=404, detail="Child not found or unauthorized")
+        raise not_found("Child not found or unauthorized")
 
     service = ScheduleService(db)
     conflicts = await service.detect_time_conflicts(
@@ -77,7 +78,7 @@ async def get_available_time_slots(
         {"_id": ObjectId(child_id), "parent_id": ObjectId(current_user.id)}
     )
     if not child_doc:
-        raise HTTPException(status_code=404, detail="Child not found or unauthorized")
+        raise not_found("Child not found or unauthorized")
 
     service = ScheduleService(db)
     slots = await service.get_available_time_slots(
@@ -106,10 +107,7 @@ async def get_ai_recommendation(
         {"_id": ObjectId(child_id), "parent_id": ObjectId(current_user.id)}
     )
     if not child_doc:
-        raise HTTPException(status_code=404, detail="Child not found or unauthorized")
+        raise not_found("Child not found or unauthorized")
 
     # TODO: Implement AI Schedule Agent workflow in Phase 2
-    raise HTTPException(
-        status_code=501,
-        detail="AI recommendation feature will be implemented in Phase 2",
-    )
+    raise not_found("AI recommendation feature will be implemented in Phase 2")

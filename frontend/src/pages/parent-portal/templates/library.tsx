@@ -20,6 +20,7 @@ import {
 import { useTemplates, useMyTemplates } from "@/api/queries/useTemplates";
 import { useAddTemplate } from "@/api/mutations/useTemplateMutations";
 import type { TaskTemplate } from "@/types/template";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 export default function TemplateLibraryPage() {
   const { t } = useTranslation(["tasks", "common"]);
@@ -205,10 +206,7 @@ export default function TemplateLibraryPage() {
 
       {/* Templates Grid */}
       {isLoading ? (
-        <div className="text-center py-12">
-          <div className="inline-block w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-          <p className="mt-4 text-gray-600">{t("common:loading")}</p>
-        </div>
+        <LoadingSpinner size="lg" />
       ) : filteredTemplates.length === 0 ? (
         <div className="bg-white rounded-xl shadow-sm border p-12 text-center">
           <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">

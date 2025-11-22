@@ -14,7 +14,8 @@ class PassiveFormHandler(ExecutionHandler):
 
     def __init__(self, template):
         super().__init__(template)
-        self.config: PassiveFormConfig = template.execution_config
+        # Type assertion - we know this is PassiveFormConfig based on handler type
+        self.config: PassiveFormConfig = template.execution_config  # type: ignore
 
     async def validate_config(self) -> None:
         """Validate form fields configuration."""

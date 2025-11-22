@@ -201,7 +201,7 @@ export interface DayTypeCreate {
 export interface DailySchedule {
   date: string;
   day_type?: DayTypeEnum;
-  tasks: any[]; // Use existing Task type
+  tasks: Array<Record<string, unknown>>; // Tasks array - actual Task type imported would create circular dependency
   time_blocks: TimeBlock[];
   conflicts: ScheduleConflict[];
 }

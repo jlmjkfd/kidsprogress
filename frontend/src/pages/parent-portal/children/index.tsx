@@ -8,6 +8,7 @@ import { IconUser, IconPlus, IconLock } from "@tabler/icons-react";
 import { useChildren } from "@api/queries/useChildren";
 import { calculateAge } from "@/types/child";
 import AddChildModal from "./components/AddChildModal";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 export default function ManageChildrenPage() {
   const { t } = useTranslation(["common"]);
@@ -24,11 +25,7 @@ export default function ManageChildrenPage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-gray-600">{t("common:loading")}</div>
-      </div>
-    );
+    return <LoadingSpinner fullScreen size="lg" />;
   }
 
   if (isError) {

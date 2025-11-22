@@ -43,6 +43,7 @@ import ParentPortalSettings from "@/pages/parent-portal/settings";
 import ParentDashboardPage from "@/pages/parent-portal/dashboard";
 import TemplatesPage from "@/pages/parent-portal/templates";
 import TemplateLibraryPage from "@/pages/parent-portal/templates/library";
+import AnalysisReportPage from "@/pages/parent-portal/analysis/[templateId]";
 
 // Child Portal
 import ChildPortalLayout from "@/pages/child-portal/layout";
@@ -131,6 +132,7 @@ function AppRoutes() {
           {/* <Route path="activities" element={<ChildActivitiesPage />} /> */}
           {/* <Route path="time-blocks" element={<ChildTimeBlocksPage />} /> */}
           <Route path="analysis" element={<ChildAnalysisPage />} />
+          <Route path="analysis/:templateId" element={<AnalysisReportPage />} />
         </Route>
 
         {/* Templates */}

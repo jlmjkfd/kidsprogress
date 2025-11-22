@@ -15,6 +15,7 @@ import { useTasksByChild } from "@/api/queries/useTasks";
 import { TaskStatus } from "@/types/task";
 import TaskStatusBadge from "@/components/TaskStatusBadge";
 import CreateTaskModal from "./components/CreateTaskModal";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 export default function TaskListPage() {
   const { childId } = useParams<{ childId: string }>();
@@ -111,10 +112,7 @@ export default function TaskListPage() {
       {/* Task List */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         {tasksLoading || collectionsLoading ? (
-          <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <p className="mt-2 text-gray-600">{t("common:loading")}</p>
-          </div>
+          <LoadingSpinner size="md" />
         ) : tasks && tasks.length > 0 ? (
           <div className="space-y-3">
             {tasks.map((task) => (

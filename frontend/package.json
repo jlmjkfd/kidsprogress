@@ -28,6 +28,7 @@
     "react-redux": "^9.2.0",
     "react-remove-scroll": "^2.7.1",
     "react-router-dom": "^7.7.0",
+    "recharts": "^3.4.1",
     "uuid": "^11.1.0"
   },
   "devDependencies": {

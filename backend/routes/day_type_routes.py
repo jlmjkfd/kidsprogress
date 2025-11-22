@@ -1,5 +1,5 @@
 """Routes for day type calendar management."""
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from typing import List
 from datetime import date
 
@@ -16,6 +16,7 @@ from backend.services.day_type_service import DayTypeService
 from backend.dependencies.auth import get_current_user
 from backend.dependencies.database import get_db
 from motor.motor_asyncio import AsyncIOMotorDatabase
+from backend.utils.exceptions import not_found, bad_request
 
 
 router = APIRouter(prefix="/api/day-types", tags=["day-types"])
@@ -39,7 +40,7 @@ async def create_day_type_entry(
     try:
         return await service.create_day_type(str(current_user.id), data)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise bad_request(str(e))
 
 
 @router.get("/date", response_model=DayTypeEntry | None)
@@ -54,7 +55,7 @@ async def get_day_type_for_date(
         target_date = date.fromisoformat(date_str)
         return await service.get_day_type(child_id, target_date, str(current_user.id))
     except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+        raise bad_request("Invalid date format. Use YYYY-MM-DD")
 
 
 @router.get("/range", response_model=List[DayTypeEntry])
@@ -71,7 +72,7 @@ async def get_day_types_in_range(
         end = date.fromisoformat(end_date)
         return await service.get_day_types_range(child_id, start, end, str(current_user.id))
     except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+        raise bad_request("Invalid date format. Use YYYY-MM-DD")
 
 
 @router.get("/effective", response_model=dict)
@@ -87,7 +88,7 @@ async def get_effective_day_type(
         day_type = await service.get_effective_day_type(child_id, target_date, str(current_user.id))
         return {"date": date_str, "day_type": day_type.value}
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise bad_request(str(e))
 
 
 @router.put("/{entry_id}", response_model=DayTypeEntry)
@@ -100,7 +101,7 @@ async def update_day_type_entry(
     """Update a day type entry."""
     result = await service.update_day_type(entry_id, str(current_user.id), data)
     if not result:
-        raise HTTPException(status_code=404, detail="Day type entry not found")
+        raise not_found("Day type entry")
     return result
 
 
@@ -113,7 +114,7 @@ async def delete_day_type_entry(
     """Delete a day type entry."""
     success = await service.delete_day_type(entry_id, str(current_user.id))
     if not success:
-        raise HTTPException(status_code=404, detail="Day type entry not found")
+        raise not_found("Day type entry")
     return {"message": "Day type entry deleted"}
 
 
@@ -144,5 +145,5 @@ async def update_default_pattern(
     """Update default day pattern for a child."""
     result = await service.update_default_pattern(child_id, str(current_user.id), data)
     if not result:
-        raise HTTPException(status_code=404, detail="Default pattern not found")
+        raise not_found("Default pattern")
     return result

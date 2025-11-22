@@ -1,5 +1,5 @@
 """AI-powered task recommendation routes."""
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from typing import Optional
 from datetime import datetime, date
 from pydantic import BaseModel, Field
@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 from backend.dependencies.database import get_db
 from backend.dependencies.auth import get_current_user
 from backend.ai.task_recommender import TaskRecommender
+from backend.utils.exceptions import not_found, bad_request
 
 
 router = APIRouter(prefix="/api/ai", tags=["AI Recommendations"])
@@ -53,7 +54,7 @@ async def recommend_now(
     })
 
     if not child_doc:
-        raise HTTPException(status_code=404, detail="Child not found")
+        raise not_found("Child")
 
     # Get AI recommendation
     recommender = TaskRecommender(db)
@@ -90,7 +91,7 @@ async def plan_day(
     })
 
     if not child_doc:
-        raise HTTPException(status_code=404, detail="Child not found")
+        raise not_found("Child")
 
     # Parse target date
     target_date = None
@@ -98,7 +99,7 @@ async def plan_day(
         try:
             target_date = date.fromisoformat(request.target_date)
         except ValueError:
-            raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+            raise bad_request("Invalid date format. Use YYYY-MM-DD")
 
     # Get AI plan
     recommender = TaskRecommender(db)
@@ -134,7 +135,7 @@ async def replan_schedule(
     })
 
     if not child_doc:
-        raise HTTPException(status_code=404, detail="Child not found")
+        raise not_found("Child")
 
     # Get AI replan
     recommender = TaskRecommender(db)
@@ -172,13 +173,13 @@ async def get_scheduling_explanation(
     })
 
     if not child_doc:
-        raise HTTPException(status_code=404, detail="Child not found")
+        raise not_found("Child")
 
     # Get task details
     task_doc = await db.tasks.find_one({"_id": ObjectId(task_id)})
 
     if not task_doc:
-        raise HTTPException(status_code=404, detail="Task not found")
+        raise not_found("Task")
 
     # Build context and get explanation
     from backend.ai.gemini_client import GeminiClient

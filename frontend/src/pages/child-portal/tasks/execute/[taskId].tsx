@@ -5,12 +5,14 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { IconArrowLeft, IconLoader, IconStar, IconCheck, IconSparkles } from "@tabler/icons-react";
+import { IconArrowLeft, IconStar, IconCheck, IconSparkles } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/api/client";
 import { useSubmitCompletion } from "@/api/mutations/useCompletionMutations";
 import { getExecutor } from "@/components/executors/registry";
 import type { PrepareExecutionResponse } from "@/types/template";
+import type { CompletionData } from "@/components/executors/types";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 interface CompletionResult {
   completion_id: string;
@@ -69,7 +71,7 @@ export default function TaskExecutePage() {
 
   const submitCompletion = useSubmitCompletion();
 
-  const handleComplete = async (completionData: any) => {
+  const handleComplete = async (completionData: CompletionData) => {
     if (!taskId || !task?.child_id) return;
 
     try {
@@ -99,14 +101,7 @@ export default function TaskExecutePage() {
 
   // Loading state
   if (taskLoading || executionLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <IconLoader size={48} className="mx-auto text-blue-600 animate-spin" />
-          <p className="mt-4 text-gray-600">{t("common:loading")}</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner fullScreen size="lg" />;
   }
 
   // Error states
@@ -158,7 +153,7 @@ export default function TaskExecutePage() {
   let ExecutorComponent;
   try {
     ExecutorComponent = getExecutor(executionData.execution_data.handler_type);
-  } catch (error) {
+  } catch {
     return (
       <div className="min-h-screen bg-gray-50 p-4">
         <div className="max-w-2xl mx-auto">

@@ -10,6 +10,7 @@ import { getDeviceToken } from "@/utils/deviceToken";
 import DeviceEditModal from "./DeviceEditModal";
 import DeviceRemoveModal from "./DeviceRemoveModal";
 import DeviceRegistrationModal from "@/components/DeviceRegistrationModal";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 export default function DeviceManagementSection() {
   const { t } = useTranslation(["common"]);
@@ -42,15 +43,7 @@ export default function DeviceManagementSection() {
   };
 
   if (isLoading) {
-    return (
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <IconDevices className="text-blue-600" size={24} />
-          <h2 className="text-xl font-semibold text-gray-900">{t("common:settings.device_management")}</h2>
-        </div>
-        <p className="text-gray-600">{t("common:loading")}</p>
-      </div>
-    );
+    return <LoadingSpinner size="md" />;
   }
 
   const activeDevices = devices?.filter((device) => device.is_active) || [];

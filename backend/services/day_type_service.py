@@ -13,6 +13,7 @@ from backend.models.day_type import (
     DayTypeEnum,
 )
 from backend.utils.datetime_utils import utcnow
+from backend.utils.validators import validate_object_id
 
 
 class DayTypeService:
@@ -35,12 +36,12 @@ class DayTypeService:
         Returns:
             Created day type entry
         """
-        if not ObjectId.is_valid(parent_id) or not ObjectId.is_valid(data.child_id):
-            raise ValueError("Invalid parent_id or child_id")
+        parent_id_obj = validate_object_id(parent_id, "parent_id", raise_http_exception=False)
+        child_id_obj = validate_object_id(data.child_id, "child_id", raise_http_exception=False)
 
         # Check if entry already exists for this date
         existing = await self.day_types_collection.find_one({
-            "child_id": ObjectId(data.child_id),
+            "child_id": child_id_obj,
             "date": data.date,
         })
 
@@ -48,8 +49,8 @@ class DayTypeService:
             raise ValueError(f"Day type entry already exists for {data.date}")
 
         doc = {
-            "child_id": ObjectId(data.child_id),
-            "parent_id": ObjectId(parent_id),
+            "child_id": child_id_obj,
+            "parent_id": parent_id_obj,
             "date": data.date,
             "day_type": data.day_type.value,
             "name": data.name,
@@ -76,12 +77,12 @@ class DayTypeService:
         Returns:
             Day type entry or None if not found
         """
-        if not ObjectId.is_valid(child_id) or not ObjectId.is_valid(parent_id):
-            return None
+        child_id_obj = validate_object_id(child_id, "child_id", raise_http_exception=False)
+        parent_id_obj = validate_object_id(parent_id, "parent_id", raise_http_exception=False)
 
         doc = await self.day_types_collection.find_one({
-            "child_id": ObjectId(child_id),
-            "parent_id": ObjectId(parent_id),
+            "child_id": child_id_obj,
+            "parent_id": parent_id_obj,
             "date": target_date,
         })
 
@@ -101,12 +102,12 @@ class DayTypeService:
         Returns:
             List of day type entries
         """
-        if not ObjectId.is_valid(child_id) or not ObjectId.is_valid(parent_id):
-            raise ValueError("Invalid child_id or parent_id")
+        child_id_obj = validate_object_id(child_id, "child_id", raise_http_exception=False)
+        parent_id_obj = validate_object_id(parent_id, "parent_id", raise_http_exception=False)
 
         cursor = self.day_types_collection.find({
-            "child_id": ObjectId(child_id),
-            "parent_id": ObjectId(parent_id),
+            "child_id": child_id_obj,
+            "parent_id": parent_id_obj,
             "date": {"$gte": start_date, "$lte": end_date},
         }).sort("date", 1)
 
@@ -129,8 +130,8 @@ class DayTypeService:
         Returns:
             Updated entry or None if not found
         """
-        if not ObjectId.is_valid(entry_id) or not ObjectId.is_valid(parent_id):
-            return None
+        entry_id_obj = validate_object_id(entry_id, "entry_id", raise_http_exception=False)
+        parent_id_obj = validate_object_id(parent_id, "parent_id", raise_http_exception=False)
 
         update_doc: Dict[str, Any] = {"updated_at": utcnow()}
         if data.day_type is not None:
@@ -141,7 +142,7 @@ class DayTypeService:
             update_doc["description"] = data.description
 
         result = await self.day_types_collection.find_one_and_update(
-            {"_id": ObjectId(entry_id), "parent_id": ObjectId(parent_id)},
+            {"_id": entry_id_obj, "parent_id": parent_id_obj},
             {"$set": update_doc},
             return_document=True,
         )
@@ -158,12 +159,12 @@ class DayTypeService:
         Returns:
             True if deleted, False otherwise
         """
-        if not ObjectId.is_valid(entry_id) or not ObjectId.is_valid(parent_id):
-            return False
+        entry_id_obj = validate_object_id(entry_id, "entry_id", raise_http_exception=False)
+        parent_id_obj = validate_object_id(parent_id, "parent_id", raise_http_exception=False)
 
         result = await self.day_types_collection.delete_one({
-            "_id": ObjectId(entry_id),
-            "parent_id": ObjectId(parent_id),
+            "_id": entry_id_obj,
+            "parent_id": parent_id_obj,
         })
 
         return result.deleted_count > 0
@@ -182,12 +183,12 @@ class DayTypeService:
         Returns:
             Default pattern or None if not found
         """
-        if not ObjectId.is_valid(child_id) or not ObjectId.is_valid(parent_id):
-            return None
+        child_id_obj = validate_object_id(child_id, "child_id", raise_http_exception=False)
+        parent_id_obj = validate_object_id(parent_id, "parent_id", raise_http_exception=False)
 
         doc = await self.default_patterns_collection.find_one({
-            "child_id": ObjectId(child_id),
-            "parent_id": ObjectId(parent_id),
+            "child_id": child_id_obj,
+            "parent_id": parent_id_obj,
         })
 
         return DefaultDayPattern(**doc) if doc else None
@@ -204,20 +205,20 @@ class DayTypeService:
         Returns:
             Created default pattern
         """
-        if not ObjectId.is_valid(child_id) or not ObjectId.is_valid(parent_id):
-            raise ValueError("Invalid child_id or parent_id")
+        child_id_obj = validate_object_id(child_id, "child_id", raise_http_exception=False)
+        parent_id_obj = validate_object_id(parent_id, "parent_id", raise_http_exception=False)
 
         # Check if already exists
         existing = await self.default_patterns_collection.find_one({
-            "child_id": ObjectId(child_id),
+            "child_id": child_id_obj,
         })
 
         if existing:
             return DefaultDayPattern(**existing)
 
         doc = {
-            "child_id": ObjectId(child_id),
-            "parent_id": ObjectId(parent_id),
+            "child_id": child_id_obj,
+            "parent_id": parent_id_obj,
             "monday": DayTypeEnum.SCHOOL_DAY.value,
             "tuesday": DayTypeEnum.SCHOOL_DAY.value,
             "wednesday": DayTypeEnum.SCHOOL_DAY.value,
@@ -247,8 +248,8 @@ class DayTypeService:
         Returns:
             Updated pattern or None if not found
         """
-        if not ObjectId.is_valid(child_id) or not ObjectId.is_valid(parent_id):
-            return None
+        child_id_obj = validate_object_id(child_id, "child_id", raise_http_exception=False)
+        parent_id_obj = validate_object_id(parent_id, "parent_id", raise_http_exception=False)
 
         update_doc: Dict[str, Any] = {"updated_at": utcnow()}
         if data.monday is not None:
@@ -267,7 +268,7 @@ class DayTypeService:
             update_doc["sunday"] = data.sunday.value
 
         result = await self.default_patterns_collection.find_one_and_update(
-            {"child_id": ObjectId(child_id), "parent_id": ObjectId(parent_id)},
+            {"child_id": child_id_obj, "parent_id": parent_id_obj},
             {"$set": update_doc},
             return_document=True,
         )

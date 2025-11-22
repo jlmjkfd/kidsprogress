@@ -18,10 +18,16 @@ import {
   IconCalendar,
 } from "@tabler/icons-react";
 import { useTasksByChild } from "@/api/queries/useTasks";
-import { useStartTask, usePauseTask, useCompleteTask, useResumeTask } from "@/api/mutations/useTaskMutations";
-import { Task, TaskStatus } from "@/types/task";
+import {
+  useStartTask,
+  usePauseTask,
+  useCompleteTask,
+  useResumeTask,
+} from "@/api/mutations/useTaskMutations";
+import { Task } from "@/types/task";
 import { AIRecommendationButton } from "@/components/AIRecommendationButton";
 import { TaskCalendar } from "@/components/calendar";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 type ViewMode = "list" | "calendar";
 
@@ -29,51 +35,64 @@ export default function ChildTasksPage() {
   const { t } = useTranslation(["tasks", "common"]);
   const navigate = useNavigate();
   const { childId } = useParams<{ childId: string }>();
-  const selectedChildId = useAppSelector((state) => state.child.selectedChildId);
+  const selectedChildId = useAppSelector(
+    (state) => state.child.selectedChildId
+  );
 
   const [viewMode, setViewMode] = useState<ViewMode>("list");
 
   // Helper to get local date string (YYYY-MM-DD)
   const getLocalDateString = (date: Date = new Date()) => {
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
   };
-  const [selectedDate, setSelectedDate] = useState<string>(getLocalDateString());
+  const [selectedDate, setSelectedDate] =
+    useState<string>(getLocalDateString());
 
   // TODO: Implement proper child authentication to get child_id
-  const { data: allTasks, isLoading} = useTasksByChild(selectedChildId || "");
+  const { data: allTasks, isLoading } = useTasksByChild(selectedChildId || "");
   const startTaskMutation = useStartTask();
   const pauseTaskMutation = usePauseTask();
   const resumeTaskMutation = useResumeTask();
   const completeTaskMutation = useCompleteTask();
 
   // Filter tasks for today only
-  const tasks = allTasks?.filter((task) => {
-    const today = getLocalDateString();
-    const taskDate = task.scheduled_date?.split("T")[0];
-    return taskDate === today || task.status === "in_progress" || task.status === "paused";
-  }) || [];
+  const tasks =
+    allTasks?.filter((task) => {
+      const today = getLocalDateString();
+      const taskDate = task.scheduled_date?.split("T")[0];
+      return (
+        taskDate === today ||
+        task.status === "in_progress" ||
+        task.status === "paused"
+      );
+    }) || [];
 
   // Separate tasks by status for better organization
   // Use string comparison to ensure matching works regardless of enum typing
-  const inProgressTasks = tasks.filter(t => t.status === "in_progress");
-  const pausedTasks = tasks.filter(t => t.status === "paused");
-  const todoTasks = tasks.filter(t => t.status === "pending");
-  const completedToday = allTasks?.filter(t => {
-    const today = getLocalDateString();
-    const completedDate = t.completed_at?.split("T")[0];
-    return completedDate === today && t.status === "completed";
-  }) || [];
+  const inProgressTasks = tasks.filter((t) => t.status === "in_progress");
+  const pausedTasks = tasks.filter((t) => t.status === "paused");
+  const todoTasks = tasks.filter((t) => t.status === "pending");
+  const completedToday =
+    allTasks?.filter((t) => {
+      const today = getLocalDateString();
+      const completedDate = t.completed_at?.split("T")[0];
+      return completedDate === today && t.status === "completed";
+    }) || [];
 
   // Tasks for selected date in calendar view
-  const selectedDateTasks = allTasks?.filter(t => {
-    const taskDate = t.scheduled_date?.split("T")[0];
-    return taskDate === selectedDate;
-  }) || [];
+  const selectedDateTasks =
+    allTasks?.filter((t) => {
+      const taskDate = t.scheduled_date?.split("T")[0];
+      return taskDate === selectedDate;
+    }) || [];
 
   const handleStartTask = async (taskId: string, task: Task) => {
     try {
       // Start the task - this may materialize a virtual task into a real one
-      const result = await startTaskMutation.mutateAsync({ taskId, childId: selectedChildId || "" });
+      const result = await startTaskMutation.mutateAsync({
+        taskId,
+        childId: selectedChildId || "",
+      });
       console.log("Start task result:", result);
 
       // If task has a template, navigate to the executor page
@@ -105,7 +124,10 @@ export default function ChildTasksPage() {
 
   const handleCompleteTask = async (taskId: string) => {
     try {
-      await completeTaskMutation.mutateAsync({ taskId, childId: selectedChildId || "" });
+      await completeTaskMutation.mutateAsync({
+        taskId,
+        childId: selectedChildId || "",
+      });
     } catch (error) {
       console.error("Failed to complete task:", error);
     }
@@ -121,69 +143,74 @@ export default function ChildTasksPage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4 sm:p-6 lg:p-8">
-        <div className="text-center text-2xl text-gray-600">{t("common:loading")}</div>
-      </div>
-    );
+    return <LoadingSpinner fullScreen size="lg" />;
   }
 
   return (
     <div className="bg-gradient-to-br from-blue-50 to-purple-50">
       {/* Sticky Header - uses position:sticky within flex-1 overflow container */}
-      <div className="sticky top-0 z-20 bg-gradient-to-br from-blue-50 to-purple-50 backdrop-blur-sm p-4 sm:p-6 pb-4 shadow-sm">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+      <div className="sticky top-0 z-20 bg-gradient-to-br from-blue-50 to-purple-50 p-4 pb-4 shadow-sm backdrop-blur-sm sm:p-6">
+        <div className="mx-auto max-w-4xl">
+          <h1 className="mb-2 flex items-center gap-3 text-2xl font-bold text-gray-900 sm:text-3xl">
             <IconChecklist className="text-blue-600" size={32} />
             {t("tasks:child_portal.my_tasks")}
           </h1>
 
           {/* Points Display */}
-          <div className="flex flex-wrap items-center gap-3 mt-3">
-            <div className="bg-white rounded-full px-4 py-2 shadow flex items-center gap-2">
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2 rounded-full bg-white px-4 py-2 shadow">
               <IconStar className="text-yellow-500" size={20} />
-              <span className="text-sm sm:text-base font-bold text-gray-900">
-                {completedToday.length} {t("tasks:child_portal.completed_today")}
+              <span className="text-sm font-bold text-gray-900 sm:text-base">
+                {completedToday.length}{" "}
+                {t("tasks:child_portal.completed_today")}
               </span>
             </div>
-            <div className="bg-white rounded-full px-4 py-2 shadow flex items-center gap-2">
+            <div className="flex items-center gap-2 rounded-full bg-white px-4 py-2 shadow">
               <IconTrophy className="text-purple-500" size={20} />
-              <span className="text-sm sm:text-base font-bold text-gray-900">
-                {completedToday.reduce((sum, t) => sum + (t.points_earned || 0), 0)} {t("tasks:child_portal.points")}
+              <span className="text-sm font-bold text-gray-900 sm:text-base">
+                {completedToday.reduce(
+                  (sum, t) => sum + (t.points_earned || 0),
+                  0
+                )}{" "}
+                {t("tasks:child_portal.points")}
               </span>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto space-y-6 px-4 sm:px-6 pb-8 pt-4">
+      <div className="mx-auto max-w-4xl space-y-6 px-4 pt-4 pb-8 sm:px-6">
         {/* AI Recommendation */}
         <AIRecommendationButton childId={selectedChildId || ""} />
 
         {/* View Toggle */}
         <div className="flex justify-center">
-          <div className="inline-flex bg-white rounded-2xl shadow-lg overflow-hidden">
+          <div className="inline-flex overflow-hidden rounded-2xl bg-white shadow-lg">
             <button
               onClick={() => setViewMode("list")}
-              className={`flex items-center gap-2 px-6 py-3 font-bold transition-all min-h-[56px] ${
+              className={`flex min-h-[56px] items-center gap-2 px-6 py-3 font-bold transition-all ${
                 viewMode === "list"
                   ? "bg-blue-600 text-white"
                   : "text-gray-700 hover:bg-blue-50"
               }`}
             >
               <IconList size={24} />
-              <span className="hidden sm:inline">{t("tasks:unified_model.list_view")}</span>
+              <span className="hidden sm:inline">
+                {t("tasks:unified_model.list_view")}
+              </span>
             </button>
             <button
               onClick={() => setViewMode("calendar")}
-              className={`flex items-center gap-2 px-6 py-3 font-bold transition-all min-h-[56px] ${
+              className={`flex min-h-[56px] items-center gap-2 px-6 py-3 font-bold transition-all ${
                 viewMode === "calendar"
                   ? "bg-blue-600 text-white"
                   : "text-gray-700 hover:bg-blue-50"
               }`}
             >
               <IconCalendar size={24} />
-              <span className="hidden sm:inline">{t("tasks:unified_model.calendar_view")}</span>
+              <span className="hidden sm:inline">
+                {t("tasks:unified_model.calendar_view")}
+              </span>
             </button>
           </div>
         </div>
@@ -200,9 +227,10 @@ export default function ChildTasksPage() {
             />
 
             {/* Task list for selected date */}
-            <div className="bg-white rounded-3xl shadow-xl p-6">
-              <h3 className="text-xl font-bold text-gray-900 mb-4">
-                {t("tasks:tasks_for_date")}: {new Date(selectedDate + "T00:00:00").toLocaleDateString()}
+            <div className="rounded-3xl bg-white p-6 shadow-xl">
+              <h3 className="mb-4 text-xl font-bold text-gray-900">
+                {t("tasks:tasks_for_date")}:{" "}
+                {new Date(selectedDate + "T00:00:00").toLocaleDateString()}
               </h3>
               {selectedDateTasks.length === 0 ? (
                 <p className="text-gray-600">{t("tasks:no_tasks_for_date")}</p>
@@ -212,11 +240,34 @@ export default function ChildTasksPage() {
                     <TaskCard
                       key={task._id}
                       task={task}
-                      onStart={task.status === "pending" && !isInformationalTask(task) ? () => handleStartTask(task._id, task) : undefined}
-                      onPause={task.status === "in_progress" && !isInformationalTask(task) ? () => handlePauseTask(task._id) : undefined}
-                      onResume={task.status === "paused" && !isInformationalTask(task) ? () => handleResumeTask(task._id) : undefined}
-                      onComplete={(task.status === "in_progress" || task.status === "paused") && !isInformationalTask(task) ? () => handleCompleteTask(task._id) : undefined}
-                      onViewResult={task.status === "completed" && task.template_id ? () => handleViewResult(task._id) : undefined}
+                      onStart={
+                        task.status === "pending" && !isInformationalTask(task)
+                          ? () => handleStartTask(task._id, task)
+                          : undefined
+                      }
+                      onPause={
+                        task.status === "in_progress" &&
+                        !isInformationalTask(task)
+                          ? () => handlePauseTask(task._id)
+                          : undefined
+                      }
+                      onResume={
+                        task.status === "paused" && !isInformationalTask(task)
+                          ? () => handleResumeTask(task._id)
+                          : undefined
+                      }
+                      onComplete={
+                        (task.status === "in_progress" ||
+                          task.status === "paused") &&
+                        !isInformationalTask(task)
+                          ? () => handleCompleteTask(task._id)
+                          : undefined
+                      }
+                      onViewResult={
+                        task.status === "completed" && task.template_id
+                          ? () => handleViewResult(task._id)
+                          : undefined
+                      }
                     />
                   ))}
                 </div>
@@ -228,7 +279,7 @@ export default function ChildTasksPage() {
             {/* In Progress Tasks */}
             {inProgressTasks.length > 0 && (
               <div className="space-y-3">
-                <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                <h2 className="flex items-center gap-2 text-2xl font-bold text-gray-900">
                   <IconPlayerPlay className="text-green-600" size={28} />
                   {t("tasks:child_portal.working_on")}
                 </h2>
@@ -236,8 +287,16 @@ export default function ChildTasksPage() {
                   <TaskCard
                     key={task._id}
                     task={task}
-                    onPause={!isInformationalTask(task) ? () => handlePauseTask(task._id) : undefined}
-                    onComplete={!isInformationalTask(task) ? () => handleCompleteTask(task._id) : undefined}
+                    onPause={
+                      !isInformationalTask(task)
+                        ? () => handlePauseTask(task._id)
+                        : undefined
+                    }
+                    onComplete={
+                      !isInformationalTask(task)
+                        ? () => handleCompleteTask(task._id)
+                        : undefined
+                    }
                   />
                 ))}
               </div>
@@ -246,7 +305,7 @@ export default function ChildTasksPage() {
             {/* Paused Tasks */}
             {pausedTasks.length > 0 && (
               <div className="space-y-3">
-                <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                <h2 className="flex items-center gap-2 text-2xl font-bold text-gray-900">
                   <IconPlayerPause className="text-yellow-600" size={28} />
                   {t("tasks:child_portal.paused")}
                 </h2>
@@ -254,8 +313,16 @@ export default function ChildTasksPage() {
                   <TaskCard
                     key={task._id}
                     task={task}
-                    onResume={!isInformationalTask(task) ? () => handleResumeTask(task._id) : undefined}
-                    onComplete={!isInformationalTask(task) ? () => handleCompleteTask(task._id) : undefined}
+                    onResume={
+                      !isInformationalTask(task)
+                        ? () => handleResumeTask(task._id)
+                        : undefined
+                    }
+                    onComplete={
+                      !isInformationalTask(task)
+                        ? () => handleCompleteTask(task._id)
+                        : undefined
+                    }
                   />
                 ))}
               </div>
@@ -264,7 +331,7 @@ export default function ChildTasksPage() {
             {/* To Do Tasks */}
             {todoTasks.length > 0 && (
               <div className="space-y-3">
-                <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                <h2 className="flex items-center gap-2 text-2xl font-bold text-gray-900">
                   <IconChecklist className="text-blue-600" size={28} />
                   {t("tasks:child_portal.to_do")}
                 </h2>
@@ -272,7 +339,11 @@ export default function ChildTasksPage() {
                   <TaskCard
                     key={task._id}
                     task={task}
-                    onStart={!isInformationalTask(task) ? () => handleStartTask(task._id, task) : undefined}
+                    onStart={
+                      !isInformationalTask(task)
+                        ? () => handleStartTask(task._id, task)
+                        : undefined
+                    }
                   />
                 ))}
               </div>
@@ -281,7 +352,7 @@ export default function ChildTasksPage() {
             {/* Completed Today */}
             {completedToday.length > 0 && (
               <div className="space-y-3">
-                <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                <h2 className="flex items-center gap-2 text-2xl font-bold text-gray-900">
                   <IconTrophy className="text-purple-600" size={28} />
                   {t("tasks:child_portal.completed_today")}
                 </h2>
@@ -289,7 +360,11 @@ export default function ChildTasksPage() {
                   <TaskCard
                     key={task._id}
                     task={task}
-                    onViewResult={task.template_id ? () => handleViewResult(task._id) : undefined}
+                    onViewResult={
+                      task.template_id
+                        ? () => handleViewResult(task._id)
+                        : undefined
+                    }
                   />
                 ))}
               </div>
@@ -297,12 +372,17 @@ export default function ChildTasksPage() {
 
             {/* Empty State */}
             {tasks.length === 0 && completedToday.length === 0 && (
-              <div className="bg-white rounded-3xl shadow-xl p-12 text-center">
-                <IconTrophy className="mx-auto text-purple-400 mb-4" size={80} />
-                <h3 className="text-3xl font-bold text-gray-900 mb-2">
+              <div className="rounded-3xl bg-white p-12 text-center shadow-xl">
+                <IconTrophy
+                  className="mx-auto mb-4 text-purple-400"
+                  size={80}
+                />
+                <h3 className="mb-2 text-3xl font-bold text-gray-900">
                   {t("tasks:child_portal.all_done")}
                 </h3>
-                <p className="text-xl text-gray-600">{t("tasks:child_portal.great_job")}</p>
+                <p className="text-xl text-gray-600">
+                  {t("tasks:child_portal.great_job")}
+                </p>
               </div>
             )}
           </>
@@ -321,36 +401,55 @@ interface TaskCardProps {
   onViewResult?: () => void;
 }
 
-function TaskCard({ task, onStart, onPause, onResume, onComplete, onViewResult }: TaskCardProps) {
+function TaskCard({
+  task,
+  onStart,
+  onPause,
+  onResume,
+  onComplete,
+  onViewResult,
+}: TaskCardProps) {
   const { t } = useTranslation(["tasks"]);
 
   const isInProgress = task.status === "in_progress";
   const isPaused = task.status === "paused";
 
   return (
-    <div className={`bg-white rounded-3xl shadow-xl p-6 transition-all hover:scale-102 ${
-      isInProgress ? "ring-4 ring-green-400" : isPaused ? "ring-4 ring-yellow-400" : ""
-    }`}>
-      <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+    <div
+      className={`rounded-3xl bg-white p-6 shadow-xl transition-all hover:scale-102 ${
+        isInProgress
+          ? "ring-4 ring-green-400"
+          : isPaused
+            ? "ring-4 ring-yellow-400"
+            : ""
+      }`}
+    >
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
         {/* Task Info */}
         <div className="flex-1">
-          <h3 className="text-2xl font-bold text-gray-900 mb-2">{task.title}</h3>
+          <h3 className="mb-2 text-2xl font-bold text-gray-900">
+            {task.title}
+          </h3>
           {task.description && (
-            <p className="text-lg text-gray-600 mb-3">{task.description}</p>
+            <p className="mb-3 text-lg text-gray-600">{task.description}</p>
           )}
 
           {/* Metadata */}
           <div className="flex flex-wrap gap-3">
             {task.ai_attributes?.estimated_duration_minutes && (
-              <div className="flex items-center gap-2 bg-blue-100 text-blue-700 px-4 py-2 rounded-full">
+              <div className="flex items-center gap-2 rounded-full bg-blue-100 px-4 py-2 text-blue-700">
                 <IconClock size={20} />
-                <span className="font-semibold">{task.ai_attributes.estimated_duration_minutes} min</span>
+                <span className="font-semibold">
+                  {task.ai_attributes.estimated_duration_minutes} min
+                </span>
               </div>
             )}
             {task.points_earned && (
-              <div className="flex items-center gap-2 bg-yellow-100 text-yellow-700 px-4 py-2 rounded-full">
+              <div className="flex items-center gap-2 rounded-full bg-yellow-100 px-4 py-2 text-yellow-700">
                 <IconStar size={20} />
-                <span className="font-semibold">+{task.points_earned} points</span>
+                <span className="font-semibold">
+                  +{task.points_earned} points
+                </span>
               </div>
             )}
           </div>
@@ -361,7 +460,7 @@ function TaskCard({ task, onStart, onPause, onResume, onComplete, onViewResult }
           {onStart && (
             <button
               onClick={onStart}
-              className="flex items-center justify-center gap-3 bg-green-600 text-white px-8 py-4 rounded-2xl font-bold text-xl hover:bg-green-700 transition-all shadow-lg hover:scale-105 min-h-[64px]"
+              className="flex min-h-[64px] items-center justify-center gap-3 rounded-2xl bg-green-600 px-8 py-4 text-xl font-bold text-white shadow-lg transition-all hover:scale-105 hover:bg-green-700"
             >
               <IconPlayerPlay size={28} />
               {t("tasks:start")}
@@ -371,7 +470,7 @@ function TaskCard({ task, onStart, onPause, onResume, onComplete, onViewResult }
           {onPause && (
             <button
               onClick={onPause}
-              className="flex items-center justify-center gap-3 bg-yellow-600 text-white px-8 py-4 rounded-2xl font-bold text-xl hover:bg-yellow-700 transition-all shadow-lg hover:scale-105 min-h-[64px]"
+              className="flex min-h-[64px] items-center justify-center gap-3 rounded-2xl bg-yellow-600 px-8 py-4 text-xl font-bold text-white shadow-lg transition-all hover:scale-105 hover:bg-yellow-700"
             >
               <IconPlayerPause size={28} />
               {t("tasks:pause")}
@@ -381,7 +480,7 @@ function TaskCard({ task, onStart, onPause, onResume, onComplete, onViewResult }
           {onResume && (
             <button
               onClick={onResume}
-              className="flex items-center justify-center gap-3 bg-green-600 text-white px-8 py-4 rounded-2xl font-bold text-xl hover:bg-green-700 transition-all shadow-lg hover:scale-105 min-h-[64px]"
+              className="flex min-h-[64px] items-center justify-center gap-3 rounded-2xl bg-green-600 px-8 py-4 text-xl font-bold text-white shadow-lg transition-all hover:scale-105 hover:bg-green-700"
             >
               <IconPlayerPlay size={28} />
               {t("tasks:resume")}
@@ -391,7 +490,7 @@ function TaskCard({ task, onStart, onPause, onResume, onComplete, onViewResult }
           {onComplete && (
             <button
               onClick={onComplete}
-              className="flex items-center justify-center gap-3 bg-blue-600 text-white px-8 py-4 rounded-2xl font-bold text-xl hover:bg-blue-700 transition-all shadow-lg hover:scale-105 min-h-[64px]"
+              className="flex min-h-[64px] items-center justify-center gap-3 rounded-2xl bg-blue-600 px-8 py-4 text-xl font-bold text-white shadow-lg transition-all hover:scale-105 hover:bg-blue-700"
             >
               <IconCheck size={28} />
               {t("tasks:complete")}
@@ -401,7 +500,7 @@ function TaskCard({ task, onStart, onPause, onResume, onComplete, onViewResult }
           {onViewResult && (
             <button
               onClick={onViewResult}
-              className="flex items-center justify-center gap-3 bg-purple-600 text-white px-8 py-4 rounded-2xl font-bold text-xl hover:bg-purple-700 transition-all shadow-lg hover:scale-105 min-h-[64px]"
+              className="flex min-h-[64px] items-center justify-center gap-3 rounded-2xl bg-purple-600 px-8 py-4 text-xl font-bold text-white shadow-lg transition-all hover:scale-105 hover:bg-purple-700"
             >
               <IconStar size={28} />
               {t("tasks:view_result")}

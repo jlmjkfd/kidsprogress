@@ -1,6 +1,6 @@
 """API routes for activity pool management."""
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from typing import List
 from datetime import date
 from bson import ObjectId
@@ -15,6 +15,7 @@ from backend.models.user import User
 from backend.services.activity_service import ActivityService
 from backend.dependencies.database import get_db
 from backend.routes.auth import get_current_user
+from backend.utils.exceptions import not_found, bad_request, forbidden, internal_error
 
 router = APIRouter(prefix="/api/activities", tags=["activities"])
 
@@ -36,7 +37,7 @@ async def create_activity(
         }
     )
     if not child_doc:
-        raise HTTPException(status_code=404, detail="Child not found or unauthorized")
+        raise not_found("Child not found or unauthorized")
 
     activity = await service.create_activity(
         parent_id=ObjectId(current_user.id), data=activity_data
@@ -58,7 +59,7 @@ async def get_activities(
         {"_id": ObjectId(child_id), "parent_id": ObjectId(current_user.id)}
     )
     if not child_doc:
-        raise HTTPException(status_code=404, detail="Child not found or unauthorized")
+        raise not_found("Child not found or unauthorized")
 
     service = ActivityService(db)
     activities = await service.get_activities_by_child(
@@ -77,11 +78,11 @@ async def get_activity(
     activity = await service.get_activity(ObjectId(activity_id))
 
     if not activity:
-        raise HTTPException(status_code=404, detail="Activity not found")
+        raise not_found("Activity")
 
     # Verify ownership
     if str(activity.parent_id) != current_user.id:
-        raise HTTPException(status_code=403, detail="Unauthorized")
+        raise forbidden("Unauthorized")
 
     return activity.model_dump(by_alias=True, mode="json")
 
@@ -99,16 +100,16 @@ async def update_activity(
     # Verify ownership
     existing = await service.get_activity(ObjectId(activity_id))
     if not existing:
-        raise HTTPException(status_code=404, detail="Activity not found")
+        raise not_found("Activity")
     if str(existing.parent_id) != current_user.id:
-        raise HTTPException(status_code=403, detail="Unauthorized")
+        raise forbidden("Unauthorized")
 
     activity = await service.update_activity(
         activity_id=ObjectId(activity_id), data=activity_data
     )
 
     if not activity:
-        raise HTTPException(status_code=500, detail="Failed to update activity")
+        raise internal_error("Failed to update activity")
 
     return activity.model_dump(by_alias=True, mode="json")
 
@@ -123,14 +124,14 @@ async def delete_activity(
     # Verify ownership
     existing = await service.get_activity(ObjectId(activity_id))
     if not existing:
-        raise HTTPException(status_code=404, detail="Activity not found")
+        raise not_found("Activity")
     if str(existing.parent_id) != current_user.id:
-        raise HTTPException(status_code=403, detail="Unauthorized")
+        raise forbidden("Unauthorized")
 
     success = await service.delete_activity(ObjectId(activity_id))
 
     if not success:
-        raise HTTPException(status_code=400, detail="Failed to delete activity")
+        raise bad_request("Failed to delete activity")
 
     return {"message": "Activity deactivated successfully"}
 
@@ -148,7 +149,7 @@ async def get_available_activities(
         {"_id": ObjectId(child_id), "parent_id": ObjectId(current_user.id)}
     )
     if not child_doc:
-        raise HTTPException(status_code=404, detail="Child not found or unauthorized")
+        raise not_found("Child not found or unauthorized")
 
     service = ActivityService(db)
     availabilities = await service.get_available_activities(
@@ -171,9 +172,9 @@ async def create_task_from_activity(
     # Verify ownership
     activity = await service.get_activity(ObjectId(activity_id))
     if not activity:
-        raise HTTPException(status_code=404, detail="Activity not found")
+        raise not_found("Activity")
     if str(activity.parent_id) != current_user.id:
-        raise HTTPException(status_code=403, detail="Unauthorized")
+        raise forbidden("Unauthorized")
 
     # Check if activity is available
     weekday_map = {0: "MO", 1: "TU", 2: "WE", 3: "TH", 4: "FR", 5: "SA", 6: "SU"}
@@ -186,7 +187,7 @@ async def create_task_from_activity(
     )
 
     if not availability.is_available:
-        raise HTTPException(status_code=400, detail=availability.reason)
+        raise bad_request(availability.reason or "Activity not available")
 
     # Create task
     task = await service.create_task_from_activity(activity, scheduled_date)

@@ -8,6 +8,7 @@ from bson import ObjectId
 from backend.models.child import Child, ChildCreate, ChildInDB
 from backend.utils.datetime_utils import utcnow
 from backend.models.task_collection import TaskCollection
+from backend.utils.validators import validate_object_id
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -90,12 +91,11 @@ class ChildService:
         Raises:
             ValueError: If parent_id is invalid
         """
-        if not ObjectId.is_valid(parent_id):
-            raise ValueError("Invalid parent_id")
+        parent_id_obj = validate_object_id(parent_id, "parent_id", raise_http_exception=False)
 
         # Prepare child document
         child_doc = {
-            "parent_id": ObjectId(parent_id),
+            "parent_id": parent_id_obj,
             "name": child_data.name,
             "date_of_birth": child_data.date_of_birth.isoformat(),  # Store as ISO string
             "avatar_url": child_data.avatar_url,
@@ -141,10 +141,9 @@ class ChildService:
         Returns:
             List of child profiles
         """
-        if not ObjectId.is_valid(parent_id):
-            raise ValueError("Invalid parent_id")
+        parent_id_obj = validate_object_id(parent_id, "parent_id", raise_http_exception=False)
 
-        cursor = self.children_collection.find({"parent_id": ObjectId(parent_id)})
+        cursor = self.children_collection.find({"parent_id": parent_id_obj})
         children = []
 
         async for doc in cursor:
@@ -172,10 +171,9 @@ class ChildService:
         Returns:
             Child profile with pin_hash, or None if not found
         """
-        if not ObjectId.is_valid(child_id):
-            return None
+        child_id_obj = validate_object_id(child_id, "child_id", raise_http_exception=False)
 
-        doc = await self.children_collection.find_one({"_id": ObjectId(child_id)})
+        doc = await self.children_collection.find_one({"_id": child_id_obj})
         if not doc:
             return None
 
@@ -204,12 +202,12 @@ class ChildService:
         Returns:
             Updated child profile, or None if not found or unauthorized
         """
-        if not ObjectId.is_valid(child_id) or not ObjectId.is_valid(parent_id):
-            return None
+        child_id_obj = validate_object_id(child_id, "child_id", raise_http_exception=False)
+        parent_id_obj = validate_object_id(parent_id, "parent_id", raise_http_exception=False)
 
         # Verify ownership
         existing = await self.children_collection.find_one(
-            {"_id": ObjectId(child_id), "parent_id": ObjectId(parent_id)}
+            {"_id": child_id_obj, "parent_id": parent_id_obj}
         )
         if not existing:
             return None
@@ -231,7 +229,7 @@ class ChildService:
 
         # Update in database
         result = await self.children_collection.find_one_and_update(
-            {"_id": ObjectId(child_id), "parent_id": ObjectId(parent_id)},
+            {"_id": child_id_obj, "parent_id": parent_id_obj},
             {"$set": update_doc},
             return_document=True,
         )
@@ -260,11 +258,11 @@ class ChildService:
         Returns:
             True if deleted, False if not found or unauthorized
         """
-        if not ObjectId.is_valid(child_id) or not ObjectId.is_valid(parent_id):
-            return False
+        child_id_obj = validate_object_id(child_id, "child_id", raise_http_exception=False)
+        parent_id_obj = validate_object_id(parent_id, "parent_id", raise_http_exception=False)
 
         result = await self.children_collection.delete_one(
-            {"_id": ObjectId(child_id), "parent_id": ObjectId(parent_id)}
+            {"_id": child_id_obj, "parent_id": parent_id_obj}
         )
         return result.deleted_count > 0
 

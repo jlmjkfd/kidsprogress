@@ -415,7 +415,17 @@
     "no_writings": "No Writings Yet",
     "no_writings_desc": "Completed writing tasks will appear here",
     "untitled": "Untitled",
-    "words": "{{count}} words"
+    "words": "{{count}} words",
+    "title": "Analysis",
+    "select_template_desc": "Select a template to view progress and insights",
+    "no_templates": "No Templates with Analysis",
+    "no_templates_desc": "Add templates from the library to start tracking progress",
+    "view_report": "View Report",
+    "keyMetrics": "Key Metrics",
+    "aiInsights": "AI Insights",
+    "charts": "Progress Charts",
+    "noData": "No Data Available",
+    "noDataDescription": "Complete more tasks to see analysis and trends"
   },
   "templates": {
     "title": "Task Templates",
@@ -483,6 +493,9 @@
     "using_template": "Using Template",
     "template_locked_hint": "Template fields are locked. You can change scheduling and other settings.",
     "remove_template": "Remove Template",
+    "view_analysis": "View Analysis",
+    "select_child_for_analysis": "Select Child for Analysis",
+    "select_child_desc": "Choose which child's data to analyze",
     "errors": {
       "name_required": "Template name is required",
       "category_required": "Category is required"

@@ -1,15 +1,18 @@
 /**
  * Child Basic Info Page
  */
+import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useChild } from "@/api/queries/useChild";
 import { IconUser, IconCalendar, IconShield, IconLanguage } from "@tabler/icons-react";
+import EditChildModal from "./components/EditChildModal";
 
 export default function ChildBasicInfoPage() {
   const { childId } = useParams<{ childId: string }>();
   const { t } = useTranslation(["common"]);
   const { data: child, isLoading } = useChild(childId || "");
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -88,11 +91,20 @@ export default function ChildBasicInfoPage() {
         </div>
 
         <div className="pt-4 border-t">
-          <button className="w-full md:w-auto px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+          <button
+            onClick={() => setIsEditModalOpen(true)}
+            className="w-full md:w-auto px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
             {t("common:edit_info")}
           </button>
         </div>
       </div>
+
+      <EditChildModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        child={child}
+      />
     </div>
   );
 }

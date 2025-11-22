@@ -9,13 +9,12 @@ import type { ExecutorProps } from "./types";
 import type { FormField } from "../../types/template";
 
 export function PassiveFormExecutor({
-  taskId,
   executionData,
   onComplete,
   onCancel,
 }: ExecutorProps) {
   const { t } = useTranslation(["tasks", "common"]);
-  const [formData, setFormData] = useState<Record<string, any>>({});
+  const [formData, setFormData] = useState<Record<string, string | number | string[]>>({});
   const [notes, setNotes] = useState("");
   const [photos, setPhotos] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -25,7 +24,7 @@ export function PassiveFormExecutor({
   const allowPhotos = executionData.allow_photos || false;
   const allowNotes = executionData.allow_notes || false;
 
-  const handleFieldChange = (fieldId: string, value: any) => {
+  const handleFieldChange = (fieldId: string, value: string | number | string[]) => {
     setFormData((prev) => ({ ...prev, [fieldId]: value }));
     // Clear error for this field
     if (errors[fieldId]) {
@@ -162,12 +161,12 @@ export function PassiveFormExecutor({
               <label key={opt} className="flex items-center gap-2">
                 <input
                   type="checkbox"
-                  checked={value.includes?.(opt)}
+                  checked={Array.isArray(value) && value.includes(opt)}
                   onChange={(e) => {
-                    const currentValue = value || [];
+                    const currentValue = Array.isArray(value) ? value : [];
                     const newValue = e.target.checked
                       ? [...currentValue, opt]
-                      : currentValue.filter((v: string) => v !== opt);
+                      : currentValue.filter((v) => v !== opt);
                     handleFieldChange(field.field_id, newValue);
                   }}
                   className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"

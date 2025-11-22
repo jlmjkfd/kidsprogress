@@ -14,6 +14,7 @@ from backend.models.ai_recommendation import (
     DayTasksSummary
 )
 from backend.ai.task_recommender import TaskRecommender
+from backend.utils.query_builders import date_range_query
 
 
 class AIScheduleService:
@@ -45,8 +46,6 @@ class AIScheduleService:
 
         # Parse date
         target_date_obj = datetime.fromisoformat(target_date).date()
-        start_of_day = datetime.combine(target_date_obj, datetime.min.time())
-        end_of_day = datetime.combine(target_date_obj, datetime.max.time())
 
         # Verify ownership if parent_id provided
         if parent_id:
@@ -58,31 +57,26 @@ class AIScheduleService:
             if not child:
                 raise ValueError("Child not found or access denied")
 
+        # Build date range queries
+        scheduled_date_query = date_range_query("scheduled_date", target_date_obj, target_date_obj)
+        constraints_query = date_range_query("constraints.available_from", target_date_obj, target_date_obj)
+        overdue_query = date_range_query("scheduled_date", end_date=target_date_obj, include_end=False)
+
         # Get all tasks for this day
         tasks_cursor = self.db.tasks.find({
             "child_id": ObjectId(child_id),
             "$or": [
                 # Tasks scheduled for this specific date
-                {
-                    "scheduled_date": {
-                        "$gte": start_of_day,
-                        "$lte": end_of_day
-                    }
-                },
+                scheduled_date_query,
                 # Tasks with constraints for this date
-                {
-                    "constraints.available_from": {
-                        "$gte": start_of_day,
-                        "$lte": end_of_day
-                    }
-                },
+                constraints_query,
                 # In-progress or paused tasks (carry over)
                 {
                     "status": {"$in": ["in_progress", "paused"]}
                 },
                 # Overdue tasks (past scheduled tasks that are incomplete)
                 {
-                    "scheduled_date": {"$lt": start_of_day},
+                    **overdue_query,
                     "status": {"$nin": ["completed", "skipped"]}
                 }
             ]
@@ -93,14 +87,13 @@ class AIScheduleService:
             tasks.append(Task(**task_doc))
 
         # Get time blocks for this day
-        time_blocks_cursor = self.db.time_blocks.find({
+        time_blocks_query = {
             "child_id": ObjectId(child_id),
-            "date": {
-                "$gte": start_of_day,
-                "$lte": end_of_day
-            },
             "is_active": True
-        }).sort("time_slot.start", 1)
+        }
+        time_blocks_query.update(date_range_query("date", target_date_obj, target_date_obj))
+
+        time_blocks_cursor = self.db.time_blocks.find(time_blocks_query).sort("time_slot.start", 1)
 
         time_blocks = []
         async for block_doc in time_blocks_cursor:
@@ -293,14 +286,13 @@ class AIScheduleService:
             tasks_to_check = [Task(**task_doc)]
         else:
             # Get all scheduled tasks for today
-            today_start = datetime.combine(date.today(), datetime.min.time())
-            today_end = datetime.combine(date.today(), datetime.max.time())
-
-            tasks_cursor = self.db.tasks.find({
+            query = {
                 "child_id": ObjectId(child_id),
-                "scheduled_date": {"$gte": today_start, "$lte": today_end},
                 "status": {"$in": ["pending", "in_progress"]}
-            })
+            }
+            query.update(date_range_query("scheduled_date", date.today(), date.today()))
+
+            tasks_cursor = self.db.tasks.find(query)
 
             tasks_to_check = []
             async for task_doc in tasks_cursor:
@@ -401,13 +393,16 @@ class AIScheduleService:
             )
 
         # Get remaining tasks for today
-        today_end = datetime.combine(current_time.date(), datetime.max.time())
-        remaining_tasks_cursor = self.db.tasks.find({
+        # Note: For current_time to end of day, we use datetime_range_query instead since current_time is datetime
+        from backend.utils.query_builders import datetime_range_query
+        query = {
             "child_id": ObjectId(child_id),
-            "scheduled_date": {"$gte": current_time, "$lte": today_end},
             "status": {"$in": ["pending"]},
             "_id": {"$ne": ObjectId(current_task_id)}
-        }).sort("scheduled_date", 1)
+        }
+        query.update(datetime_range_query("scheduled_date", current_time, datetime.combine(current_time.date(), datetime.max.time())))
+
+        remaining_tasks_cursor = self.db.tasks.find(query).sort("scheduled_date", 1)
 
         remaining_tasks = []
         async for task_doc in remaining_tasks_cursor:

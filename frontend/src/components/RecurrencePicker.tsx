@@ -4,14 +4,20 @@
  */
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { IconRepeat, IconCalendar, IconX } from "@tabler/icons-react";
+import { IconRepeat } from "@tabler/icons-react";
 
 interface RecurrencePickerProps {
   value?: string; // RRULE string
   onChange: (rrule: string) => void;
 }
 
-type Frequency = "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY" | "SCHOOL_DAYS" | "HOLIDAYS";
+type Frequency =
+  | "DAILY"
+  | "WEEKLY"
+  | "MONTHLY"
+  | "YEARLY"
+  | "SCHOOL_DAYS"
+  | "HOLIDAYS";
 type EndType = "never" | "on_date" | "after_count";
 
 const WEEKDAYS = [
@@ -31,14 +37,24 @@ export function RecurrencePicker({ value, onChange }: RecurrencePickerProps) {
 
   const [frequency, setFrequency] = useState<Frequency>("WEEKLY");
   const [interval, setInterval] = useState(1);
-  const [selectedDays, setSelectedDays] = useState<string[]>(["MO", "TU", "WE", "TH", "FR"]);
+  const [selectedDays, setSelectedDays] = useState<string[]>([
+    "MO",
+    "TU",
+    "WE",
+    "TH",
+    "FR",
+  ]);
   const [endType, setEndType] = useState<EndType>("never");
   const [endDate, setEndDate] = useState("");
   const [endCount, setEndCount] = useState(10);
 
   // Parse existing RRULE when value prop changes
   useEffect(() => {
-    if (value && value.startsWith("FREQ=") && value !== lastEmittedValue.current) {
+    if (
+      value &&
+      value.startsWith("FREQ=") &&
+      value !== lastEmittedValue.current
+    ) {
       isParsingRef.current = true;
       parseRRule(value);
       lastEmittedValue.current = value;
@@ -131,35 +147,43 @@ export function RecurrencePicker({ value, onChange }: RecurrencePickerProps) {
   };
 
   return (
-    <div className="space-y-4 p-4 bg-indigo-50 rounded-lg border border-indigo-200">
-      <div className="flex items-center gap-2 text-indigo-900 font-medium">
+    <div className="space-y-4 rounded-lg border border-indigo-200 bg-indigo-50 p-4">
+      <div className="flex items-center gap-2 font-medium text-indigo-900">
         <IconRepeat size={18} />
         <span>{t("tasks:unified_model.recurrence_pattern")}</span>
       </div>
 
       {/* Frequency */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="mb-2 block text-sm font-medium text-gray-700">
           {t("tasks:unified_model.repeat")}
         </label>
         <select
           value={frequency}
           onChange={(e) => setFrequency(e.target.value as Frequency)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white"
+          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2"
         >
           <option value="DAILY">{t("tasks:unified_model.repeat_daily")}</option>
-          <option value="WEEKLY">{t("tasks:unified_model.repeat_weekly")}</option>
-          <option value="MONTHLY">{t("tasks:unified_model.repeat_monthly")}</option>
+          <option value="WEEKLY">
+            {t("tasks:unified_model.repeat_weekly")}
+          </option>
+          <option value="MONTHLY">
+            {t("tasks:unified_model.repeat_monthly")}
+          </option>
           <option value="YEARLY">Yearly</option>
-          <option value="SCHOOL_DAYS">{t("tasks:unified_model.repeat_school_days")}</option>
-          <option value="HOLIDAYS">{t("tasks:unified_model.repeat_holidays")}</option>
+          <option value="SCHOOL_DAYS">
+            {t("tasks:unified_model.repeat_school_days")}
+          </option>
+          <option value="HOLIDAYS">
+            {t("tasks:unified_model.repeat_holidays")}
+          </option>
         </select>
       </div>
 
       {/* Interval - hide for school days/holidays */}
       {frequency !== "SCHOOL_DAYS" && frequency !== "HOLIDAYS" && (
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="mb-2 block text-sm font-medium text-gray-700">
             {t("tasks:unified_model.repeat_every")}
           </label>
           <div className="flex items-center gap-2">
@@ -169,7 +193,7 @@ export function RecurrencePicker({ value, onChange }: RecurrencePickerProps) {
               max="999"
               value={interval}
               onChange={(e) => setInterval(parseInt(e.target.value) || 1)}
-              className="w-20 px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-20 rounded-lg border border-gray-300 px-3 py-2"
             />
             <span className="text-sm text-gray-600">
               {frequency === "DAILY" && (interval === 1 ? "day" : "days")}
@@ -184,7 +208,7 @@ export function RecurrencePicker({ value, onChange }: RecurrencePickerProps) {
       {/* Weekdays (for WEEKLY) */}
       {frequency === "WEEKLY" && (
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="mb-2 block text-sm font-medium text-gray-700">
             {t("tasks:unified_model.repeat_on_days")}
           </label>
           <div className="flex gap-2">
@@ -193,10 +217,10 @@ export function RecurrencePicker({ value, onChange }: RecurrencePickerProps) {
                 key={day.value}
                 type="button"
                 onClick={() => toggleDay(day.value)}
-                className={`w-10 h-10 rounded-full text-sm font-medium transition-colors ${
+                className={`h-10 w-10 rounded-full text-sm font-medium transition-colors ${
                   selectedDays.includes(day.value)
                     ? "bg-indigo-600 text-white"
-                    : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+                    : "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
                 }`}
               >
                 {day.label}
@@ -208,7 +232,7 @@ export function RecurrencePicker({ value, onChange }: RecurrencePickerProps) {
 
       {/* End Type */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="mb-2 block text-sm font-medium text-gray-700">
           {t("tasks:unified_model.repeat_ends")}
         </label>
         <div className="space-y-2">
@@ -218,9 +242,11 @@ export function RecurrencePicker({ value, onChange }: RecurrencePickerProps) {
               value="never"
               checked={endType === "never"}
               onChange={(e) => setEndType(e.target.value as EndType)}
-              className="w-4 h-4"
+              className="h-4 w-4"
             />
-            <span className="text-sm">{t("tasks:unified_model.repeat_never")}</span>
+            <span className="text-sm">
+              {t("tasks:unified_model.repeat_never")}
+            </span>
           </label>
 
           <label className="flex items-center gap-2">
@@ -229,9 +255,11 @@ export function RecurrencePicker({ value, onChange }: RecurrencePickerProps) {
               value="on_date"
               checked={endType === "on_date"}
               onChange={(e) => setEndType(e.target.value as EndType)}
-              className="w-4 h-4"
+              className="h-4 w-4"
             />
-            <span className="text-sm">{t("tasks:unified_model.repeat_on_date")}</span>
+            <span className="text-sm">
+              {t("tasks:unified_model.repeat_on_date")}
+            </span>
           </label>
           {endType === "on_date" && (
             <div className="ml-6">
@@ -239,7 +267,7 @@ export function RecurrencePicker({ value, onChange }: RecurrencePickerProps) {
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg"
+                className="rounded-lg border border-gray-300 px-3 py-2"
               />
             </div>
           )}
@@ -250,9 +278,11 @@ export function RecurrencePicker({ value, onChange }: RecurrencePickerProps) {
               value="after_count"
               checked={endType === "after_count"}
               onChange={(e) => setEndType(e.target.value as EndType)}
-              className="w-4 h-4"
+              className="h-4 w-4"
             />
-            <span className="text-sm">{t("tasks:unified_model.repeat_after_occurrences")}</span>
+            <span className="text-sm">
+              {t("tasks:unified_model.repeat_after_occurrences")}
+            </span>
           </label>
           {endType === "after_count" && (
             <div className="ml-6 flex items-center gap-2">
@@ -262,7 +292,7 @@ export function RecurrencePicker({ value, onChange }: RecurrencePickerProps) {
                 max="999"
                 value={endCount}
                 onChange={(e) => setEndCount(parseInt(e.target.value) || 1)}
-                className="w-20 px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-20 rounded-lg border border-gray-300 px-3 py-2"
               />
               <span className="text-sm text-gray-600">occurrences</span>
             </div>
@@ -271,12 +301,12 @@ export function RecurrencePicker({ value, onChange }: RecurrencePickerProps) {
       </div>
 
       {/* Generated RRULE (for debugging/advanced users) */}
-      <div className="pt-3 border-t border-indigo-200">
+      <div className="border-t border-indigo-200 pt-3">
         <details>
-          <summary className="text-xs text-gray-500 cursor-pointer hover:text-gray-700">
+          <summary className="cursor-pointer text-xs text-gray-500 hover:text-gray-700">
             Advanced: Generated RRULE
           </summary>
-          <code className="block mt-2 text-xs bg-white p-2 rounded border border-gray-300 text-gray-700">
+          <code className="mt-2 block rounded border border-gray-300 bg-white p-2 text-xs text-gray-700">
             {generateRRule()}
           </code>
         </details>

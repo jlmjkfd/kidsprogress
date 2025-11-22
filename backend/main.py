@@ -33,6 +33,7 @@ from backend.routes import (
     template_routes,
     completion_routes,
     chat_routes,
+    analysis_routes,
 )
 from backend.jobs import init_scheduler, shutdown_scheduler
 
@@ -102,6 +103,13 @@ async def lifespan(app: FastAPI):
     await database.tools.create_index("code", unique=True)
     await database.tools.create_index([("is_system", 1), ("is_active", 1)])
 
+    # LLM call logs
+    await database.llm_logs.create_index([("created_at", -1)])  # Recent logs first
+    await database.llm_logs.create_index([("service", 1), ("feature", 1)])  # By service/feature
+    await database.llm_logs.create_index([("child_id", 1), ("created_at", -1)])  # By child
+    await database.llm_logs.create_index([("user_id", 1), ("created_at", -1)])  # By user
+    await database.llm_logs.create_index("error")  # Find errors
+
     # Initialize cron job scheduler
     init_scheduler(database)
     print("Cron job scheduler initialized")
@@ -155,6 +163,7 @@ app.include_router(ai_schedule_routes.router)
 # Task template system
 app.include_router(template_routes.router)
 app.include_router(completion_routes.router)
+app.include_router(analysis_routes.router)
 
 # AI Chat
 app.include_router(chat_routes.router)

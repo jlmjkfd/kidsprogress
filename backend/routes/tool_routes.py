@@ -1,6 +1,6 @@
 """API routes for tool registry management."""
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from typing import List
 from bson import ObjectId
 
@@ -9,6 +9,7 @@ from backend.models.user import User
 from backend.services.tool_service import ToolService
 from backend.dependencies.database import get_db
 from backend.routes.auth import get_current_user
+from backend.utils.exceptions import not_found, bad_request, forbidden, internal_error
 
 router = APIRouter(prefix="/api/tools", tags=["tools"])
 
@@ -37,7 +38,7 @@ async def get_tool(tool_id: str, db=Depends(get_db)):
     tool = await service.get_tool(ObjectId(tool_id))
 
     if not tool:
-        raise HTTPException(status_code=404, detail="Tool not found")
+        raise not_found("Tool")
 
     return tool.model_dump(by_alias=True, mode="json")
 
@@ -56,7 +57,7 @@ async def create_tool(
             parent_id=ObjectId(current_user.id), data=tool_data
         )
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise bad_request(str(e))
 
     return tool.model_dump(by_alias=True, mode="json")
 
@@ -74,18 +75,18 @@ async def update_tool(
     # Verify ownership for custom tools
     existing = await service.get_tool(ObjectId(tool_id))
     if not existing:
-        raise HTTPException(status_code=404, detail="Tool not found")
+        raise not_found("Tool")
 
     if existing.is_system:
-        raise HTTPException(status_code=403, detail="Cannot modify system tools")
+        raise forbidden("Cannot modify system tools")
 
     if existing.created_by and str(existing.created_by) != current_user.id:
-        raise HTTPException(status_code=403, detail="Unauthorized")
+        raise forbidden("Unauthorized")
 
     tool = await service.update_tool(tool_id=ObjectId(tool_id), data=tool_data)
 
     if not tool:
-        raise HTTPException(status_code=500, detail="Failed to update tool")
+        raise internal_error("Failed to update tool")
 
     return tool.model_dump(by_alias=True, mode="json")
 
@@ -100,21 +101,21 @@ async def delete_tool(
     # Verify ownership
     existing = await service.get_tool(ObjectId(tool_id))
     if not existing:
-        raise HTTPException(status_code=404, detail="Tool not found")
+        raise not_found("Tool")
 
     if existing.is_system:
-        raise HTTPException(status_code=403, detail="Cannot delete system tools")
+        raise forbidden("Cannot delete system tools")
 
     if existing.created_by and str(existing.created_by) != current_user.id:
-        raise HTTPException(status_code=403, detail="Unauthorized")
+        raise forbidden("Unauthorized")
 
     try:
         success = await service.delete_tool(ObjectId(tool_id))
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise bad_request(str(e))
 
     if not success:
-        raise HTTPException(status_code=400, detail="Failed to delete tool")
+        raise bad_request("Failed to delete tool")
 
     return {"message": "Tool deactivated successfully"}
 

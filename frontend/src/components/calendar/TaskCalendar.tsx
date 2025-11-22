@@ -36,7 +36,6 @@ export function TaskCalendar({
   childId,
   onTaskClick,
   onDayClick,
-  editable = true,
   defaultView = "month",
 }: TaskCalendarProps) {
   const { t, i18n } = useTranslation(["tasks", "common"]);

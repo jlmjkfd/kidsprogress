@@ -4,6 +4,7 @@ from datetime import datetime, date, timedelta
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from backend.services.task_service import TaskService
 from backend.models.task import ObligationLevel, TaskStatus
+from backend.utils.query_builders import date_range_query
 
 logger = logging.getLogger(__name__)
 
@@ -29,11 +30,8 @@ async def rollover_incomplete_tasks(db: AsyncIOMotorDatabase):
         query = {
             "obligation_level": ObligationLevel.MUST_DO.value,
             "status": {"$in": [TaskStatus.PENDING.value, TaskStatus.IN_PROGRESS.value]},
-            "scheduled_date": {
-                "$gte": datetime.combine(today, datetime.min.time()),
-                "$lt": datetime.combine(today + timedelta(days=1), datetime.min.time())
-            }
         }
+        query.update(date_range_query("scheduled_date", today, today))
 
         tasks_cursor = db.tasks.find(query)
         rollover_count = 0

@@ -3,9 +3,10 @@
  */
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { IconArrowLeft, IconLoader, IconStar, IconCheck, IconSparkles } from "@tabler/icons-react";
+import { IconArrowLeft, IconStar, IconCheck, IconSparkles } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/api/client";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 export default function TaskResultPage() {
   const { taskId, childId } = useParams<{ taskId: string; childId: string }>();
@@ -40,14 +41,7 @@ export default function TaskResultPage() {
   };
 
   if (taskLoading || completionLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <IconLoader size={48} className="mx-auto text-blue-600 animate-spin" />
-          <p className="mt-4 text-gray-600">{t("common:loading")}</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner fullScreen size="lg" />;
   }
 
   if (!task || !completion) {

@@ -7,6 +7,7 @@ from bson import ObjectId
 from backend.models.device import DeviceRegistration
 from backend.models.child import Child
 from backend.utils.datetime_utils import utcnow
+from backend.utils.validators import validate_object_id
 
 
 class DeviceService:
@@ -38,19 +39,16 @@ class DeviceService:
         Raises:
             ValueError: If any ID is invalid or children don't belong to parent
         """
-        if not ObjectId.is_valid(parent_id):
-            raise ValueError("Invalid parent_id")
+        parent_id_obj = validate_object_id(parent_id, "parent_id", raise_http_exception=False)
 
         # Validate all child IDs
         child_object_ids = []
         for child_id in child_ids:
-            if not ObjectId.is_valid(child_id):
-                raise ValueError(f"Invalid child_id: {child_id}")
-            child_object_ids.append(ObjectId(child_id))
+            child_object_ids.append(validate_object_id(child_id, "child_id", raise_http_exception=False))
 
         # Verify all children belong to this parent
         count = await self.children_collection.count_documents(
-            {"_id": {"$in": child_object_ids}, "parent_id": ObjectId(parent_id)}
+            {"_id": {"$in": child_object_ids}, "parent_id": parent_id_obj}
         )
         if count != len(child_object_ids):
             raise ValueError("One or more children do not belong to this parent")
@@ -64,7 +62,7 @@ class DeviceService:
         device_doc = {
             "device_token": device_token,
             "device_name": device_name,
-            "parent_id": ObjectId(parent_id),
+            "parent_id": parent_id_obj,
             "child_ids": child_object_ids,
             "last_used_at": now,
             "is_active": True,  # Add is_active field explicitly
@@ -177,10 +175,9 @@ class DeviceService:
         Returns:
             List of device registrations
         """
-        if not ObjectId.is_valid(parent_id):
-            return []
+        parent_id_obj = validate_object_id(parent_id, "parent_id", raise_http_exception=False)
 
-        cursor = self.devices_collection.find({"parent_id": ObjectId(parent_id)})
+        cursor = self.devices_collection.find({"parent_id": parent_id_obj})
         devices = []
 
         async for doc in cursor:
@@ -217,10 +214,12 @@ class DeviceService:
         Returns:
             Updated device registration or None if not found/unauthorized
         """
+        parent_id_obj = validate_object_id(parent_id, "parent_id", raise_http_exception=False)
+
         # Verify device exists and belongs to this parent
         existing = await self.devices_collection.find_one({
             "device_token": device_token,
-            "parent_id": ObjectId(parent_id)
+            "parent_id": parent_id_obj
         })
 
         if not existing:
@@ -235,13 +234,11 @@ class DeviceService:
             # Validate all child IDs
             child_object_ids = []
             for child_id in child_ids:
-                if not ObjectId.is_valid(child_id):
-                    raise ValueError(f"Invalid child_id: {child_id}")
-                child_object_ids.append(ObjectId(child_id))
+                child_object_ids.append(validate_object_id(child_id, "child_id", raise_http_exception=False))
 
             # Verify all children belong to this parent
             count = await self.children_collection.count_documents(
-                {"_id": {"$in": child_object_ids}, "parent_id": ObjectId(parent_id)}
+                {"_id": {"$in": child_object_ids}, "parent_id": parent_id_obj}
             )
             if count != len(child_object_ids):
                 raise ValueError("One or more children do not belong to this parent")
@@ -292,8 +289,9 @@ class DeviceService:
         Returns:
             True if removed, False if not found/unauthorized
         """
+        parent_id_obj = validate_object_id(parent_id, "parent_id", raise_http_exception=False)
         result = await self.devices_collection.update_one(
-            {"device_token": device_token, "parent_id": ObjectId(parent_id)},
+            {"device_token": device_token, "parent_id": parent_id_obj},
             {"$set": {"is_active": False}}
         )
         return result.modified_count > 0

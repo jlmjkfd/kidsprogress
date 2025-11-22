@@ -3,11 +3,25 @@ import { useTranslation } from "react-i18next";
 import { IconSparkles, IconClock, IconTarget, IconRefresh, IconPlayerPlay, IconCoffee } from "@tabler/icons-react";
 import { useAIRecommendation } from "@/api/queries/useAISchedule";
 import { useStartTask } from "@/api/mutations/useTaskMutations";
+import type { TaskRecommendation } from "@/types/aiRecommendation";
 
 interface AIRecommendationButtonProps {
   childId: string;
   currentTime?: string; // For testing
   onTaskStart?: () => void;
+}
+
+// Extended recommendation type to handle legacy API format
+interface ExtendedRecommendation extends TaskRecommendation {
+  task_title?: string;
+  estimated_duration?: number;
+  recommended_task_id?: string;
+  suggestion_type?: "break" | "none" | "task";
+  alternative_tasks?: Array<{
+    task_title?: string;
+    title?: string;
+    reason?: string;
+  }>;
 }
 
 export function AIRecommendationButton({ childId, currentTime, onTaskStart }: AIRecommendationButtonProps) {
@@ -115,17 +129,17 @@ export function AIRecommendationButton({ childId, currentTime, onTaskStart }: AI
           {/* Suggested Task */}
           <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-4">
             <h4 className="text-xl font-bold text-gray-900 mb-2">
-              {(recommendation as any).task_title || recommendation.suggested_task?.title || "Task"}
+              {(recommendation as ExtendedRecommendation).task_title || recommendation.suggested_task?.title || "Task"}
             </h4>
 
             {/* Metadata */}
             <div className="flex flex-wrap gap-3 mb-3">
-              {((recommendation as any).estimated_duration || recommendation.estimated_minutes) && (
+              {((recommendation as ExtendedRecommendation).estimated_duration || recommendation.estimated_minutes) && (
                 <div className="flex items-center gap-1 text-sm text-gray-600">
                   <IconClock size={16} />
                   <span>
                     {t("tasks:estimated_time")}: ~
-                    {(recommendation as any).estimated_duration || recommendation.estimated_minutes} min
+                    {(recommendation as ExtendedRecommendation).estimated_duration || recommendation.estimated_minutes} min
                   </span>
                 </div>
               )}
@@ -144,7 +158,7 @@ export function AIRecommendationButton({ childId, currentTime, onTaskStart }: AI
             </div>
 
             {/* Start Button - only show if there's a task to start */}
-            {((recommendation as any).recommended_task_id || recommendation.suggested_task?._id) && (
+            {((recommendation as ExtendedRecommendation).recommended_task_id || recommendation.suggested_task?._id) && (
               <button
                 onClick={handleStartTask}
                 disabled={startTaskMutation.isPending}
@@ -156,10 +170,10 @@ export function AIRecommendationButton({ childId, currentTime, onTaskStart }: AI
             )}
 
             {/* If it's a break/none suggestion, show appropriate message */}
-            {!(recommendation as any).recommended_task_id && !recommendation.suggested_task?._id && (
+            {!(recommendation as ExtendedRecommendation).recommended_task_id && !recommendation.suggested_task?._id && (
               <div className="text-center text-gray-600 py-2">
-                {(recommendation as any).suggestion_type === "break" && "💤 "}
-                {(recommendation as any).suggestion_type === "none" && "🎉 "}
+                {(recommendation as ExtendedRecommendation).suggestion_type === "break" && "💤 "}
+                {(recommendation as ExtendedRecommendation).suggestion_type === "none" && "🎉 "}
               </div>
             )}
           </div>
@@ -179,10 +193,10 @@ export function AIRecommendationButton({ childId, currentTime, onTaskStart }: AI
           )}
 
           {/* Alternatives */}
-          {(recommendation.alternatives?.length > 0 || (recommendation as any).alternative_tasks?.length > 0) && (
+          {(recommendation.alternatives?.length ?? 0) > 0 || ((recommendation as ExtendedRecommendation).alternative_tasks?.length ?? 0) > 0 ? (
             <details className="bg-gray-50 rounded-lg p-3">
               <summary className="cursor-pointer font-medium text-gray-900">
-                {t("tasks:alternatives")} ({recommendation.alternatives?.length || (recommendation as any).alternative_tasks?.length})
+                {t("tasks:alternatives")} ({recommendation.alternatives?.length ?? (recommendation as ExtendedRecommendation).alternative_tasks?.length ?? 0})
               </summary>
               <div className="mt-3 space-y-2">
                 {/* Handle full Task objects */}
@@ -193,16 +207,16 @@ export function AIRecommendationButton({ childId, currentTime, onTaskStart }: AI
                   </div>
                 ))}
                 {/* Handle simple alternative_tasks array (just IDs or strings) */}
-                {(recommendation as any).alternative_tasks?.map((alt: any, idx: number) => (
+                {(recommendation as ExtendedRecommendation).alternative_tasks?.map((alt, idx: number) => (
                   <div key={idx} className="flex items-start gap-2 text-sm text-gray-700 bg-white rounded p-2">
                     <span>•</span>
                     <span>{typeof alt === 'string' ? `Alternative task ${idx + 1}` : (alt.task_title || alt.title || 'Task')}</span>
-                    {alt.reason && <span className="text-gray-500 text-xs">- {alt.reason}</span>}
+                    {typeof alt === 'object' && alt.reason && <span className="text-gray-500 text-xs">- {alt.reason}</span>}
                   </div>
                 ))}
               </div>
             </details>
-          )}
+          ) : null}
 
           {/* Close Button */}
           <button

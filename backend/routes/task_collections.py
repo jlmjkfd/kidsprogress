@@ -1,5 +1,5 @@
 """API routes for task collections."""
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from typing import List
 
 from backend.models.task_collection import (
@@ -11,6 +11,7 @@ from backend.services.task_collection_service import TaskCollectionService
 from backend.models.user import User
 from backend.routes.auth import get_current_user
 from backend.db.connection import db
+from backend.utils.exceptions import not_found, bad_request
 
 router = APIRouter(prefix="/api/task-collections", tags=["task-collections"])
 
@@ -30,7 +31,7 @@ async def create_collection(
     try:
         return await service.create_collection(str(current_user.id), collection_data)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise bad_request(str(e))
 
 
 @router.get("/child/{child_id}", response_model=List[TaskCollection])
@@ -44,7 +45,7 @@ async def get_collections_by_child(
     try:
         return await service.get_collections_by_child(child_id, include_archived)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise bad_request(str(e))
 
 
 @router.get("/{collection_id}", response_model=TaskCollection)
@@ -56,7 +57,7 @@ async def get_collection(
     """Get a task collection by ID."""
     collection = await service.get_collection_by_id(collection_id, str(current_user.id))
     if not collection:
-        raise HTTPException(status_code=404, detail="Collection not found")
+        raise not_found("Collection")
     return collection
 
 
@@ -69,7 +70,7 @@ async def get_default_collection(
     """Get the default task collection for a child."""
     collection = await service.get_default_collection(child_id)
     if not collection:
-        raise HTTPException(status_code=404, detail="Default collection not found")
+        raise not_found("Default collection")
     return collection
 
 
@@ -85,7 +86,7 @@ async def update_collection(
         collection_id, str(current_user.id), collection_data
     )
     if not collection:
-        raise HTTPException(status_code=404, detail="Collection not found")
+        raise not_found("Collection")
     return collection
 
 
@@ -99,6 +100,6 @@ async def delete_collection(
     try:
         success = await service.delete_collection(collection_id, str(current_user.id))
         if not success:
-            raise HTTPException(status_code=404, detail="Collection not found")
+            raise not_found("Collection")
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise bad_request(str(e))

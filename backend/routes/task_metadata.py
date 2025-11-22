@@ -1,5 +1,5 @@
 """API routes for task metadata (task types and metric types)."""
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from typing import List
 
 from backend.models.task_metadata import (
@@ -14,6 +14,7 @@ from backend.services.task_metadata_service import TaskMetadataService
 from backend.models.user import User
 from backend.routes.auth import get_current_user
 from backend.db.connection import db
+from backend.utils.exceptions import not_found, bad_request
 
 router = APIRouter(prefix="/api/task-metadata", tags=["task-metadata"])
 
@@ -36,7 +37,7 @@ async def create_task_type(
     try:
         return await service.create_task_type(task_type_data)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise bad_request(str(e))
 
 
 @router.get("/task-types", response_model=List[TaskTypeDefinition])
@@ -58,7 +59,7 @@ async def get_task_type(
     """Get a task type by code."""
     task_type = await service.get_task_type_by_code(code)
     if not task_type:
-        raise HTTPException(status_code=404, detail="Task type not found")
+        raise not_found("Task type")
     return task_type
 
 
@@ -73,10 +74,10 @@ async def update_task_type(
     try:
         task_type = await service.update_task_type(code, task_type_data)
         if not task_type:
-            raise HTTPException(status_code=404, detail="Task type not found")
+            raise not_found("Task type")
         return task_type
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise bad_request(str(e))
 
 
 @router.delete("/task-types/{code}", status_code=204)
@@ -89,9 +90,9 @@ async def delete_task_type(
     try:
         success = await service.delete_task_type(code)
         if not success:
-            raise HTTPException(status_code=404, detail="Task type not found")
+            raise not_found("Task type")
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise bad_request(str(e))
 
 
 # ==================== Metric Types ====================
@@ -107,7 +108,7 @@ async def create_metric_type(
     try:
         return await service.create_metric_type(metric_type_data)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise bad_request(str(e))
 
 
 @router.get("/metric-types", response_model=List[MetricTypeDefinition])
@@ -129,7 +130,7 @@ async def get_metric_type(
     """Get a metric type by code."""
     metric_type = await service.get_metric_type_by_code(code)
     if not metric_type:
-        raise HTTPException(status_code=404, detail="Metric type not found")
+        raise not_found("Metric type")
     return metric_type
 
 
@@ -144,10 +145,10 @@ async def update_metric_type(
     try:
         metric_type = await service.update_metric_type(code, metric_type_data)
         if not metric_type:
-            raise HTTPException(status_code=404, detail="Metric type not found")
+            raise not_found("Metric type")
         return metric_type
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise bad_request(str(e))
 
 
 @router.delete("/metric-types/{code}", status_code=204)
@@ -160,6 +161,6 @@ async def delete_metric_type(
     try:
         success = await service.delete_metric_type(code)
         if not success:
-            raise HTTPException(status_code=404, detail="Metric type not found")
+            raise not_found("Metric type")
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise bad_request(str(e))

@@ -64,7 +64,10 @@ Provide your evaluation in JSON format."""
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             temperature=0.3,  # More consistent evaluations
-            max_tokens=1000
+            max_tokens=1000,
+            service="content_creation",
+            feature="writing_evaluation",
+            child_id=child_id
         )
 
         # Parse JSON response

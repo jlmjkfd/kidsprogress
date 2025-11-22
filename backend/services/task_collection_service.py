@@ -9,6 +9,7 @@ from backend.models.task_collection import (
     TaskCollectionUpdate,
 )
 from backend.utils.datetime_utils import utcnow
+from backend.utils.validators import validate_object_id
 
 
 class TaskCollectionService:
@@ -33,20 +34,20 @@ class TaskCollectionService:
         Raises:
             ValueError: If IDs are invalid or child doesn't belong to parent
         """
-        if not ObjectId.is_valid(parent_id) or not ObjectId.is_valid(collection_data.child_id):
-            raise ValueError("Invalid parent_id or child_id")
+        parent_id_obj = validate_object_id(parent_id, "parent_id", raise_http_exception=False)
+        child_id_obj = validate_object_id(collection_data.child_id, "child_id", raise_http_exception=False)
 
         # Verify child belongs to parent (check children collection)
         children_collection = self.db.children
         child = await children_collection.find_one(
-            {"_id": ObjectId(collection_data.child_id), "parent_id": ObjectId(parent_id)}
+            {"_id": child_id_obj, "parent_id": parent_id_obj}
         )
         if not child:
             raise ValueError("Child not found or doesn't belong to parent")
 
         collection_doc = {
-            "child_id": ObjectId(collection_data.child_id),
-            "parent_id": ObjectId(parent_id),
+            "child_id": child_id_obj,
+            "parent_id": parent_id_obj,
             "name": collection_data.name,
             "description": collection_data.description,
             "color": collection_data.color,
@@ -74,10 +75,9 @@ class TaskCollectionService:
         Returns:
             List of task collections
         """
-        if not ObjectId.is_valid(child_id):
-            raise ValueError("Invalid child_id")
+        child_id_obj = validate_object_id(child_id, "child_id", raise_http_exception=False)
 
-        query: Dict[str, Any] = {"child_id": ObjectId(child_id)}
+        query: Dict[str, Any] = {"child_id": child_id_obj}
         if not include_archived:
             query["is_archived"] = False
 
@@ -101,11 +101,11 @@ class TaskCollectionService:
         Returns:
             Task collection or None if not found or unauthorized
         """
-        if not ObjectId.is_valid(collection_id) or not ObjectId.is_valid(parent_id):
-            return None
+        collection_id_obj = validate_object_id(collection_id, "collection_id", raise_http_exception=False)
+        parent_id_obj = validate_object_id(parent_id, "parent_id", raise_http_exception=False)
 
         doc = await self.collections_collection.find_one(
-            {"_id": ObjectId(collection_id), "parent_id": ObjectId(parent_id)}
+            {"_id": collection_id_obj, "parent_id": parent_id_obj}
         )
         if not doc:
             return None
@@ -121,11 +121,10 @@ class TaskCollectionService:
         Returns:
             Default task collection or None if not found
         """
-        if not ObjectId.is_valid(child_id):
-            return None
+        child_id_obj = validate_object_id(child_id, "child_id", raise_http_exception=False)
 
         doc = await self.collections_collection.find_one(
-            {"child_id": ObjectId(child_id), "is_default": True}
+            {"child_id": child_id_obj, "is_default": True}
         )
         if not doc:
             return None
@@ -145,12 +144,12 @@ class TaskCollectionService:
         Returns:
             Updated task collection or None if not found or unauthorized
         """
-        if not ObjectId.is_valid(collection_id) or not ObjectId.is_valid(parent_id):
-            return None
+        collection_id_obj = validate_object_id(collection_id, "collection_id", raise_http_exception=False)
+        parent_id_obj = validate_object_id(parent_id, "parent_id", raise_http_exception=False)
 
         # Verify ownership
         existing = await self.collections_collection.find_one(
-            {"_id": ObjectId(collection_id), "parent_id": ObjectId(parent_id)}
+            {"_id": collection_id_obj, "parent_id": parent_id_obj}
         )
         if not existing:
             return None
@@ -168,7 +167,7 @@ class TaskCollectionService:
             update_doc["is_archived"] = collection_data.is_archived
 
         result = await self.collections_collection.find_one_and_update(
-            {"_id": ObjectId(collection_id), "parent_id": ObjectId(parent_id)},
+            {"_id": collection_id_obj, "parent_id": parent_id_obj},
             {"$set": update_doc},
             return_document=True,
         )
@@ -191,12 +190,12 @@ class TaskCollectionService:
         Raises:
             ValueError: If trying to delete a default collection or collection with tasks
         """
-        if not ObjectId.is_valid(collection_id) or not ObjectId.is_valid(parent_id):
-            return False
+        collection_id_obj = validate_object_id(collection_id, "collection_id", raise_http_exception=False)
+        parent_id_obj = validate_object_id(parent_id, "parent_id", raise_http_exception=False)
 
         # Verify ownership and check if default or system
         existing = await self.collections_collection.find_one(
-            {"_id": ObjectId(collection_id), "parent_id": ObjectId(parent_id)}
+            {"_id": collection_id_obj, "parent_id": parent_id_obj}
         )
         if not existing:
             return False
@@ -210,7 +209,7 @@ class TaskCollectionService:
         # Check if collection has tasks
         tasks_collection = self.db.tasks
         task_count = await tasks_collection.count_documents(
-            {"collection_id": ObjectId(collection_id)}
+            {"collection_id": collection_id_obj}
         )
         if task_count > 0:
             raise ValueError(
@@ -218,6 +217,6 @@ class TaskCollectionService:
             )
 
         result = await self.collections_collection.delete_one(
-            {"_id": ObjectId(collection_id), "parent_id": ObjectId(parent_id)}
+            {"_id": collection_id_obj, "parent_id": parent_id_obj}
         )
         return result.deleted_count > 0

@@ -416,7 +416,17 @@
     "no_writings": "暂无写作",
     "no_writings_desc": "完成的写作任务将显示在这里",
     "untitled": "无标题",
-    "words": "{{count}} 字"
+    "words": "{{count}} 字",
+    "title": "分析",
+    "select_template_desc": "选择模板查看进度和洞察",
+    "no_templates": "没有可分析的模板",
+    "no_templates_desc": "从模板库添加模板以开始跟踪进度",
+    "view_report": "查看报告",
+    "keyMetrics": "关键指标",
+    "aiInsights": "AI 洞察",
+    "charts": "进度图表",
+    "noData": "暂无数据",
+    "noDataDescription": "完成更多任务后可查看分析和趋势"
   },
   "templates": {
     "title": "任务模板",
@@ -484,6 +494,9 @@
     "using_template": "使用模板",
     "template_locked_hint": "模板字段已锁定。您可以更改时间安排和其他设置。",
     "remove_template": "移除模板",
+    "view_analysis": "查看分析",
+    "select_child_for_analysis": "选择分析的孩子",
+    "select_child_desc": "选择要分析的孩子数据",
     "errors": {
       "name_required": "模板名称为必填项",
       "category_required": "分类为必填项"

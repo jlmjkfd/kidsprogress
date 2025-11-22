@@ -10,7 +10,8 @@ import { useAppSelector, useAppDispatch } from "@store/hooks";
 import { logout } from "@store/slices/authSlice";
 import { calculateAge } from "@/types/child";
 import LanguageSwitcher from "@components/LanguageSwitcher";
-import AddChildModal from "./components/AddChildModal";
+import AddChildModal from "@/pages/parent-portal/children/components/AddChildModal";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 function DashboardPage() {
   const { t } = useTranslation(["common", "auth"]);
@@ -34,11 +35,7 @@ function DashboardPage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <div className="text-gray-600">{t("common:loading")}</div>
-      </div>
-    );
+    return <LoadingSpinner fullScreen size="lg" />;
   }
 
   if (isError) {

@@ -1,6 +1,6 @@
 """Device registration routes."""
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 
 from backend.models.device import DeviceRegisterRequest, DeviceRegistration, DeviceUpdateRequest, DeviceResponse
 from backend.models.child import Child
@@ -8,6 +8,7 @@ from backend.services.device_service import DeviceService
 from backend.dependencies.database import get_db
 from backend.dependencies.auth import get_current_user
 from backend.models.user import User
+from backend.utils.exceptions import bad_request, not_found
 
 router = APIRouter(prefix="/api/devices", tags=["devices"])
 
@@ -38,9 +39,7 @@ async def register_device(
         )
         return device
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
+        raise bad_request(str(e))
 
 
 @router.get("/{device_token}", response_model=DeviceRegistration)
@@ -55,10 +54,7 @@ async def get_device_info(
     device = await device_service.get_device_registration(device_token)
 
     if not device:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Device not registered",
-        )
+        raise not_found("Device not registered")
 
     return device
 
@@ -76,10 +72,7 @@ async def get_device_children(
     children = await device_service.get_device_children(device_token)
 
     if not children:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Device not registered or has no children",
-        )
+        raise not_found("Device not registered or has no children")
 
     return children
 
@@ -130,10 +123,7 @@ async def update_device(
         )
 
         if not device:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Device not found or unauthorized",
-            )
+            raise not_found("Device not found or unauthorized")
 
         return DeviceResponse(
             _id=str(device.id),
@@ -145,9 +135,7 @@ async def update_device(
             is_active=device.is_active,
         )
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
+        raise bad_request(str(e))
 
 
 @router.delete("/{device_token}", status_code=status.HTTP_204_NO_CONTENT)
@@ -167,9 +155,6 @@ async def remove_device(
     )
 
     if not success:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Device not found or unauthorized",
-        )
+        raise not_found("Device not found or unauthorized")
 
     return None

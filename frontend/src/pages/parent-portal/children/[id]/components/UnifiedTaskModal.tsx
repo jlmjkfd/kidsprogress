@@ -42,7 +42,6 @@ export function UnifiedTaskModal({
     task?.is_informational ? "informational" : "standard"
   );
   const [selectedTemplate, setSelectedTemplate] = useState<TaskTemplate | null>(null);
-  const [isTemplateApplied, setIsTemplateApplied] = useState(false);
 
   // Get current time and one hour later for defaults
   const now = new Date();
@@ -139,7 +138,7 @@ export function UnifiedTaskModal({
 
     setIsSubmitting(true);
     try {
-      const baseData: any = {
+      const baseData: Partial<TaskCreate & TaskUpdate> = {
         title: formData.title.trim(),
         description: formData.description.trim() || undefined,
         task_type_code: formData.task_type_code,
@@ -239,6 +238,7 @@ export function UnifiedTaskModal({
         // Create new task
         const createData: TaskCreate = {
           ...baseData,
+          title: baseData.title!, // Already validated in form check
           collection_id: formData.collection_id,
           child_id: childId,
         };
@@ -287,7 +287,6 @@ export function UnifiedTaskModal({
                 onLibraryTemplateSelect={(template) => {
                   setSelectedTemplate(template);
                   setTaskTemplate("from_library");
-                  setIsTemplateApplied(true);
 
                   // Pre-fill form data from template
                   setFormData({
@@ -317,7 +316,6 @@ export function UnifiedTaskModal({
                     onClick={() => {
                       setSelectedTemplate(null);
                       setTaskTemplate("standard");
-                      setIsTemplateApplied(false);
                       setFormData({
                         ...formData,
                         title: "",

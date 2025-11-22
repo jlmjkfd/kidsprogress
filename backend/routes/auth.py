@@ -8,6 +8,7 @@ from backend.services.child_service import ChildService
 from backend.services.device_service import DeviceService
 from backend.dependencies.auth import get_auth_service, get_current_user
 from backend.dependencies.database import get_db
+from backend.utils.exceptions import bad_request, not_found, unauthorized, forbidden, internal_error
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -31,10 +32,7 @@ async def register(
         user = await auth_service.create_user(user_data)
         return user
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise bad_request(str(e))
 
 @router.post("/login", response_model=Token)
 async def login(
@@ -54,11 +52,7 @@ async def login(
         credentials.password
     )
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        raise unauthorized("Incorrect email or password")
 
     # Create tokens with device-specific expiration
     access_token = auth_service.create_access_token(
@@ -94,18 +88,12 @@ async def refresh_access_token(
     Refresh token itself remains the same (returned for client convenience).
     """
     if not refresh_token:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="No refresh token provided"
-        )
+        raise unauthorized("No refresh token provided")
 
     # Verify refresh token and get user_id
     result = await auth_service.verify_refresh_token(refresh_token)
     if not result:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired refresh token"
-        )
+        raise unauthorized("Invalid or expired refresh token")
 
     user_id, is_trusted_device = result
 
@@ -113,10 +101,7 @@ async def refresh_access_token(
     from bson import ObjectId
     user_dict = await auth_service.users_collection.find_one({"_id": ObjectId(user_id)})
     if not user_dict:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
+        raise not_found("User")
 
     user = User(**user_dict)
 
@@ -159,10 +144,7 @@ async def set_parent_portal_pin(
     success = await auth_service.set_parent_portal_pin(str(current_user.id), pin_request.pin)
     if success:
         return {"message": "Parent portal PIN set successfully"}
-    raise HTTPException(
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        detail="Failed to set PIN"
-    )
+    raise internal_error("Failed to set PIN")
 
 @router.post("/parent-pin/verify")
 async def verify_parent_portal_pin(
@@ -174,10 +156,7 @@ async def verify_parent_portal_pin(
     is_valid = await auth_service.verify_parent_portal_pin(str(current_user.id), pin_verify.pin)
     if is_valid:
         return {"valid": True}
-    raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Invalid PIN"
-    )
+    raise unauthorized("Invalid PIN")
 
 @router.delete("/parent-pin")
 async def remove_parent_portal_pin(
@@ -188,10 +167,7 @@ async def remove_parent_portal_pin(
     success = await auth_service.remove_parent_portal_pin(str(current_user.id))
     if success:
         return {"message": "Parent portal PIN removed successfully"}
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail="No PIN set"
-    )
+    raise not_found("No PIN set")
 
 @router.get("/parent-pin/status")
 async def check_parent_portal_pin_status(
@@ -223,38 +199,23 @@ async def child_login(
     # Verify device is registered
     device = await device_service.get_device_registration(request.device_token)
     if not device:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Device not registered",
-        )
+        raise not_found("Device not registered")
 
     # Get child with PIN hash
     child = await child_service.get_child_by_id(request.child_id)
     if not child:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Child not found",
-        )
+        raise not_found("Child")
 
     # Verify child belongs to this device
     if child.id not in device.child_ids:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Child not registered to this device",
-        )
+        raise forbidden("Child not registered to this device")
 
     # Verify PIN if required
     if child.pin_required:
         if not request.pin:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="PIN required for this child",
-            )
+            raise bad_request("PIN required for this child")
         if not await child_service.verify_child_pin(request.child_id, request.pin):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Incorrect PIN",
-            )
+            raise unauthorized("Incorrect PIN")
 
     # Update device last used
     await device_service.update_device_last_used(request.device_token)

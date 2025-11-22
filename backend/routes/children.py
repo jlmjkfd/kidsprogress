@@ -1,6 +1,6 @@
 """Child profile management routes."""
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel
 
 from backend.models.child import Child, ChildCreate
@@ -8,6 +8,7 @@ from backend.services.child_service import ChildService
 from backend.dependencies.database import get_db
 from backend.dependencies.auth import get_current_user
 from backend.models.user import User
+from backend.utils.exceptions import not_found, bad_request, forbidden
 
 router = APIRouter(prefix="/api/children", tags=["children"])
 
@@ -41,9 +42,7 @@ async def create_child(
         child = await child_service.create_child(str(current_user.id), child_data)
         return child
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
+        raise bad_request(str(e))
 
 
 @router.get("", response_model=List[Child])
@@ -59,9 +58,7 @@ async def get_children(
         children = await child_service.get_children_by_parent(str(current_user.id))
         return children
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        )
+        raise bad_request(str(e))
 
 
 @router.get("/{child_id}", response_model=Child)
@@ -77,17 +74,11 @@ async def get_child(
     child = await child_service.get_child_by_id(child_id)
 
     if not child:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Child not found",
-        )
+        raise not_found("Child")
 
     # Verify ownership
     if str(child.parent_id) != str(current_user.id):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Unauthorized",
-        )
+        raise forbidden("Unauthorized")
 
     # Return as Child (without pin_hash)
     return Child(
@@ -116,17 +107,11 @@ async def verify_child_pin(
     child = await child_service.get_child_by_id(child_id)
 
     if not child:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Child not found",
-        )
+        raise not_found("Child")
 
     # Verify ownership
     if str(child.parent_id) != str(current_user.id):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Unauthorized",
-        )
+        raise forbidden("Unauthorized")
 
     # Verify PIN
     is_valid = await child_service.verify_child_pin(child_id, request.pin)
@@ -149,10 +134,7 @@ async def update_child(
     )
 
     if not child:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Child not found or unauthorized",
-        )
+        raise not_found("Child not found or unauthorized")
 
     return child
 
@@ -170,7 +152,4 @@ async def delete_child(
     deleted = await child_service.delete_child(child_id, str(current_user.id))
 
     if not deleted:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Child not found or unauthorized",
-        )
+        raise not_found("Child not found or unauthorized")

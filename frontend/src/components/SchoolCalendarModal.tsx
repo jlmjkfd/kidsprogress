@@ -20,7 +20,8 @@ import {
   useUpdateSpecialDay,
   useDeleteSpecialDay,
 } from "@/api/mutations/useSchoolCalendarMutations";
-import { Term, TermCreate, SpecialDay, SpecialDayCreate, WEEKDAY_NAMES } from "@/types/schoolCalendar";
+import { Term, TermCreate, SpecialDay, SpecialDayCreate, SpecialDayUpdate, TermUpdate, WEEKDAY_NAMES } from "@/types/schoolCalendar";
+import { UseMutationResult } from "@tanstack/react-query";
 
 interface SchoolCalendarModalProps {
   isOpen: boolean;
@@ -166,6 +167,19 @@ export function SchoolCalendarModal({ isOpen, onClose, childId }: SchoolCalendar
 }
 
 // Terms Tab Component
+interface TermsTabProps {
+  terms: Term[];
+  onAdd: () => void;
+  onEdit: (term: Term) => void;
+  onDelete: (termId: string) => void;
+  showForm: boolean;
+  setShowForm: (show: boolean) => void;
+  editingTerm: Term | null;
+  childId: string;
+  createMutation: UseMutationResult<Term, Error, TermCreate>;
+  updateMutation: UseMutationResult<Term, Error, { termId: string; data: TermUpdate }>;
+}
+
 function TermsTab({
   terms,
   onAdd,
@@ -177,7 +191,7 @@ function TermsTab({
   childId,
   createMutation,
   updateMutation,
-}: any) {
+}: TermsTabProps) {
   const { t } = useTranslation(["tasks", "common"]);
   const [formData, setFormData] = useState({
     name: "",
@@ -375,6 +389,19 @@ function TermsTab({
 }
 
 // Special Days Tab Component
+interface SpecialDaysTabProps {
+  specialDays: SpecialDay[];
+  onAdd: () => void;
+  onEdit: (day: SpecialDay) => void;
+  onDelete: (dayId: string) => void;
+  showForm: boolean;
+  setShowForm: (show: boolean) => void;
+  editingSpecialDay: SpecialDay | null;
+  childId: string;
+  createMutation: UseMutationResult<SpecialDay, Error, SpecialDayCreate>;
+  updateMutation: UseMutationResult<SpecialDay, Error, { dayId: string; data: SpecialDayUpdate }>;
+}
+
 function SpecialDaysTab({
   specialDays,
   onAdd,
@@ -386,7 +413,7 @@ function SpecialDaysTab({
   childId,
   createMutation,
   updateMutation,
-}: any) {
+}: SpecialDaysTabProps) {
   const { t } = useTranslation(["tasks", "common"]);
   const [formData, setFormData] = useState({
     date: "",

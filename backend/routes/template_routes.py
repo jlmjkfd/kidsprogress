@@ -1,5 +1,5 @@
 """API routes for task templates."""
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from typing import List, Optional
 from bson import ObjectId
 
@@ -9,11 +9,13 @@ from backend.models.task_template import (
     TaskTemplateUpdate,
     UserTemplate,
 )
+from backend.models.common import PyObjectId
 from backend.models.user import User
 from backend.routes.auth import get_current_user
 from backend.db.connection import db
 from backend.services.execution.registry import get_handler
 from backend.utils.datetime_utils import utcnow
+from backend.utils.exceptions import not_found, bad_request, forbidden
 
 router = APIRouter(prefix="/api/templates", tags=["templates"])
 
@@ -102,12 +104,12 @@ async def get_template(
     template = await collection.find_one({"template_id": template_id})
 
     if not template:
-        raise HTTPException(status_code=404, detail="Template not found")
+        raise not_found("Template")
 
     # Check access permissions
     template_obj = TaskTemplate(**template)
     if not template_obj.is_public and str(template_obj.created_by) != str(current_user.id):
-        raise HTTPException(status_code=403, detail="Access denied")
+        raise forbidden("Access denied")
 
     return template_obj
 
@@ -137,7 +139,7 @@ async def create_template(
         analysis_handler=template_data.analysis_handler,
         analysis_config=template_data.analysis_config,
         analysis_llm=template_data.analysis_llm,
-        created_by=ObjectId(str(current_user.id)),
+        created_by=PyObjectId(str(current_user.id)),
         is_public=template_data.is_public,
         tags=template_data.tags,
     )
@@ -147,7 +149,7 @@ async def create_template(
         handler = get_handler(template)
         await handler.validate_config()
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=f"Invalid configuration: {str(e)}")
+        raise bad_request(f"Invalid configuration: {str(e)}")
 
     # Save to database
     await collection.insert_one(template.model_dump(by_alias=True))
@@ -168,13 +170,13 @@ async def update_template(
     # Get existing template
     existing = await collection.find_one({"template_id": template_id})
     if not existing:
-        raise HTTPException(status_code=404, detail="Template not found")
+        raise not_found("Template")
 
     template_obj = TaskTemplate(**existing)
 
     # Check ownership
     if str(template_obj.created_by) != str(current_user.id):
-        raise HTTPException(status_code=403, detail="Access denied")
+        raise forbidden("Access denied")
 
     # Update fields
     update_data = template_data.model_dump(exclude_unset=True)
@@ -194,7 +196,7 @@ async def update_template(
             handler = get_handler(temp_template)
             await handler.validate_config()
         except ValueError as e:
-            raise HTTPException(status_code=400, detail=f"Invalid configuration: {str(e)}")
+            raise bad_request(f"Invalid configuration: {str(e)}")
 
     # Perform update
     await collection.update_one(
@@ -204,6 +206,8 @@ async def update_template(
 
     # Return updated template
     updated = await collection.find_one({"template_id": template_id})
+    if not updated:
+        raise not_found("Template")
     return TaskTemplate(**updated)
 
 
@@ -219,16 +223,16 @@ async def delete_template(
     # Get existing template
     existing = await collection.find_one({"template_id": template_id})
     if not existing:
-        raise HTTPException(status_code=404, detail="Template not found")
+        raise not_found("Template")
 
     template_obj = TaskTemplate(**existing)
 
     # Check ownership - system templates (ObjectId all zeros) can't be deleted by users
     system_id = ObjectId("000000000000000000000000")
     if template_obj.created_by == system_id:
-        raise HTTPException(status_code=403, detail="Cannot delete system templates")
+        raise forbidden("Cannot delete system templates")
     if str(template_obj.created_by) != str(current_user.id):
-        raise HTTPException(status_code=403, detail="Access denied")
+        raise forbidden("Access denied")
 
     # Delete template
     await collection.delete_one({"template_id": template_id})
@@ -249,7 +253,7 @@ async def add_template(
     # Get the public template
     template = await templates_collection.find_one({"template_id": template_id, "is_public": True})
     if not template:
-        raise HTTPException(status_code=404, detail="Public template not found")
+        raise not_found("Public template")
 
     # Check if premium and user has access (TODO: implement premium check)
     # if template.get("is_premium") and not current_user.is_premium:
@@ -261,7 +265,7 @@ async def add_template(
         "template_id": template_id,
     })
     if existing:
-        raise HTTPException(status_code=400, detail="Template already added")
+        raise bad_request("Template already added")
 
     # Add to user's collection (upsert to prevent duplicates)
     await user_templates_collection.update_one(
@@ -297,7 +301,7 @@ async def remove_template(
     })
 
     if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Template not in your collection")
+        raise not_found("Template not in your collection")
 
     return None
 

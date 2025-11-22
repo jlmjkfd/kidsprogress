@@ -40,7 +40,7 @@ function PinVerificationModal({
       } else {
         setError(t('errors:validation.pin_invalid'));
       }
-    } catch (err) {
+    } catch {
       setError(t('errors:server_error'));
     } finally {
       setIsVerifying(false);

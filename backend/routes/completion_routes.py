@@ -1,5 +1,5 @@
 """API routes for task completions."""
-from fastapi import APIRouter, Depends, HTTPException, Query, Body
+from fastapi import APIRouter, Depends, Query, Body
 from typing import List, Optional, Dict, Any
 from bson import ObjectId
 from datetime import datetime
@@ -11,6 +11,7 @@ from backend.routes.auth import get_current_user
 from backend.db.connection import db
 from backend.services.execution.registry import get_handler
 from backend.utils.datetime_utils import utcnow
+from backend.utils.exceptions import not_found, bad_request, forbidden, internal_error
 
 router = APIRouter(prefix="/api/completions", tags=["completions"])
 
@@ -28,18 +29,18 @@ async def prepare_task_execution(
     # Get task
     task = await tasks_collection.find_one({"_id": ObjectId(task_id)})
     if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
+        raise not_found("Task")
 
     task_obj = Task(**task)
 
     # Check if task has template
     if not task_obj.template_id:
-        raise HTTPException(status_code=400, detail="Task has no template")
+        raise bad_request("Task has no template")
 
     # Get template
     template = await templates_collection.find_one({"template_id": task_obj.template_id})
     if not template:
-        raise HTTPException(status_code=404, detail="Template not found")
+        raise not_found("Template")
 
     from backend.models.task_template import TaskTemplate
     template_obj = TaskTemplate(**template)
@@ -71,21 +72,21 @@ async def submit_task_completion(
     # Get task
     task = await tasks_collection.find_one({"_id": ObjectId(task_id)})
     if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
+        raise not_found("Task")
 
     task_obj = Task(**task)
 
     # Verify task belongs to user
     if str(task_obj.parent_id) != str(current_user.id):
-        raise HTTPException(status_code=403, detail="Access denied")
+        raise forbidden("Access denied")
 
     # Get template
     if not task_obj.template_id:
-        raise HTTPException(status_code=400, detail="Task has no template")
+        raise bad_request("Task has no template")
 
     template = await templates_collection.find_one({"template_id": task_obj.template_id})
     if not template:
-        raise HTTPException(status_code=404, detail="Template not found")
+        raise not_found("Template")
 
     from backend.models.task_template import TaskTemplate
     template_obj = TaskTemplate(**template)
@@ -124,9 +125,9 @@ async def submit_task_completion(
         }
 
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise bad_request(str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Completion processing failed: {str(e)}")
+        raise internal_error(f"Completion processing failed: {str(e)}")
 
 
 @router.get("")
@@ -192,6 +193,6 @@ async def get_completion(
     completion = await collection.find_one({"completion_id": completion_id})
 
     if not completion:
-        raise HTTPException(status_code=404, detail="Completion not found")
+        raise not_found("Completion")
 
     return TaskCompletion(**completion)
