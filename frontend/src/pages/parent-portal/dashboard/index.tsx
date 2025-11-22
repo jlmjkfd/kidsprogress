@@ -1,7 +1,7 @@
 /**
  * Parent Dashboard - Overview of all children's tasks and recent completions
  */
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -130,14 +130,19 @@ function ChildRecentCompletions({
   const { data: tasks } = useTasksByChild(child._id);
 
   // Extract completions and notify parent
-  useMemo(() => {
-    if (tasks) {
-      const completions = tasks
-        .filter(t => t.status === "completed" && t.completed_at)
-        .map(task => ({ task, childName: child.name }));
+  const completions = useMemo(() => {
+    if (!tasks) return [];
+    return tasks
+      .filter(t => t.status === "completed" && t.completed_at)
+      .map(task => ({ task, childName: child.name }));
+  }, [tasks, child.name]);
+
+  // Use useEffect for the side effect of notifying parent
+  useEffect(() => {
+    if (completions.length > 0 || tasks) {
       onCompletionsReady(child._id, completions);
     }
-  }, [tasks, child._id, child.name, onCompletionsReady]);
+  }, [completions, child._id, onCompletionsReady, tasks]);
 
   return null; // This is a data-fetching component
 }
