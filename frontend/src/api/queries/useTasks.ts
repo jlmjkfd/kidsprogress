@@ -56,3 +56,32 @@ export const useActiveTasks = (childId: string) => {
     enabled: !!childId,
   });
 };
+
+export const useOverdueTasks = (childId: string, mustDoOnly: boolean = false) => {
+  return useQuery({
+    queryKey: ["tasks", "child", childId, "overdue", mustDoOnly],
+    queryFn: async () => {
+      const response = await apiClient.get<Task[]>(
+        `/api/tasks/child/${childId}/overdue`,
+        { params: { must_do_only: mustDoOnly } }
+      );
+      return response.data;
+    },
+    enabled: !!childId,
+  });
+};
+
+export const useOverdueStats = (childId: string) => {
+  return useQuery({
+    queryKey: ["tasks", "child", childId, "overdue", "stats"],
+    queryFn: async () => {
+      const response = await apiClient.get<{
+        total_overdue: number;
+        must_do_overdue: number;
+        by_date: Record<string, number>;
+      }>(`/api/tasks/child/${childId}/overdue/stats`);
+      return response.data;
+    },
+    enabled: !!childId,
+  });
+};

@@ -287,6 +287,7 @@ export interface Task {
   source_id?: string;
   source_metadata?: TaskSourceMetadata;
   template_id?: string; // Reference to TaskTemplate for template-based tasks
+  execution_config?: Record<string, any>; // Template execution configuration (overrides from template)
 
   // Scheduling (Enhanced - Unified Model)
   scheduling_type: SchedulingType;
@@ -308,6 +309,11 @@ export interface Task {
   is_virtual?: boolean; // True if this is a virtual instance (not stored in DB)
   is_deleted?: boolean; // True if this virtual occurrence was deleted (can be restored)
 
+  // Multi-completion support (for practice tasks that can be done multiple times per day)
+  max_completions_per_period?: number; // Max attempts per period (undefined = single completion)
+  completion_count?: number; // Track how many times completed in current period
+  progress_state?: Record<string, any>; // Temporary storage for in-progress work
+
   // Blocking & Interruption (Unified Model - replaces TimeBlock)
   is_informational: boolean; // Informational tasks (school time, sleep) - no start/complete buttons
   blocks_other_tasks: boolean;
@@ -324,6 +330,10 @@ export interface Task {
   rollover_count: number;
   is_in_backlog: boolean;
   is_delayed: boolean;
+
+  // Kids create tasks support
+  created_by: string; // "PARENT" or "CHILD"
+  quick_capture: boolean;
 
   // Concurrent task support (Enhanced)
   concurrent_allowed: boolean;
@@ -374,6 +384,7 @@ export interface TaskCreate {
   description?: string;
   task_type_code?: string;
   template_id?: string; // Reference to TaskTemplate for template-based tasks
+  execution_config?: Record<string, any>; // Template execution configuration (overrides from template)
 
   // Scheduling fields (Unified Model)
   scheduling_type?: SchedulingType;
@@ -405,6 +416,11 @@ export interface TaskCreate {
   // Pool / Activity
   is_in_pool?: boolean;
   pool_usage_rules?: PoolUsageRules;
+
+  // Multi-completion support
+  max_completions_per_period?: number | null;
+  completion_count?: number;
+  progress_state?: Record<string, any>;
 
   // Existing fields
   activation_rule?: ActivationRule;
@@ -451,6 +467,11 @@ export interface TaskUpdate {
   is_in_pool?: boolean;
   pool_usage_rules?: PoolUsageRules;
 
+  // Multi-completion support
+  max_completions_per_period?: number | null;
+  completion_count?: number;
+  progress_state?: Record<string, any>;
+
   // Existing fields
   activation_rule?: ActivationRule;
   constraints?: TaskConstraints;
@@ -458,6 +479,15 @@ export interface TaskUpdate {
   quality_aspects?: QualityAspect[];
   tools?: ToolUsage[];
   subtasks?: Subtask[];
+}
+
+export interface ChildTaskCreate {
+  title: string;
+  description?: string;
+  scheduled_date?: string; // ISO datetime - optional for planning ahead
+  scheduled_time?: string; // HH:MM format
+  estimated_duration_minutes?: number;
+  quick_capture: boolean; // True if "What I'm Doing Now"
 }
 
 // ==================== Active Task Session ====================

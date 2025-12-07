@@ -72,6 +72,24 @@ class TaskService:
         """
         return await self.crud.create_task(parent_id, task_data)
 
+    async def create_task_as_child(self, child_id: str, task_data) -> Task:
+        """Create a task from child's perspective.
+
+        Kids can create simple one-off tasks for themselves.
+        Auto-sets: obligation_level=OPTIONAL, created_by=CHILD
+
+        Args:
+            child_id: Child's ObjectId as string
+            task_data: ChildTaskCreate data
+
+        Returns:
+            Created task
+
+        Raises:
+            ValueError: If child not found
+        """
+        return await self.crud.create_task_as_child(child_id, task_data)
+
     async def get_tasks_by_collection(
         self, collection_id: str, parent_id: str, status: Optional[TaskStatus] = None
     ) -> List[Task]:
@@ -104,6 +122,35 @@ class TaskService:
             List of task dicts (includes both one-time tasks and virtual instances as dicts)
         """
         return await self.crud.get_tasks_by_child(child_id, parent_id, status, start_date, end_date)
+
+    async def get_overdue_tasks(
+        self, child_id: str, parent_id: str, must_do_only: bool = False
+    ) -> List[Dict[str, Any]]:
+        """Get all overdue tasks for a child.
+
+        Args:
+            child_id: Child's ObjectId as string
+            parent_id: Parent's ObjectId as string (for authorization)
+            must_do_only: If True, only return MUST_DO tasks
+
+        Returns:
+            List of overdue tasks
+        """
+        return await self.crud.get_overdue_tasks(child_id, parent_id, must_do_only)
+
+    async def get_overdue_stats(
+        self, child_id: str, parent_id: str
+    ) -> Dict[str, Any]:
+        """Get overdue task statistics.
+
+        Args:
+            child_id: Child's ObjectId as string
+            parent_id: Parent's ObjectId as string (for authorization)
+
+        Returns:
+            Dict with total_overdue, must_do_overdue, and by_date counts
+        """
+        return await self.crud.get_overdue_stats(child_id, parent_id)
 
     async def get_task_by_id(self, task_id: str, parent_id: str) -> Optional[Task]:
         """Get a task by ID.
@@ -247,7 +294,7 @@ class TaskService:
         Raises:
             ValueError: If task cannot be started
         """
-        return await self.lifecycle.start_task(task_id, child_id, self.crud)
+        return await self.lifecycle.start_task(task_id, child_id)
 
     async def pause_task(
         self, task_id: str, paused_by: str, reason: Optional[str] = None
@@ -391,18 +438,6 @@ class TaskService:
 
     # ==================== Rollover Management ====================
 
-    async def rollover_task(self, task_id: str, new_date: datetime) -> Optional[Task]:
-        """Rollover an incomplete task to a new date.
-
-        Args:
-            task_id: Task's ObjectId as string
-            new_date: New scheduled date
-
-        Returns:
-            Updated task or None if not found
-        """
-        return await self.rollover.rollover_task(task_id, new_date)
-
     async def move_to_backlog(self, task_id: str) -> Optional[Task]:
         """Move a task to backlog after too many rollovers.
 
@@ -413,18 +448,6 @@ class TaskService:
             Updated task or None if not found
         """
         return await self.rollover.move_to_backlog(task_id)
-
-    async def process_overdue_tasks(self, child_id: str, date: datetime) -> dict:
-        """Process overdue tasks at end of day: skip should_do/optional, rollover must_do.
-
-        Args:
-            child_id: Child's ObjectId as string
-            date: The date that just ended (tasks scheduled for this date)
-
-        Returns:
-            Dict with counts of skipped and rolled over tasks
-        """
-        return await self.rollover.process_overdue_tasks(child_id, date)
 
     # ==================== Active Session Management ====================
 

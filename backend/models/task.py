@@ -216,6 +216,7 @@ class Task(BaseModel):
     source_id: Optional[PyObjectId] = None  # Routine ID or Activity ID
     source_metadata: Optional[TaskSourceMetadata] = None
     template_id: Optional[str] = None  # Template ID if created from template
+    execution_config: Optional[Dict[str, Any]] = None  # Template execution configuration (overrides from template)
 
     # Scheduling (Enhanced - Unified Model)
     scheduling_type: SchedulingType = SchedulingType.FLEXIBLE
@@ -235,6 +236,11 @@ class Task(BaseModel):
     source_recurring_task_id: Optional[PyObjectId] = None  # Link to parent recurring task
     exceptions: List[RecurrenceException] = []  # Exceptions for specific occurrences (edit/delete single instance)
 
+    # Multi-completion support (for practice tasks that can be done multiple times per day)
+    max_completions_per_period: Optional[int] = None  # Max attempts per period (None = single completion)
+    completion_count: int = 0  # Track how many times completed in current period
+    progress_state: Optional[Dict[str, Any]] = None  # Temporary storage for in-progress work
+
     # Blocking & Interruption (Unified Model - replaces TimeBlock)
     is_informational: bool = False  # NEW: Informational tasks (school time, sleep) - no start/complete buttons
     blocks_other_tasks: bool = False  # True for time blocks (school, lessons)
@@ -251,6 +257,10 @@ class Task(BaseModel):
     rollover_count: int = 0
     is_in_backlog: bool = False
     is_delayed: bool = False
+
+    # Kids create tasks support
+    created_by: str = "PARENT"  # "PARENT" or "CHILD"
+    quick_capture: bool = False  # True if created via "What I'm Doing Now"
 
     # Concurrent task support (Enhanced)
     concurrent_allowed: bool = False
@@ -369,6 +379,15 @@ class TaskCreate(BaseModel):
     is_in_pool: bool = False
     pool_usage_rules: Optional[PoolUsageRules] = None
 
+    # Template-based task fields
+    template_id: Optional[str] = None  # Template ID if created from template
+    execution_config: Optional[Dict[str, Any]] = None  # Template-specific configuration
+
+    # Multi-completion support
+    max_completions_per_period: Optional[int] = None
+    completion_count: int = 0
+    progress_state: Optional[Dict[str, Any]] = None
+
     # Existing fields
     activation_rule: Optional[ActivationRule] = None
     constraints: Optional[TaskConstraints] = None
@@ -415,6 +434,15 @@ class TaskUpdate(BaseModel):
     is_in_pool: Optional[bool] = None
     pool_usage_rules: Optional[PoolUsageRules] = None
 
+    # Template-based task fields
+    template_id: Optional[str] = None  # Template ID if created from template
+    execution_config: Optional[Dict[str, Any]] = None  # Template-specific configuration
+
+    # Multi-completion support
+    max_completions_per_period: Optional[int] = None
+    completion_count: Optional[int] = None
+    progress_state: Optional[Dict[str, Any]] = None
+
     # Existing fields
     activation_rule: Optional[ActivationRule] = None
     constraints: Optional[TaskConstraints] = None
@@ -422,6 +450,16 @@ class TaskUpdate(BaseModel):
     quality_aspects: Optional[List[QualityAspect]] = None
     tools: Optional[List[ToolUsage]] = None
     subtasks: Optional[List[Subtask]] = None
+
+
+class ChildTaskCreate(BaseModel):
+    """Simplified task creation for kids."""
+    title: str = Field(min_length=1, max_length=200)
+    description: Optional[str] = None
+    scheduled_date: Optional[datetime] = None  # Optional: for planning ahead
+    scheduled_time: Optional[str] = None  # HH:MM format
+    estimated_duration_minutes: Optional[int] = None
+    quick_capture: bool = False  # True if "What I'm Doing Now"
 
 
 class ActiveTaskSession(BaseModel):

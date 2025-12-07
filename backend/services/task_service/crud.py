@@ -88,6 +88,15 @@ class TaskCRUD:
             "is_in_pool": task_data.is_in_pool,
             "pool_usage_rules": task_data.pool_usage_rules.model_dump() if task_data.pool_usage_rules else None,
 
+            # Template-based task fields
+            "template_id": task_data.template_id,
+            "execution_config": task_data.execution_config,
+
+            # Multi-completion support
+            "max_completions_per_period": task_data.max_completions_per_period,
+            "completion_count": task_data.completion_count if task_data.completion_count is not None else 0,
+            "progress_state": task_data.progress_state,
+
             # Priority & Obligation
             "obligation_level": task_data.obligation_level.value if task_data.obligation_level else "optional",
             "priority_boost": task_data.priority_boost if task_data.priority_boost is not None else 0,
@@ -129,6 +138,104 @@ class TaskCRUD:
         # NOTE: Recurring tasks are now handled via virtual instance expansion
         # No need to pre-generate instances - they're created on-demand in get_tasks_by_child()
         # See: backend/services/virtual_instance_service.py
+
+        return Task(**task_doc)
+
+    async def create_task_as_child(self, child_id: str, task_data) -> Task:
+        """Create a task from child's perspective.
+
+        Auto-sets restricted fields to safe defaults.
+
+        Args:
+            child_id: Child's ObjectId as string
+            task_data: ChildTaskCreate data
+
+        Returns:
+            Created task
+
+        Raises:
+            ValueError: If child not found
+        """
+        from backend.models.task import ObligationLevel, TaskSource, SchedulingType, TaskStatus
+
+        child_id_obj = validate_object_id(child_id, "child_id", raise_http_exception=False)
+
+        # Get child to get parent_id
+        child_doc = await self.db.children.find_one({"_id": child_id_obj})
+        if not child_doc:
+            raise ValueError("Child not found")
+
+        parent_id = child_doc["parent_id"]
+
+        # Get or create default collection for this child
+        collection = await self.collections_collection.find_one({
+            "child_id": child_id_obj,
+            "is_default": True
+        })
+
+        if not collection:
+            # Create default collection
+            collection_doc = {
+                "child_id": child_id_obj,
+                "parent_id": parent_id,
+                "name": "My Tasks",
+                "is_default": True,
+                "created_at": utcnow()
+            }
+            result = await self.collections_collection.insert_one(collection_doc)
+            collection_id = result.inserted_id
+        else:
+            collection_id = collection["_id"]
+
+        # Build task with safe defaults
+        task_doc = {
+            "collection_id": collection_id,
+            "child_id": child_id_obj,
+            "parent_id": parent_id,
+            "title": task_data.title,
+            "description": task_data.description,
+
+            # Auto-set safe defaults
+            "created_by": "CHILD",
+            "quick_capture": task_data.quick_capture,
+            "obligation_level": ObligationLevel.OPTIONAL.value,
+            "task_source": TaskSource.ONE_TIME.value,
+            "scheduling_type": SchedulingType.FLEXIBLE.value,
+
+            # Quick capture starts immediately
+            "status": TaskStatus.IN_PROGRESS.value if task_data.quick_capture else TaskStatus.PENDING.value,
+            "started_at": utcnow() if task_data.quick_capture else None,
+
+            # Schedule
+            "scheduled_date": task_data.scheduled_date or datetime.now(),
+            "estimated_duration_minutes": task_data.estimated_duration_minutes,
+
+            # Defaults
+            "is_recurring": False,
+            "is_informational": False,
+            "blocks_other_tasks": False,
+            "can_be_interrupted": True,
+            "can_be_split": False,
+            "is_in_pool": False,
+            "rollover_count": 0,
+            "is_in_backlog": False,
+            "is_delayed": False,
+            "concurrent_allowed": False,
+            "concurrent_compatible_with": [],
+            "priority_boost": 0,
+            "exceptions": [],
+            "pause_history": [],
+            "metrics": [],
+            "quality_aspects": [],
+            "attachments": [],
+            "tools": [],
+            "subtasks": [],
+            "created_at": utcnow(),
+            "updated_at": utcnow(),
+        }
+
+        result = await self.tasks_collection.insert_one(task_doc)
+        task_doc["_id"] = result.inserted_id
 
         return Task(**task_doc)
 
@@ -325,6 +432,98 @@ class TaskCRUD:
             return None
 
         return Task(**doc)
+
+    async def get_overdue_tasks(
+        self,
+        child_id: str,
+        parent_id: str,
+        must_do_only: bool = False
+    ) -> List[Dict[str, Any]]:
+        """Get all overdue tasks for a child.
+
+        Args:
+            child_id: Child's ObjectId as string
+            parent_id: Parent's ObjectId as string (for authorization)
+            must_do_only: If True, only return MUST_DO tasks
+
+        Returns:
+            List of overdue tasks
+        """
+        from backend.models.task import ObligationLevel
+
+        child_id_obj = validate_object_id(child_id, "child_id", raise_http_exception=False)
+        parent_id_obj = validate_object_id(parent_id, "parent_id", raise_http_exception=False)
+
+        today_start = datetime.combine(date.today(), datetime.min.time())
+
+        query = {
+            "child_id": child_id_obj,
+            "parent_id": parent_id_obj,
+            "scheduled_date": {"$lt": today_start},
+            "status": {"$nin": ["completed", "skipped", "archived"]},
+        }
+
+        if must_do_only:
+            query["obligation_level"] = ObligationLevel.MUST_DO.value
+
+        cursor = self.tasks_collection.find(query).sort("scheduled_date", -1)  # Newest first
+        tasks = []
+
+        async for doc in cursor:
+            task_obj = Task(**doc)
+            task_dict = task_obj.model_dump(mode='json', by_alias=True)
+            if "_id" in task_dict and not isinstance(task_dict["_id"], str):
+                task_dict["_id"] = str(task_dict["_id"])
+            tasks.append(task_dict)
+
+        return tasks
+
+    async def get_overdue_stats(
+        self,
+        child_id: str,
+        parent_id: str
+    ) -> Dict[str, Any]:
+        """Get overdue task statistics.
+
+        Args:
+            child_id: Child's ObjectId as string
+            parent_id: Parent's ObjectId as string (for authorization)
+
+        Returns:
+            Dict with total_overdue, must_do_overdue, and by_date counts
+        """
+        from backend.models.task import ObligationLevel
+        from collections import defaultdict
+
+        child_id_obj = validate_object_id(child_id, "child_id", raise_http_exception=False)
+        parent_id_obj = validate_object_id(parent_id, "parent_id", raise_http_exception=False)
+
+        today_start = datetime.combine(date.today(), datetime.min.time())
+
+        # Get all overdue tasks
+        all_overdue = await self.tasks_collection.find({
+            "child_id": child_id_obj,
+            "parent_id": parent_id_obj,
+            "scheduled_date": {"$lt": today_start},
+            "status": {"$nin": ["completed", "skipped", "archived"]},
+        }).to_list(None)
+
+        # Count by obligation level
+        must_do_count = sum(1 for t in all_overdue if t.get("obligation_level") == ObligationLevel.MUST_DO.value)
+
+        # Count by date
+        by_date = defaultdict(int)
+        for task in all_overdue:
+            scheduled = task.get("scheduled_date")
+            if scheduled:
+                date_key = scheduled.date().isoformat() if isinstance(scheduled, datetime) else scheduled
+                by_date[date_key] += 1
+
+        return {
+            "total_overdue": len(all_overdue),
+            "must_do_overdue": must_do_count,
+            "by_date": dict(by_date)
+        }
 
     async def update_task(
         self, task_id: str, parent_id: str, task_data: TaskUpdate

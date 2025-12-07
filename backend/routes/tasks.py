@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends, Query
 from typing import List, Optional
 
-from backend.models.task import Task, TaskCreate, TaskUpdate, TaskStatus
+from backend.models.task import Task, TaskCreate, TaskUpdate, TaskStatus, ChildTaskCreate
 from backend.services.task_service import TaskService
 from backend.services.school_calendar_service import SchoolCalendarService
 from backend.models.user import User
@@ -66,6 +66,62 @@ async def get_tasks_by_child(
         print(f"ERROR in get_tasks_by_child: {type(e).__name__}: {e}")
         import traceback
         traceback.print_exc()
+        raise bad_request(str(e))
+
+
+@router.get("/child/{child_id}/overdue")
+async def get_overdue_tasks(
+    child_id: str,
+    must_do_only: bool = Query(False, description="Show only MUST_DO tasks"),
+    current_user: User = Depends(get_current_user),
+    service: TaskService = Depends(get_task_service),
+):
+    """Get all overdue tasks for a child.
+
+    Overdue = scheduled before today AND not completed/skipped/archived.
+    """
+    try:
+        return await service.get_overdue_tasks(child_id, str(current_user.id), must_do_only)
+    except ValueError as e:
+        raise bad_request(str(e))
+
+
+@router.get("/child/{child_id}/overdue/stats")
+async def get_overdue_stats(
+    child_id: str,
+    current_user: User = Depends(get_current_user),
+    service: TaskService = Depends(get_task_service),
+):
+    """Get overdue task statistics.
+
+    Returns:
+        {
+            "total_overdue": 15,
+            "must_do_overdue": 5,
+            "by_date": {"2025-12-07": 3, ...}
+        }
+    """
+    try:
+        return await service.get_overdue_stats(child_id, str(current_user.id))
+    except ValueError as e:
+        raise bad_request(str(e))
+
+
+@router.post("/child/{child_id}/create", response_model=Task, status_code=201)
+async def create_task_as_child(
+    child_id: str,
+    task_data: ChildTaskCreate,
+    current_user: User = Depends(get_current_user),
+    service: TaskService = Depends(get_task_service),
+):
+    """Create a task as a child.
+
+    Kids can create simple one-off tasks for themselves.
+    Auto-sets: obligation_level=OPTIONAL, created_by=CHILD
+    """
+    try:
+        return await service.create_task_as_child(child_id, task_data)
+    except ValueError as e:
         raise bad_request(str(e))
 
 

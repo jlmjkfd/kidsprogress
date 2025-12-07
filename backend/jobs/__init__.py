@@ -5,7 +5,6 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 import logging
 
 from backend.jobs.daily_task_generator import generate_daily_tasks
-from backend.jobs.task_rollover_job import rollover_incomplete_tasks
 
 logger = logging.getLogger(__name__)
 scheduler = AsyncIOScheduler()
@@ -25,18 +24,6 @@ def init_scheduler(db: AsyncIOMotorDatabase):
         misfire_grace_time=300  # 5 minutes grace period
     )
     logger.info("Scheduled daily task generator job at 00:00")
-
-    # Task rollover - runs at 23:00 (11 PM)
-    scheduler.add_job(
-        rollover_incomplete_tasks,
-        trigger=CronTrigger(hour=23, minute=0),
-        args=[db],
-        id="task_rollover",
-        name="Rollover incomplete must-do tasks",
-        replace_existing=True,
-        misfire_grace_time=300
-    )
-    logger.info("Scheduled task rollover job at 23:00")
 
     scheduler.start()
     logger.info("Job scheduler started successfully")
