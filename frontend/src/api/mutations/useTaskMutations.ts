@@ -8,6 +8,7 @@ import {
   TaskCreate,
   TaskUpdate,
   StartTaskResponse,
+  ChildTaskCreate,
 } from "@/types/task";
 
 // ==================== CRUD Operations ====================
@@ -23,6 +24,25 @@ export const useCreateTask = () => {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["tasks", "collection", data.collection_id] });
       queryClient.invalidateQueries({ queryKey: ["tasks", "child", data.child_id] });
+    },
+  });
+};
+
+export const useCreateTaskAsChild = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ childId, data }: { childId: string; data: ChildTaskCreate }) => {
+      const response = await apiClient.post<Task>(
+        `/api/tasks/child/${childId}/create`,
+        data
+      );
+      return response.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["tasks", "collection", data.collection_id] });
+      queryClient.invalidateQueries({ queryKey: ["tasks", "child", data.child_id] });
+      queryClient.invalidateQueries({ queryKey: ["tasks", "child", data.child_id, "overdue"] });
     },
   });
 };
