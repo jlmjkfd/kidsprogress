@@ -43,6 +43,7 @@ import ParentPortalSettings from "@/pages/parent-portal/settings";
 import ParentDashboardPage from "@/pages/parent-portal/dashboard";
 import TemplatesPage from "@/pages/parent-portal/templates";
 import TemplateLibraryPage from "@/pages/parent-portal/templates/library";
+import MyTemplatesPage from "@/pages/parent-portal/templates/my-templates";
 import AnalysisReportPage from "@/pages/parent-portal/analysis/[templateId]";
 
 // Child Portal
@@ -50,6 +51,7 @@ import ChildPortalLayout from "@/pages/child-portal/layout";
 import ChildPortalTasksPage from "@/pages/child-portal/tasks";
 import TaskExecutePage from "@/pages/child-portal/tasks/execute/[taskId]";
 import TaskResultPage from "@/pages/child-portal/tasks/result/[taskId]";
+import AttemptDetailPage from "@/pages/child-portal/tasks/attempts/[taskId]";
 import ChildChatPage from "@/pages/child-portal/chat";
 
 import "@/i18n/config";
@@ -138,6 +140,7 @@ function AppRoutes() {
         {/* Templates */}
         <Route path="templates" element={<TemplatesPage />} />
         <Route path="templates/library" element={<TemplateLibraryPage />} />
+        <Route path="templates/my-templates" element={<MyTemplatesPage />} />
 
         {/* Settings */}
         <Route path="settings" element={<ParentPortalSettings />} />
@@ -174,6 +177,12 @@ function AppRoutes() {
         <Route
           path="tasks/result/:taskId"
           element={<TaskResultPage />}
+        />
+
+        {/* Attempt Detail View */}
+        <Route
+          path="tasks/attempts/:taskId"
+          element={<AttemptDetailPage />}
         />
 
         {/* Tools */}

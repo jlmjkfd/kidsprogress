@@ -1,0 +1,48 @@
+{
+  "name": "写作任务",
+  "description": "创意写作和作文任务",
+  "settings": {
+    "content_type": "内容类型",
+    "content_type_writing": "写作",
+    "content_type_drawing": "绘画",
+    "content_type_recording": "录音",
+    "prompts": "写作提示",
+    "prompts_hint": "用提示引导孩子（每行一个）",
+    "min_length": "最少字数",
+    "min_length_hint": "要求的最少字数",
+    "max_length": "最多字数",
+    "max_length_hint": "允许的最多字数",
+    "allow_llm_feedback": "启用 AI 反馈",
+    "allow_llm_feedback_hint": "获取写作质量的 AI 反馈",
+    "save_drafts": "允许草稿",
+    "save_drafts_hint": "允许在最终提交前保存草稿"
+  },
+  "executor": {
+    "writing_task": "写作任务",
+    "writing_prompt": "写作提示",
+    "title": "标题",
+    "title_placeholder": "输入你的写作标题...",
+    "title_required": "标题是必填的",
+    "content": "内容",
+    "content_placeholder": "开始写作...",
+    "content_required": "内容是必填的",
+    "word_count": "{{count}} 字",
+    "min": "最少",
+    "max": "最多",
+    "min_words_required": "最少需要 {{count}} 字。你已经写了 {{current}} 字。",
+    "submit": "提交",
+    "submitting": "提交中...",
+    "submit_failed": "提交失败，请重试。",
+    "content_type_not_supported": "内容类型 '{{type}}' 暂不支持"
+  },
+  "attempt": {
+    "writing_statistics": "写作统计",
+    "words": "字数",
+    "characters": "字符数",
+    "ai_score": "AI 评分",
+    "ai_feedback": "AI 反馈",
+    "strengths": "优点",
+    "areas_for_improvement": "需要改进的地方",
+    "untitled": "无标题"
+  }
+}

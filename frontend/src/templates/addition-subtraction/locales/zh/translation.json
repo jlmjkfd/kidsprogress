@@ -1,0 +1,32 @@
+{
+  "name": "加减法练习",
+  "description": "加法和减法数学练习",
+  "settings": {
+    "max_value": "最大数值",
+    "max_value_hint": "题目中的最大数字（10-10000）",
+    "num_questions": "题目数量",
+    "num_questions_hint": "生成多少道题目（1-100）",
+    "only_carry": "仅进位/借位",
+    "only_carry_hint": "仅生成需要进位或借位的题目",
+    "has_timer": "启用计时器",
+    "has_timer_hint": "练习时显示计时器"
+  },
+  "executor": {
+    "title": "数学练习",
+    "question": "第 {{number}} 题",
+    "submit": "提交答案",
+    "time_elapsed": "用时：{{time}}",
+    "questions_completed": "已完成 {{completed}}/{{total}}"
+  },
+  "attempt": {
+    "questions_and_answers": "题目与答案",
+    "question": "题目",
+    "your_answer": "你的答案",
+    "correct_answer": "正确答案",
+    "no_answer": "未作答",
+    "total_questions": "总题数",
+    "correct": "正确",
+    "incorrect": "错误",
+    "accuracy": "准确率"
+  }
+}

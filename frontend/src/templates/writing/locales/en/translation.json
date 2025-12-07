@@ -1,0 +1,48 @@
+{
+  "name": "Writing Task",
+  "description": "Creative writing and composition tasks",
+  "settings": {
+    "content_type": "Content Type",
+    "content_type_writing": "Writing",
+    "content_type_drawing": "Drawing",
+    "content_type_recording": "Recording",
+    "prompts": "Writing Prompts",
+    "prompts_hint": "Guide the child with prompts (one per line)",
+    "min_length": "Minimum Words",
+    "min_length_hint": "Minimum word count required",
+    "max_length": "Maximum Words",
+    "max_length_hint": "Maximum word count allowed",
+    "allow_llm_feedback": "Enable AI Feedback",
+    "allow_llm_feedback_hint": "Get AI feedback on writing quality",
+    "save_drafts": "Allow Drafts",
+    "save_drafts_hint": "Allow saving drafts before final submission"
+  },
+  "executor": {
+    "writing_task": "Writing Task",
+    "writing_prompt": "Writing Prompt",
+    "title": "Title",
+    "title_placeholder": "Enter a title for your writing...",
+    "title_required": "Title is required",
+    "content": "Content",
+    "content_placeholder": "Start writing here...",
+    "content_required": "Content is required",
+    "word_count": "{{count}} words",
+    "min": "min",
+    "max": "max",
+    "min_words_required": "Minimum {{count}} words required. You have written {{current}} words.",
+    "submit": "Submit",
+    "submitting": "Submitting...",
+    "submit_failed": "Failed to submit. Please try again.",
+    "content_type_not_supported": "Content type '{{type}}' is not yet supported"
+  },
+  "attempt": {
+    "writing_statistics": "Writing Statistics",
+    "words": "Words",
+    "characters": "Characters",
+    "ai_score": "AI Score",
+    "ai_feedback": "AI Feedback",
+    "strengths": "Strengths",
+    "areas_for_improvement": "Areas for Improvement",
+    "untitled": "Untitled"
+  }
+}

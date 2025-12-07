@@ -1,0 +1,11 @@
+{
+  "id": "addition-subtraction",
+  "name": "Addition & Subtraction Practice",
+  "version": "1.0.0",
+  "handlerType": "interactive_math_quiz",
+  "handlerClass": "AdditionSubtractionHandler",
+  "configClass": "AdditionSubtractionConfig",
+  "description": "Interactive practice for addition and subtraction with configurable difficulty, carry/borrow operations, and timed rounds.",
+  "author": "KidsProgress Team",
+  "tags": ["math", "arithmetic", "addition", "subtraction", "practice"]
+}

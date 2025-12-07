@@ -11,11 +11,13 @@ import enAuth from './locales/en/auth.json';
 import enErrors from './locales/en/errors.json';
 import enTasks from './locales/en/tasks.json';
 import enChat from './locales/en/chat.json';
+import enTemplates from './locales/en/templates.json';
 import zhCommon from './locales/zh/common.json';
 import zhAuth from './locales/zh/auth.json';
 import zhErrors from './locales/zh/errors.json';
 import zhTasks from './locales/zh/tasks.json';
 import zhChat from './locales/zh/chat.json';
+import zhTemplates from './locales/zh/templates.json';
 
 i18n
   .use(LanguageDetector)
@@ -28,6 +30,7 @@ i18n
         errors: enErrors,
         tasks: enTasks,
         chat: enChat,
+        templates: enTemplates,
       },
       zh: {
         common: zhCommon,
@@ -35,6 +38,7 @@ i18n
         errors: zhErrors,
         tasks: zhTasks,
         chat: zhChat,
+        templates: zhTemplates,
       },
     },
     fallbackLng: 'en',

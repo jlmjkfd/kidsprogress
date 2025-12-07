@@ -1,0 +1,32 @@
+{
+  "name": "Addition & Subtraction Practice",
+  "description": "Math practice with addition and subtraction problems",
+  "settings": {
+    "max_value": "Maximum Number",
+    "max_value_hint": "Largest number in questions (10-10000)",
+    "num_questions": "Number of Questions",
+    "num_questions_hint": "How many questions to generate (1-100)",
+    "only_carry": "Carry/Borrow Only",
+    "only_carry_hint": "Generate only questions requiring carrying or borrowing",
+    "has_timer": "Enable Timer",
+    "has_timer_hint": "Show timer during practice"
+  },
+  "executor": {
+    "title": "Math Practice",
+    "question": "Question {{number}}",
+    "submit": "Submit Answers",
+    "time_elapsed": "Time: {{time}}",
+    "questions_completed": "{{completed}}/{{total}} completed"
+  },
+  "attempt": {
+    "questions_and_answers": "Questions & Answers",
+    "question": "Question",
+    "your_answer": "Your answer",
+    "correct_answer": "Correct answer",
+    "no_answer": "No answer",
+    "total_questions": "Total Questions",
+    "correct": "Correct",
+    "incorrect": "Incorrect",
+    "accuracy": "Accuracy"
+  }
+}

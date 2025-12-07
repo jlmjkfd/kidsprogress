@@ -1,0 +1,8 @@
+{
+  "id": "writing",
+  "name": "Creative Writing",
+  "version": "1.0.0",
+  "handlerType": "content_creation",
+  "description": "Creative writing tasks with AI feedback, word count tracking, and customizable prompts.",
+  "tags": ["writing", "content-creation", "language", "creativity"]
+}

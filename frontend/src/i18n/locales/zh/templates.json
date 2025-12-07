@@ -1,0 +1,38 @@
+{
+  "hub": {
+    "title": "任务模板",
+    "subtitle": "管理您的任务模板",
+    "libraryTitle": "模板库",
+    "libraryDescription": "浏览并添加新模板到您的收藏",
+    "browseTemplates": "浏览模板",
+    "myTemplatesTitle": "我的模板",
+    "myTemplatesDescription": "查看和管理您添加的模板",
+    "viewMyTemplates": "查看我的模板",
+    "howToUseTitle": "如何使用模板",
+    "step1": "浏览模板库并添加您想使用的模板",
+    "step2": "在我的模板中配置每个模板的设置",
+    "step3": "在管理孩子的任务时，从模板创建任务"
+  },
+  "library": {
+    "title": "模板库",
+    "subtitle": "浏览并添加模板到您的收藏",
+    "searchPlaceholder": "搜索模板...",
+    "allCategories": "所有分类",
+    "noTemplatesFound": "未找到模板",
+    "premium": "高级",
+    "noDescription": "暂无描述",
+    "added": "已添加",
+    "addToMyTemplates": "添加到我的模板"
+  },
+  "myTemplates": {
+    "title": "我的模板",
+    "subtitle": "您添加的模板收藏",
+    "browseLibrary": "浏览库",
+    "noTemplates": "您还没有添加任何模板",
+    "addFirstTemplate": "添加您的第一个模板",
+    "templateCount": "{{count}} 个模板",
+    "configure": "配置",
+    "remove": "移除",
+    "confirmRemove": "确定要从收藏中移除此模板吗？"
+  }
+}

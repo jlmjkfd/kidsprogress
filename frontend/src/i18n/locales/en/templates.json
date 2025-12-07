@@ -1,0 +1,39 @@
+{
+  "hub": {
+    "title": "Templates",
+    "subtitle": "Manage your task templates",
+    "libraryTitle": "Template Library",
+    "libraryDescription": "Browse and add new templates to your collection",
+    "browseTemplates": "Browse Templates",
+    "myTemplatesTitle": "My Templates",
+    "myTemplatesDescription": "View and manage templates you've added",
+    "viewMyTemplates": "View My Templates",
+    "howToUseTitle": "How to Use Templates",
+    "step1": "Browse the Template Library and add templates you want to use",
+    "step2": "Configure each template's settings in My Templates",
+    "step3": "Create tasks from your templates when managing children's tasks"
+  },
+  "library": {
+    "title": "Template Library",
+    "subtitle": "Browse and add templates to your collection",
+    "searchPlaceholder": "Search templates...",
+    "allCategories": "All Categories",
+    "noTemplatesFound": "No templates found",
+    "premium": "Premium",
+    "noDescription": "No description available",
+    "added": "Added",
+    "addToMyTemplates": "Add to My Templates"
+  },
+  "myTemplates": {
+    "title": "My Templates",
+    "subtitle": "Templates you've added to your collection",
+    "browseLibrary": "Browse Library",
+    "noTemplates": "You haven't added any templates yet",
+    "addFirstTemplate": "Add Your First Template",
+    "templateCount": "{{count}} template",
+    "templateCount_plural": "{{count}} templates",
+    "configure": "Configure",
+    "remove": "Remove",
+    "confirmRemove": "Are you sure you want to remove this template from your collection?"
+  }
+}

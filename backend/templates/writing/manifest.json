@@ -1,0 +1,11 @@
+{
+  "id": "writing",
+  "name": "Creative Writing",
+  "version": "1.0.0",
+  "handlerType": "content_creation",
+  "handlerClass": "WritingHandler",
+  "configClass": "WritingConfig",
+  "description": "Creative writing tasks with AI feedback, word count tracking, and customizable prompts.",
+  "author": "KidsProgress Team",
+  "tags": ["writing", "content-creation", "language", "creativity"]
+}
