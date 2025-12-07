@@ -16,8 +16,12 @@ import {
   IconTrophy,
   IconList,
   IconCalendar,
+  IconCheckbox,
+  IconHistory,
+  IconPlus,
+  IconAlertTriangle,
 } from "@tabler/icons-react";
-import { useTasksByChild } from "@/api/queries/useTasks";
+import { useTasksByChild, useOverdueTasks, useOverdueStats } from "@/api/queries/useTasks";
 import {
   useStartTask,
   usePauseTask,
@@ -28,8 +32,10 @@ import { Task } from "@/types/task";
 import { AIRecommendationButton } from "@/components/AIRecommendationButton";
 import { TaskCalendar } from "@/components/calendar";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import { QuickCaptureModal } from "@/components/QuickCaptureModal";
+import { PlanAheadModal } from "@/components/PlanAheadModal";
 
-type ViewMode = "list" | "calendar";
+type ViewMode = "list" | "calendar" | "overdue";
 
 export default function ChildTasksPage() {
   const { t } = useTranslation(["tasks", "common"]);
@@ -40,6 +46,8 @@ export default function ChildTasksPage() {
   );
 
   const [viewMode, setViewMode] = useState<ViewMode>("list");
+  const [isQuickCaptureOpen, setIsQuickCaptureOpen] = useState(false);
+  const [isPlanAheadOpen, setIsPlanAheadOpen] = useState(false);
 
   // Helper to get local date string (YYYY-MM-DD)
   const getLocalDateString = (date: Date = new Date()) => {
@@ -50,6 +58,8 @@ export default function ChildTasksPage() {
 
   // TODO: Implement proper child authentication to get child_id
   const { data: allTasks, isLoading } = useTasksByChild(selectedChildId || "");
+  const { data: overdueTasks } = useOverdueTasks(selectedChildId || "", false);
+  const { data: overdueStats } = useOverdueStats(selectedChildId || "");
   const startTaskMutation = useStartTask();
   const pauseTaskMutation = usePauseTask();
   const resumeTaskMutation = useResumeTask();
@@ -93,7 +103,6 @@ export default function ChildTasksPage() {
         taskId,
         childId: selectedChildId || "",
       });
-      console.log("Start task result:", result);
 
       // If task has a template, navigate to the executor page
       // Use the returned task's ID (may be different if virtual task was materialized)
@@ -142,6 +151,10 @@ export default function ChildTasksPage() {
     navigate(`/child-portal/${childId}/tasks/result/${taskId}`);
   };
 
+  const handleViewAttempts = (taskId: string) => {
+    navigate(`/child-portal/${childId}/tasks/attempts/${taskId}`);
+  };
+
   if (isLoading) {
     return <LoadingSpinner fullScreen size="lg" />;
   }
@@ -180,6 +193,27 @@ export default function ChildTasksPage() {
       </div>
 
       <div className="mx-auto max-w-4xl space-y-6 px-4 pt-4 pb-8 sm:px-6">
+        {/* Create Task Buttons */}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {/* Quick Capture Button */}
+          <button
+            onClick={() => setIsQuickCaptureOpen(true)}
+            className="flex items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-4 text-lg font-bold text-white shadow-lg transition-all hover:shadow-xl active:scale-95"
+          >
+            <IconPlus size={28} className="flex-shrink-0" />
+            <span>{t("tasks:quick_capture.button")}</span>
+          </button>
+
+          {/* Plan Ahead Button */}
+          <button
+            onClick={() => setIsPlanAheadOpen(true)}
+            className="flex items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-600 px-6 py-4 text-lg font-bold text-white shadow-lg transition-all hover:shadow-xl active:scale-95"
+          >
+            <IconCalendar size={28} className="flex-shrink-0" />
+            <span>{t("tasks:plan_ahead.button")}</span>
+          </button>
+        </div>
+
         {/* AI Recommendation */}
         <AIRecommendationButton childId={selectedChildId || ""} />
 
@@ -188,7 +222,7 @@ export default function ChildTasksPage() {
           <div className="inline-flex overflow-hidden rounded-2xl bg-white shadow-lg">
             <button
               onClick={() => setViewMode("list")}
-              className={`flex min-h-[56px] items-center gap-2 px-6 py-3 font-bold transition-all ${
+              className={`flex min-h-[56px] items-center gap-2 px-4 py-3 font-bold transition-all sm:px-6 ${
                 viewMode === "list"
                   ? "bg-blue-600 text-white"
                   : "text-gray-700 hover:bg-blue-50"
@@ -196,12 +230,28 @@ export default function ChildTasksPage() {
             >
               <IconList size={24} />
               <span className="hidden sm:inline">
-                {t("tasks:unified_model.list_view")}
+                {t("tasks:child_portal.today")}
               </span>
             </button>
             <button
+              onClick={() => setViewMode("overdue")}
+              className={`relative flex min-h-[56px] items-center gap-2 px-4 py-3 font-bold transition-all sm:px-6 ${
+                viewMode === "overdue"
+                  ? "bg-orange-600 text-white"
+                  : "text-gray-700 hover:bg-orange-50"
+              }`}
+            >
+              <IconAlertTriangle size={24} />
+              <span className="hidden sm:inline">{t("tasks:overdue")}</span>
+              {overdueStats && overdueStats.total_overdue > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
+                  {overdueStats.total_overdue}
+                </span>
+              )}
+            </button>
+            <button
               onClick={() => setViewMode("calendar")}
-              className={`flex min-h-[56px] items-center gap-2 px-6 py-3 font-bold transition-all ${
+              className={`flex min-h-[56px] items-center gap-2 px-4 py-3 font-bold transition-all sm:px-6 ${
                 viewMode === "calendar"
                   ? "bg-blue-600 text-white"
                   : "text-gray-700 hover:bg-blue-50"
@@ -215,8 +265,98 @@ export default function ChildTasksPage() {
           </div>
         </div>
 
-        {/* Calendar or List View */}
-        {viewMode === "calendar" ? (
+        {/* View Content */}
+        {viewMode === "overdue" ? (
+          /* Overdue View */
+          <div className="space-y-6">
+            {/* Stats Summary */}
+            {overdueStats && overdueStats.total_overdue > 0 && (
+              <div className="rounded-3xl bg-gradient-to-r from-orange-50 to-red-50 p-6 shadow-xl">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h3 className="text-2xl font-bold text-gray-900">
+                      {overdueStats.total_overdue} {t("tasks:overdue_tasks")}
+                    </h3>
+                    {overdueStats.must_do_overdue > 0 && (
+                      <p className="mt-1 flex items-center gap-2 text-lg font-semibold text-red-600">
+                        <IconAlertTriangle size={20} />
+                        {overdueStats.must_do_overdue} {t("tasks:unified_model.must_do")} tasks
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Overdue Tasks List */}
+            {overdueTasks && overdueTasks.length > 0 ? (
+              <div className="space-y-3">
+                {overdueTasks.map((task) => {
+                  const canStart = task.status === "pending" && !isInformationalTask(task);
+                  const taskDate = task.scheduled_date ? new Date(task.scheduled_date).toLocaleDateString() : "";
+
+                  return (
+                    <div key={task._id} className="space-y-2">
+                      {/* Date Label */}
+                      <div className="flex items-center gap-2 text-sm font-semibold text-gray-600">
+                        <IconClock size={16} />
+                        <span>{t("tasks:overdue_view.scheduled_for")} {taskDate}</span>
+                        {task.obligation_level === "must_do" && (
+                          <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-bold text-red-700">
+                            {t("tasks:unified_model.must_do")}
+                          </span>
+                        )}
+                      </div>
+
+                      <TaskCard
+                        task={task}
+                        onStart={
+                          canStart
+                            ? () => handleStartTask(task._id, task)
+                            : undefined
+                        }
+                        onPause={
+                          task.status === "in_progress" &&
+                          !isInformationalTask(task)
+                            ? () => handlePauseTask(task._id)
+                            : undefined
+                        }
+                        onResume={
+                          task.status === "paused" && !isInformationalTask(task)
+                            ? () => handleResumeTask(task._id)
+                            : undefined
+                        }
+                        onComplete={
+                          (task.status === "in_progress" ||
+                            task.status === "paused") &&
+                          !isInformationalTask(task)
+                            ? () => handleCompleteTask(task._id)
+                            : undefined
+                        }
+                        onViewResult={
+                          task.status === "completed" && task.template_id
+                            ? () => handleViewResult(task._id)
+                            : undefined
+                        }
+                        onViewAttempts={() => handleViewAttempts(task._id)}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="rounded-3xl bg-white p-12 text-center shadow-xl">
+                <IconCheck className="mx-auto mb-4 text-green-400" size={80} />
+                <h3 className="mb-2 text-3xl font-bold text-gray-900">
+                  {t("tasks:child_portal.all_done")}
+                </h3>
+                <p className="text-xl text-gray-600">
+                  {t("tasks:overdue_view.no_overdue")}
+                </p>
+              </div>
+            )}
+          </div>
+        ) : viewMode === "calendar" ? (
           <div className="space-y-6">
             <TaskCalendar
               tasks={allTasks || []}
@@ -236,40 +376,45 @@ export default function ChildTasksPage() {
                 <p className="text-gray-600">{t("tasks:no_tasks_for_date")}</p>
               ) : (
                 <div className="space-y-3">
-                  {selectedDateTasks.map((task) => (
-                    <TaskCard
-                      key={task._id}
-                      task={task}
-                      onStart={
-                        task.status === "pending" && !isInformationalTask(task)
-                          ? () => handleStartTask(task._id, task)
-                          : undefined
-                      }
-                      onPause={
-                        task.status === "in_progress" &&
-                        !isInformationalTask(task)
-                          ? () => handlePauseTask(task._id)
-                          : undefined
-                      }
-                      onResume={
-                        task.status === "paused" && !isInformationalTask(task)
-                          ? () => handleResumeTask(task._id)
-                          : undefined
-                      }
-                      onComplete={
-                        (task.status === "in_progress" ||
-                          task.status === "paused") &&
-                        !isInformationalTask(task)
-                          ? () => handleCompleteTask(task._id)
-                          : undefined
-                      }
-                      onViewResult={
-                        task.status === "completed" && task.template_id
-                          ? () => handleViewResult(task._id)
-                          : undefined
-                      }
-                    />
-                  ))}
+                  {selectedDateTasks.map((task) => {
+                    const canStart = task.status === "pending" && !isInformationalTask(task);
+
+                    return (
+                      <TaskCard
+                        key={task._id}
+                        task={task}
+                        onStart={
+                          canStart
+                            ? () => handleStartTask(task._id, task)
+                            : undefined
+                        }
+                        onPause={
+                          task.status === "in_progress" &&
+                          !isInformationalTask(task)
+                            ? () => handlePauseTask(task._id)
+                            : undefined
+                        }
+                        onResume={
+                          task.status === "paused" && !isInformationalTask(task)
+                            ? () => handleResumeTask(task._id)
+                            : undefined
+                        }
+                        onComplete={
+                          (task.status === "in_progress" ||
+                            task.status === "paused") &&
+                          !isInformationalTask(task)
+                            ? () => handleCompleteTask(task._id)
+                            : undefined
+                        }
+                        onViewResult={
+                          task.status === "completed" && task.template_id
+                            ? () => handleViewResult(task._id)
+                            : undefined
+                        }
+                        onViewAttempts={() => handleViewAttempts(task._id)}
+                      />
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -297,6 +442,7 @@ export default function ChildTasksPage() {
                         ? () => handleCompleteTask(task._id)
                         : undefined
                     }
+                    onViewAttempts={() => handleViewAttempts(task._id)}
                   />
                 ))}
               </div>
@@ -323,6 +469,7 @@ export default function ChildTasksPage() {
                         ? () => handleCompleteTask(task._id)
                         : undefined
                     }
+                    onViewAttempts={() => handleViewAttempts(task._id)}
                   />
                 ))}
               </div>
@@ -344,6 +491,7 @@ export default function ChildTasksPage() {
                         ? () => handleStartTask(task._id, task)
                         : undefined
                     }
+                    onViewAttempts={() => handleViewAttempts(task._id)}
                   />
                 ))}
               </div>
@@ -365,6 +513,7 @@ export default function ChildTasksPage() {
                         ? () => handleViewResult(task._id)
                         : undefined
                     }
+                    onViewAttempts={() => handleViewAttempts(task._id)}
                   />
                 ))}
               </div>
@@ -388,6 +537,20 @@ export default function ChildTasksPage() {
           </>
         )}
       </div>
+
+      {/* Quick Capture Modal */}
+      <QuickCaptureModal
+        isOpen={isQuickCaptureOpen}
+        onClose={() => setIsQuickCaptureOpen(false)}
+        childId={selectedChildId || ""}
+      />
+
+      {/* Plan Ahead Modal */}
+      <PlanAheadModal
+        isOpen={isPlanAheadOpen}
+        onClose={() => setIsPlanAheadOpen(false)}
+        childId={selectedChildId || ""}
+      />
     </div>
   );
 }
@@ -399,6 +562,7 @@ interface TaskCardProps {
   onResume?: () => void;
   onComplete?: () => void;
   onViewResult?: () => void;
+  onViewAttempts?: () => void;
 }
 
 function TaskCard({
@@ -408,6 +572,7 @@ function TaskCard({
   onResume,
   onComplete,
   onViewResult,
+  onViewAttempts,
 }: TaskCardProps) {
   const { t } = useTranslation(["tasks"]);
 
@@ -436,7 +601,7 @@ function TaskCard({
 
           {/* Metadata */}
           <div className="flex flex-wrap gap-3">
-            {task.ai_attributes?.estimated_duration_minutes && (
+            {task.ai_attributes?.estimated_duration_minutes !== undefined && task.ai_attributes.estimated_duration_minutes > 0 && (
               <div className="flex items-center gap-2 rounded-full bg-blue-100 px-4 py-2 text-blue-700">
                 <IconClock size={20} />
                 <span className="font-semibold">
@@ -444,11 +609,19 @@ function TaskCard({
                 </span>
               </div>
             )}
-            {task.points_earned && (
+            {task.points_earned !== undefined && task.points_earned > 0 && (
               <div className="flex items-center gap-2 rounded-full bg-yellow-100 px-4 py-2 text-yellow-700">
                 <IconStar size={20} />
                 <span className="font-semibold">
                   +{task.points_earned} points
+                </span>
+              </div>
+            )}
+            {task.max_completions_per_period !== undefined && (task.max_completions_per_period === 0 || task.max_completions_per_period > 1) && (
+              <div className="flex items-center gap-2 rounded-full bg-purple-100 px-4 py-2 text-purple-700">
+                <IconCheckbox size={20} />
+                <span className="font-semibold">
+                  {task.completion_count || 0} / {task.max_completions_per_period === 0 ? '∞' : task.max_completions_per_period} {t("tasks:completed")}
                 </span>
               </div>
             )}
@@ -463,7 +636,20 @@ function TaskCard({
               className="flex min-h-[64px] items-center justify-center gap-3 rounded-2xl bg-green-600 px-8 py-4 text-xl font-bold text-white shadow-lg transition-all hover:scale-105 hover:bg-green-700"
             >
               <IconPlayerPlay size={28} />
-              {t("tasks:start")}
+              {task.completion_count && task.completion_count > 0
+                ? t("tasks:start_again")
+                : t("tasks:start")}
+            </button>
+          )}
+
+          {/* View Previous Attempts Button - Show if task has at least one completion */}
+          {onViewAttempts && task.completion_count !== undefined && task.completion_count > 0 && (
+            <button
+              onClick={onViewAttempts}
+              className="flex min-h-[64px] items-center justify-center gap-3 rounded-2xl bg-indigo-600 px-8 py-4 text-xl font-bold text-white shadow-lg transition-all hover:scale-105 hover:bg-indigo-700"
+            >
+              <IconHistory size={28} />
+              {t("tasks:view_attempts")}
             </button>
           )}
 

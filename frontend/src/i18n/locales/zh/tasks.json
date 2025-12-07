@@ -91,10 +91,35 @@
   "manage_tasks": "管理任务和活动",
   "create_first_task": "创建您的第一个任务开始吧",
   "start": "开始",
+  "start_again": "再做一次",
   "pause": "暂停",
   "resume": "继续",
   "complete": "完成",
   "view_result": "查看结果",
+  "view_attempts": "查看历史记录",
+  "no_attempts_yet": "暂无记录",
+  "attempt_number": "第{{number}}次尝试",
+  "attempts": "尝试记录",
+  "total_attempts": "共{{count}}次",
+  "duration": "用时",
+  "score": "得分",
+  "do_again": "再做一次",
+  "view_analysis": "查看分析",
+  "completion_details": "完成详情",
+  "questions_and_answers": "题目与答案",
+  "no_data_available": "暂无数据",
+  "question": "题目",
+  "your_answer": "你的答案",
+  "no_answer": "未作答",
+  "total_questions": "总题数",
+  "correct": "正确",
+  "incorrect": "错误",
+  "accuracy": "正确率",
+  "attempt_history": "尝试历史",
+  "attempt_history_description": "查看全部{{count}}次尝试（按日期分组）",
+  "attempts_count": "{{count}}次尝试",
+  "attempts_count_plural": "{{count}}次尝试",
+  "avg_score": "平均",
   "copy": "复制",
   "paused": "已暂停",
   "cancelled": "已取消",
@@ -409,6 +434,12 @@
     "suggestions": "改进建议",
     "great_phrases": "精彩句子"
   },
+  "math_practice": "数学练习",
+  "math_practice_description": "解答加减法问题",
+  "correct_answer": "正确答案",
+  "submit_answers": "提交答案",
+  "finish": "完成",
+  "submission_error": "提交答案失败，请重试。",
   "analysis": {
     "back_to_list": "返回列表",
     "writing_history": "写作历史",
@@ -428,6 +459,11 @@
     "noData": "暂无数据",
     "noDataDescription": "完成更多任务后可查看分析和趋势"
   },
+  "writing_statistics": "写作统计",
+  "words": "字数",
+  "characters": "字符数",
+  "ai_score": "AI 评分",
+  "areas_for_improvement": "需要改进的地方",
   "templates": {
     "title": "任务模板",
     "subtitle": "创建和管理可重复使用的任务模板",
@@ -465,7 +501,8 @@
       "passive_form": "被动表单",
       "interactive_quiz": "互动测验",
       "content_creation": "内容创作",
-      "external_link": "外部链接"
+      "external_link": "外部链接",
+      "interactive_math_quiz": "数学测验"
     },
     "form_fields": "表单字段",
     "add_field": "添加字段",
@@ -516,5 +553,25 @@
     "hours_ago_plural": "{{count}}小时前",
     "days_ago": "{{count}}天前",
     "days_ago_plural": "{{count}}天前"
+  },
+  "quick_capture": {
+    "title": "我正在做什么",
+    "description": "开始记录你现在正在做的事情。此任务将立即开始！",
+    "title_placeholder": "例如：阅读哈利波特",
+    "button": "我正在做什么"
+  },
+  "plan_ahead": {
+    "title": "计划任务",
+    "description": "创建一个稍后完成的任务",
+    "button": "计划任务",
+    "when_to_do": "你想什么时候做这件事？",
+    "scheduled_date": "日期",
+    "scheduled_time": "时间（可选）",
+    "time_placeholder": "HH:MM"
+  },
+  "overdue_view": {
+    "no_overdue": "没有逾期任务！继续保持！",
+    "scheduled_for": "计划时间：",
+    "must_do_count": "{{count}} 个必做任务"
   }
 }
