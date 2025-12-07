@@ -1,7 +1,7 @@
 # API Registry
 
 > Manually updated after feature implementation
-> Last updated: 2025-11-15
+> Last updated: 2025-12-08
 
 ## Endpoints
 
@@ -236,6 +236,43 @@
   - `frontend/src/api/queries/useTasks.ts` (useTasksByChild)
 - **Status**: ✓ Active (frontend hooks ready)
 
+#### GET /api/tasks/child/{child_id}/overdue
+- **Route**: `backend/routes/tasks.py`
+- **Service**: `backend/services/task_service/crud.py` (get_overdue_tasks)
+- **Used in**:
+  - `frontend/src/api/queries/useTasks.ts` (useOverdueTasks)
+  - `frontend/src/pages/child-portal/tasks/index.tsx` - Overdue tab view
+- **Query params**: `must_do_only` (boolean, optional)
+- **Returns**: List of overdue tasks (scheduled before today AND not completed/skipped/archived)
+- **Status**: ✓ Active (UI complete)
+
+#### GET /api/tasks/child/{child_id}/overdue/stats
+- **Route**: `backend/routes/tasks.py`
+- **Service**: `backend/services/task_service/crud.py` (get_overdue_stats)
+- **Used in**:
+  - `frontend/src/api/queries/useTasks.ts` (useOverdueStats)
+  - `frontend/src/pages/child-portal/tasks/index.tsx` - Overdue badge count
+- **Returns**: `{ total_overdue: number, must_do_overdue: number, by_date: Record<string, number> }`
+- **Status**: ✓ Active (UI complete)
+
+#### POST /api/tasks/child/{child_id}/create
+- **Route**: `backend/routes/tasks.py`
+- **Service**: `backend/services/task_service/crud.py` (create_task_as_child)
+- **Used in**:
+  - `frontend/src/api/mutations/useTaskMutations.ts` (useCreateTaskAsChild)
+  - `frontend/src/components/QuickCaptureModal.tsx` - "What I'm Doing Now" modal
+  - `frontend/src/components/PlanAheadModal.tsx` - "Plan a Task" modal
+- **Body**: ChildTaskCreate (title, description, scheduled_date, scheduled_time, estimated_duration_minutes, quick_capture)
+- **Auto-sets**:
+  - obligation_level=OPTIONAL
+  - created_by=CHILD
+  - task_source=ONE_TIME
+  - status=IN_PROGRESS (if quick_capture=true) else PENDING
+  - started_at=now (if quick_capture=true)
+  - Collection: Auto-creates "My Tasks" default collection if doesn't exist
+- **Note**: Kids can create simple one-off tasks for themselves (no recurrence, no siblings, no approval needed)
+- **Status**: ✓ Active (UI complete)
+
 #### GET /api/tasks/{task_id}
 - **Route**: `backend/routes/tasks.py`
 - **Service**: `backend/services/task_service.py`
@@ -312,8 +349,8 @@
 - **Route**: `backend/routes/tasks.py`
 - **Service**: `backend/services/task_service.py`
 - **Used in**: Not yet implemented
-- **Status**: ✓ Active (backend only)
-- **Note**: Enhanced task management - rollover incomplete task to new date
+- **Status**: ❌ REMOVED (simplified overdue system - no automatic rollover)
+- **Note**: Use overdue endpoints instead - tasks naturally stay on original date
 
 #### POST /api/tasks/{task_id}/backlog
 - **Route**: `backend/routes/tasks.py`
