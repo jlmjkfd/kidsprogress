@@ -30,10 +30,10 @@ from backend.routes import (
     ai_routes,
     ai_schedule_routes,
     school_calendar_routes,
-    template_routes,
     completion_routes,
     chat_routes,
     analysis_routes,
+    template_library_routes,
 )
 from backend.jobs import init_scheduler, shutdown_scheduler
 
@@ -95,8 +95,15 @@ async def lifespan(app: FastAPI):
     await database.task_completions.create_index("task_id")
     await database.task_completions.create_index([("child_id", 1), ("template_id", 1)])
     await database.task_completions.create_index([("child_id", 1), ("completed_at", 1)])
+    # Multi-completion support indexes
+    await database.task_completions.create_index([("task_id", 1), ("session_number", 1)])
+    await database.task_completions.create_index([("task_id", 1), ("scheduled_date", 1)])
     await database.question_banks.create_index("question_bank_id", unique=True)
     await database.question_banks.create_index([("created_by", 1), ("is_public", 1)])
+
+    # User templates (template library) indexes
+    await database.user_templates.create_index([("user_id", 1), ("template_id", 1)], unique=True)
+    await database.user_templates.create_index("user_id")
 
 
     # Tools (still needed)
@@ -160,10 +167,10 @@ app.include_router(school_calendar_routes.router)  # School calendar (terms, hol
 app.include_router(ai_routes.router)
 app.include_router(ai_schedule_routes.router)
 
-# Task template system
-app.include_router(template_routes.router)
+# Task template system (plugin-based)
 app.include_router(completion_routes.router)
 app.include_router(analysis_routes.router)
+app.include_router(template_library_routes.router)
 
 # AI Chat
 app.include_router(chat_routes.router)

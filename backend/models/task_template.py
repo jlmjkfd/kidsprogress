@@ -5,22 +5,6 @@ from datetime import datetime
 from bson import ObjectId
 from backend.models.common import PyObjectId
 from backend.utils.datetime_utils import utcnow
-from backend.models.execution_configs import (
-    ExecutionConfigBase,
-    PassiveFormConfig,
-    InteractiveQuizConfig,
-    ContentCreationConfig,
-    ExternalLinkConfig,
-)
-
-
-# Execution config registry
-EXECUTION_CONFIG_MAP = {
-    "passive_form": PassiveFormConfig,
-    "interactive_quiz": InteractiveQuizConfig,
-    "content_creation": ContentCreationConfig,
-    "external_link": ExternalLinkConfig,
-}
 
 
 class LLMConfig(BaseModel):
@@ -51,13 +35,7 @@ class TaskTemplate(BaseModel):
 
     # Execution Configuration
     execution_handler: str = Field(..., description="Handler type ID")
-    execution_config: Union[
-        PassiveFormConfig,
-        InteractiveQuizConfig,
-        ContentCreationConfig,
-        ExternalLinkConfig,
-        Dict[str, Any]  # For extensibility
-    ] = Field(..., description="Handler-specific configuration")
+    execution_config: Dict[str, Any] = Field(..., description="Handler-specific configuration")
 
     # Optional LLM for execution (real-time feedback)
     execution_llm: Optional[LLMConfig] = None
@@ -85,19 +63,6 @@ class TaskTemplate(BaseModel):
     created_at: datetime = Field(default_factory=utcnow)
     updated_at: datetime = Field(default_factory=utcnow)
 
-    @field_validator('execution_config', mode='before')
-    @classmethod
-    def validate_execution_config(cls, v, info):
-        """Validate execution config matches handler type."""
-        handler = info.data.get('execution_handler')
-        if handler in EXECUTION_CONFIG_MAP:
-            config_class = EXECUTION_CONFIG_MAP[handler]
-            if isinstance(v, dict):
-                return config_class(**v)
-            return v
-        # Allow dict for custom/unknown handlers
-        return v
-
     class Config:
         populate_by_name = True
         arbitrary_types_allowed = True
@@ -113,6 +78,10 @@ class TaskCompletion(BaseModel):
     task_id: PyObjectId = Field(..., description="Task instance that was completed")
     child_id: PyObjectId = Field(..., description="Child who completed task")
     template_id: str = Field(..., description="Template used for this task")
+
+    # Multi-completion tracking
+    session_number: int = Field(default=1, description="Which attempt number (1, 2, 3...)")
+    scheduled_date: Optional[str] = Field(None, description="YYYY-MM-DD format for grouping completions by date")
 
     # Timing
     started_at: datetime

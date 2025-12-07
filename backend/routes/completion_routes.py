@@ -9,11 +9,46 @@ from backend.models.task import Task
 from backend.models.user import User
 from backend.routes.auth import get_current_user
 from backend.db.connection import db
-from backend.services.execution.registry import get_handler
+from backend.templates.registry import create_handler
 from backend.utils.datetime_utils import utcnow
 from backend.utils.exceptions import not_found, bad_request, forbidden, internal_error
 
 router = APIRouter(prefix="/api/completions", tags=["completions"])
+
+
+@router.post("/{task_id}/save-progress")
+async def save_task_progress(
+    task_id: str,
+    progress_data: Dict[str, Any] = Body(...),
+    current_user: User = Depends(get_current_user),
+):
+    """Save in-progress task state for resume functionality."""
+    database = db.get_database()
+    tasks_collection = database["tasks"]
+
+    # Get task to verify ownership
+    task = await tasks_collection.find_one({"_id": ObjectId(task_id)})
+    if not task:
+        raise not_found("Task")
+
+    task_obj = Task(**task)
+
+    # Verify task belongs to user
+    if str(task_obj.parent_id) != str(current_user.id):
+        raise forbidden("Access denied")
+
+    # Store progress in task document (temporary storage)
+    await tasks_collection.update_one(
+        {"_id": ObjectId(task_id)},
+        {
+            "$set": {
+                "progress_state": progress_data,
+                "progress_saved_at": utcnow()
+            }
+        }
+    )
+
+    return {"status": "saved", "saved_at": utcnow()}
 
 
 @router.get("/{task_id}/prepare")
@@ -25,6 +60,7 @@ async def prepare_task_execution(
     database = db.get_database()
     tasks_collection = database["tasks"]
     templates_collection = database["task_templates"]
+    completions_collection = database["task_completions"]
 
     # Get task
     task = await tasks_collection.find_one({"_id": ObjectId(task_id)})
@@ -45,14 +81,36 @@ async def prepare_task_execution(
     from backend.models.task_template import TaskTemplate
     template_obj = TaskTemplate(**template)
 
-    # Get handler and prepare execution
-    handler = get_handler(template_obj)
-    execution_data = await handler.prepare_execution(task_id)
+    # Check if there's saved progress
+    progress_state = task.get("progress_state")
+    is_resuming = bool(progress_state)
+
+    if progress_state:
+        # Resume from saved progress
+        execution_data = progress_state
+    else:
+        # Fresh start - generate new questions
+        handler = create_handler(
+            plugin_id=task_obj.template_id,
+            config=task_obj.execution_config or {}
+        )
+        execution_data = await handler.prepare_execution(task_id)
+
+    # Calculate session number for multi-completion tracking
+    scheduled_date = task_obj.scheduled_date.strftime("%Y-%m-%d") if task_obj.scheduled_date else None
+    session_count = await completions_collection.count_documents({
+        "task_id": ObjectId(task_id),
+        "scheduled_date": scheduled_date
+    })
 
     return {
         "task_id": task_id,
         "template_id": template_obj.template_id,
         "execution_data": execution_data,
+        "session_number": session_count + 1,  # Next session
+        "is_resuming": is_resuming,
+        "max_completions": task_obj.max_completions_per_period,
+        "completion_count": task_obj.completion_count,
     }
 
 
@@ -91,37 +149,137 @@ async def submit_task_completion(
     from backend.models.task_template import TaskTemplate
     template_obj = TaskTemplate(**template)
 
-    # Get handler and process completion
+    # Get handler from plugin registry and process completion
     try:
-        handler = get_handler(template_obj)
+        # Calculate session number for this completion
+        scheduled_date = task_obj.scheduled_date.strftime("%Y-%m-%d") if task_obj.scheduled_date else None
+        existing_completions = await completions_collection.count_documents({
+            "task_id": ObjectId(task_id),
+            "scheduled_date": scheduled_date
+        })
+        session_number = existing_completions + 1
+
+        # Debug: Check incoming data types
+        print("DEBUG - completion_routes.py:")
+        print(f"  Received completion_data keys: {completion_data.keys()}")
+        if 'answers' in completion_data:
+            print(f"  Answers type: {type(completion_data['answers'])}")
+            if completion_data['answers']:
+                first_key = list(completion_data['answers'].keys())[0]
+                first_val = completion_data['answers'][first_key]
+                print(f"  First answer: {first_key}={first_val} (type: {type(first_val)})")
+
+        handler = create_handler(
+            plugin_id=task_obj.template_id,
+            config=task_obj.execution_config or {}
+        )
         completion = await handler.process_completion(
             task_id=task_id,
             child_id=child_id,
-            raw_data=completion_data
+            data=completion_data
         )
 
-        # Calculate metrics
-        metrics = await handler.calculate_metrics(completion)
-        completion.measured_data = metrics
+        # Add session tracking
+        completion.session_number = session_number
+        completion.scheduled_date = scheduled_date
+        # Note: detailed_data and measured_data are already set by handler.process_completion()
+
+        # Calculate metrics (handler may return measured_data or compute it here)
+        if not completion.measured_data:
+            metrics = await handler.calculate_metrics(completion)
+            completion.measured_data = metrics
+
+        # Debug: Check completion before saving
+        print("DEBUG - Before saving to DB:")
+        print(f"  detailed_data type: {type(completion.detailed_data)}")
+        print(f"  measured_data type: {type(completion.measured_data)}")
+        if completion.detailed_data and 'answers' in completion.detailed_data:
+            first_key = list(completion.detailed_data['answers'].keys())[0]
+            first_val = completion.detailed_data['answers'][first_key]
+            print(f"  First answer in completion: {first_key}={first_val} (type: {type(first_val)})")
 
         # Save to database
-        await completions_collection.insert_one(completion.model_dump(by_alias=True))
+        try:
+            completion_dict = completion.model_dump(by_alias=True)
+            print(f"DEBUG - After model_dump, first answer type: {type(completion_dict.get('detailed_data', {}).get('answers', {}).get('q1'))}")
+            await completions_collection.insert_one(completion_dict)
+        except Exception as e:
+            print(f"ERROR saving to DB: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
 
-        # Update task status to completed
-        await tasks_collection.update_one(
-            {"_id": ObjectId(task_id)},
-            {
-                "$set": {
-                    "status": "completed",
-                    "completed_at": utcnow(),
-                }
-            }
-        )
+        # Check if task should auto-complete (plugin-defined logic)
+        should_complete = await handler.should_auto_complete(completion)
+
+        # Multi-completion logic
+        # max_completions can be: None/undefined (single completion), 0 (unlimited), or number > 0 (specific limit)
+        max_completions = task_obj.max_completions_per_period
+
+        # Check if this is a multi-completion task (field is set, regardless of value)
+        is_multi_completion = hasattr(task_obj, 'max_completions_per_period') and task_obj.max_completions_per_period is not None
+
+        if is_multi_completion:
+            # Multi-completion task
+            if max_completions == 0:
+                # Unlimited attempts - always reset to pending
+                await tasks_collection.update_one(
+                    {"_id": ObjectId(task_id)},
+                    {
+                        "$set": {
+                            "status": "pending",
+                            "completion_count": session_number,
+                            "progress_state": None,
+                            "updated_at": utcnow()
+                        }
+                    }
+                )
+            elif session_number >= max_completions:
+                # Max completions reached, complete the task
+                await tasks_collection.update_one(
+                    {"_id": ObjectId(task_id)},
+                    {
+                        "$set": {
+                            "status": "completed",
+                            "completed_at": utcnow(),
+                            "completion_count": session_number,
+                            "progress_state": None,
+                        }
+                    }
+                )
+            else:
+                # More attempts allowed, reset to pending
+                await tasks_collection.update_one(
+                    {"_id": ObjectId(task_id)},
+                    {
+                        "$set": {
+                            "status": "pending",
+                            "completion_count": session_number,
+                            "progress_state": None,
+                            "updated_at": utcnow()
+                        }
+                    }
+                )
+        else:
+            # Single completion task (original behavior)
+            if should_complete:
+                await tasks_collection.update_one(
+                    {"_id": ObjectId(task_id)},
+                    {
+                        "$set": {
+                            "status": "completed",
+                            "completed_at": utcnow(),
+                            "progress_state": None,
+                        }
+                    }
+                )
 
         return {
             "completion_id": completion.completion_id,
+            "session_number": session_number,
             "metrics": metrics,
             "completed_at": completion.completed_at,
+            "remaining_attempts": (max_completions - session_number) if max_completions else 0,
         }
 
     except ValueError as e:
