@@ -41,9 +41,9 @@ export function useTemplate(templateId: string | undefined) {
 
 export function useMyTemplates() {
   return useQuery({
-    queryKey: ["myTemplates"],
+    queryKey: ["my-templates"],
     queryFn: async () => {
-      const response = await apiClient.get<TaskTemplate[]>("/api/templates/my/list");
+      const response = await apiClient.get<TaskTemplate[]>("/api/templates/my-templates");
       return response.data;
     },
   });

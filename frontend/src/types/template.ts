@@ -119,6 +119,7 @@ export interface TaskCompletion {
 
   measured_data: Record<string, any>;
   detailed_data: Record<string, any>;
+  metrics?: Record<string, any>; // Calculated metrics from handler
 
   attachments: string[];
 

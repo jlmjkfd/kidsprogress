@@ -9,9 +9,9 @@ import { IconArrowLeft, IconStar, IconCheck, IconSparkles } from "@tabler/icons-
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/api/client";
 import { useSubmitCompletion } from "@/api/mutations/useCompletionMutations";
-import { getExecutor } from "@/components/executors/registry";
+import { getPlugin } from "@/templates/registry";
 import type { PrepareExecutionResponse } from "@/types/template";
-import type { CompletionData } from "@/components/executors/types";
+import type { CompletionData } from "@/templates/_shared/types/plugin-interface";
 import LoadingSpinner from "@/components/LoadingSpinner";
 
 interface CompletionResult {
@@ -36,6 +36,7 @@ export default function TaskExecutePage() {
   const navigate = useNavigate();
   const { t } = useTranslation(["tasks", "common"]);
   const [completionResult, setCompletionResult] = useState<CompletionResult | null>(null);
+  const [isComplete, setIsComplete] = useState(false);
 
   // Fetch task details
   const { data: task, isLoading: taskLoading } = useQuery({
@@ -83,8 +84,10 @@ export default function TaskExecutePage() {
         },
       });
 
-      // Store result to show feedback screen
-      setCompletionResult(result);
+      // Navigate to AttemptDetailView to show the completion
+      navigate(`/child-portal/${childId}/tasks/attempts/${taskId}?completionId=${result.completion_id}`, {
+        replace: true,
+      });
     } catch (error) {
       console.error("Failed to submit completion:", error);
       alert(t("errors:submission_failed"));
@@ -149,11 +152,9 @@ export default function TaskExecutePage() {
     );
   }
 
-  // Get the appropriate executor component
-  let ExecutorComponent;
-  try {
-    ExecutorComponent = getExecutor(executionData.execution_data.handler_type);
-  } catch {
+  // Get the appropriate executor component from plugin
+  const plugin = getPlugin(task.template_id);
+  if (!plugin) {
     return (
       <div className="min-h-screen bg-gray-50 p-4">
         <div className="max-w-2xl mx-auto">
@@ -163,7 +164,7 @@ export default function TaskExecutePage() {
             </h2>
             <p className="text-gray-600 mb-6">
               {t("tasks:executor_not_found_desc", {
-                type: executionData.execution_data.handler_type,
+                type: task.template_id,
               })}
             </p>
             <button
@@ -177,6 +178,8 @@ export default function TaskExecutePage() {
       </div>
     );
   }
+
+  const ExecutorComponent = plugin.components.TaskExecutor;
 
   // Show completion result with AI feedback
   if (completionResult && completionDetails) {
@@ -312,6 +315,7 @@ export default function TaskExecutePage() {
             executionData={executionData.execution_data}
             onComplete={handleComplete}
             onCancel={handleCancel}
+            setIsComplete={setIsComplete}
           />
         </div>
       </div>

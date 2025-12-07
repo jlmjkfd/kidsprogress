@@ -11,8 +11,10 @@ import {
   DeadlineType,
 } from "@/types/task";
 import { useTaskCollections } from "@/api/queries/useTaskCollections";
+import { useMyTemplates } from "@/api/queries/useTemplates";
 import { TaskTemplate } from "@/types/template";
 import { TaskTemplateSelector } from "./UnifiedTaskModal/TaskTemplateSelector";
+import { PluginSettingsEditor } from "./UnifiedTaskModal/PluginSettingsEditor";
 import { BasicInfoSection } from "./UnifiedTaskModal/BasicInfoSection";
 import { SchedulingSection } from "./UnifiedTaskModal/SchedulingSection";
 import { ObligationPrioritySection } from "./UnifiedTaskModal/ObligationPrioritySection";
@@ -43,6 +45,12 @@ export function UnifiedTaskModal({
   );
   const [selectedTemplate, setSelectedTemplate] = useState<TaskTemplate | null>(null);
 
+  // Load user's templates to find the template when editing
+  const { data: myTemplates } = useMyTemplates();
+  const loadedTemplate = task?.template_id
+    ? myTemplates?.find(t => t.template_id === task.template_id)
+    : undefined;
+
   // Get current time and one hour later for defaults
   const now = new Date();
   const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
@@ -56,7 +64,8 @@ export function UnifiedTaskModal({
     description: task?.description || "",
     collection_id: task?.collection_id || defaultCollection?._id || "",
     task_type_code: task?.task_type_code || "default",
-    template_id: undefined as string | undefined,
+    template_id: task?.template_id || undefined,
+    execution_config: task?.execution_config || {} as Record<string, any>,
 
     // Scheduling Type
     scheduling_type: task?.scheduling_type || SchedulingType.FLEXIBLE,
@@ -98,6 +107,9 @@ export function UnifiedTaskModal({
     pool_max_duration:
       task?.pool_usage_rules?.max_duration_per_day_minutes || null,
     pool_cooldown: task?.pool_usage_rules?.cooldown_minutes || null,
+
+    // Multi-completion support
+    max_completions_per_period: task?.max_completions_per_period !== undefined ? task.max_completions_per_period : undefined as number | null | undefined,
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -226,9 +238,11 @@ export function UnifiedTaskModal({
         };
       }
 
-      // Add template_id if using a template
-      if (formData.template_id) {
-        baseData.template_id = formData.template_id;
+      // Add template_id and execution_config if using a template
+      if (formData.template_id || task?.template_id) {
+        baseData.template_id = formData.template_id || task?.template_id;
+        baseData.execution_config = formData.execution_config;
+        baseData.max_completions_per_period = formData.max_completions_per_period;
       }
 
       if (task) {
@@ -300,33 +314,141 @@ export function UnifiedTaskModal({
             )}
 
             {/* Template Info Banner */}
-            {selectedTemplate && (
+            {(selectedTemplate || loadedTemplate) && (
               <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <h4 className="font-medium text-purple-900">
-                      {t("tasks:templates.using_template")}: {selectedTemplate.name}
+                      {t("tasks:templates.using_template")}: {selectedTemplate?.name || loadedTemplate?.name}
                     </h4>
                     <p className="text-sm text-purple-700 mt-1">
                       {t("tasks:templates.template_locked_hint")}
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedTemplate(null);
-                      setTaskTemplate("standard");
-                      setFormData({
-                        ...formData,
-                        title: "",
-                        description: "",
-                        template_id: undefined,
-                      });
-                    }}
-                    className="text-purple-600 hover:text-purple-800 text-sm font-medium"
-                  >
-                    {t("tasks:templates.remove_template")}
-                  </button>
+                  {!task && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedTemplate(null);
+                        setTaskTemplate("standard");
+                        setFormData({
+                          ...formData,
+                          title: "",
+                          description: "",
+                          template_id: undefined,
+                        });
+                      }}
+                      className="text-purple-600 hover:text-purple-800 text-sm font-medium"
+                    >
+                      {t("tasks:templates.remove_template")}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Template Configuration Editor */}
+            {(selectedTemplate || loadedTemplate) && (
+              <PluginSettingsEditor
+                template={selectedTemplate || loadedTemplate!}
+                config={formData.execution_config}
+                onChange={(config) => {
+                  setFormData({ ...formData, execution_config: config });
+                }}
+              />
+            )}
+
+            {/* Multi-Completion Settings (for template tasks) */}
+            {(selectedTemplate || task?.template_id) && (
+              <div className="border-t pt-4">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                  Practice Settings
+                </h3>
+                <div className="space-y-3">
+                  <label className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={formData.max_completions_per_period !== undefined}
+                      onChange={(e) => {
+                        setFormData({
+                          ...formData,
+                          max_completions_per_period: e.target.checked ? 3 : undefined,
+                        });
+                      }}
+                      className="w-4 h-4 text-blue-600"
+                    />
+                    <span className="text-sm font-medium text-gray-700">
+                      Allow multiple attempts per day
+                    </span>
+                  </label>
+
+                  {formData.max_completions_per_period !== undefined && (
+                    <div className="ml-7 space-y-3">
+                      <div className="space-y-2">
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            name="completion_limit"
+                            checked={formData.max_completions_per_period === 0}
+                            onChange={() => {
+                              setFormData({
+                                ...formData,
+                                max_completions_per_period: 0,
+                              });
+                            }}
+                            className="w-4 h-4 text-blue-600"
+                          />
+                          <span className="text-sm text-gray-700">Unlimited attempts</span>
+                        </label>
+
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            name="completion_limit"
+                            checked={(formData.max_completions_per_period || 0) > 0}
+                            onChange={() => {
+                              setFormData({
+                                ...formData,
+                                max_completions_per_period: 3,
+                              });
+                            }}
+                            className="w-4 h-4 text-blue-600"
+                          />
+                          <span className="text-sm text-gray-700">Set maximum</span>
+                        </label>
+                      </div>
+
+                      {(formData.max_completions_per_period || 0) > 0 && (
+                        <div className="ml-6 space-y-2">
+                          <label className="block text-sm font-medium text-gray-700">
+                            Maximum attempts per day
+                          </label>
+                          <input
+                            type="number"
+                            min="2"
+                            max="20"
+                            value={formData.max_completions_per_period || 3}
+                            onChange={(e) => {
+                              setFormData({
+                                ...formData,
+                                max_completions_per_period: parseInt(e.target.value) || 2,
+                              });
+                            }}
+                            className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          />
+                          <p className="text-xs text-gray-500">
+                            Child can complete this task up to {formData.max_completions_per_period} times per day
+                          </p>
+                        </div>
+                      )}
+
+                      {formData.max_completions_per_period === 0 && (
+                        <p className="text-xs text-gray-500 ml-6">
+                          Child can practice as many times as they want per day
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -337,7 +459,7 @@ export function UnifiedTaskModal({
               description={formData.description}
               collectionId={formData.collection_id}
               isEditMode={!!task}
-              isTemplateMode={!!selectedTemplate}
+              isTemplateMode={!!selectedTemplate || !!task?.template_id}
               collections={collections}
               onTitleChange={(value) => setFormData({ ...formData, title: value })}
               onDescriptionChange={(value) => setFormData({ ...formData, description: value })}

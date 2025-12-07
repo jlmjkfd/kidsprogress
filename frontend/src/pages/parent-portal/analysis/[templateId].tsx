@@ -10,8 +10,11 @@ import {
   IconTrendingUp,
   IconChartLine,
   IconAlertCircle,
+  IconHistory,
+  IconChevronRight,
 } from "@tabler/icons-react";
 import { useAnalysisReport } from "@/api/queries/useAnalysisReport";
+import { useCompletions } from "@/api/queries/useCompletions";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import {
   LineChart,
@@ -44,6 +47,15 @@ export default function AnalysisReportPage() {
     startDate: dateRange.start,
     endDate: dateRange.end,
   });
+
+  // Fetch completions for attempt history
+  const { data: completionsData } = useCompletions({
+    template_id: templateId,
+    child_id: actualChildId,
+    limit: 100,
+  });
+
+  const completions = completionsData?.completions || [];
 
   if (!templateId || !actualChildId) {
     return (
@@ -79,6 +91,33 @@ export default function AnalysisReportPage() {
   const formatChartDate = (dateStr: string) => {
     const date = new Date(dateStr.endsWith("Z") ? dateStr : dateStr + "Z");
     return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  };
+
+  // Group completions by date
+  const groupCompletionsByDate = () => {
+    const grouped = new Map<string, typeof completions>();
+
+    completions.forEach((completion) => {
+      const date = new Date(completion.completed_at).toLocaleDateString();
+      if (!grouped.has(date)) {
+        grouped.set(date, []);
+      }
+      grouped.get(date)!.push(completion);
+    });
+
+    // Sort by date descending
+    return Array.from(grouped.entries())
+      .sort((a, b) => new Date(b[1][0].completed_at).getTime() - new Date(a[1][0].completed_at).getTime());
+  };
+
+  const groupedAttempts = groupCompletionsByDate();
+
+  const handleViewAttempts = (date: string, completionId: string) => {
+    // Find the task_id from any completion
+    const completion = completions.find(c => c.completion_id === completionId);
+    if (completion) {
+      navigate(`/child-portal/${actualChildId}/tasks/attempts/${completion.task_id}?completionId=${completionId}`);
+    }
   };
 
   return (
@@ -190,6 +229,63 @@ export default function AnalysisReportPage() {
                   </ResponsiveContainer>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Attempt History */}
+        {completions.length > 0 && (
+          <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <IconHistory className="text-indigo-600" size={24} />
+              <h2 className="text-lg font-semibold text-gray-900">
+                {t("tasks:attempt_history")}
+              </h2>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              {t("tasks:attempt_history_description", { count: completions.length })}
+            </p>
+
+            <div className="space-y-3">
+              {groupedAttempts.map(([date, attempts]) => {
+                const avgScore = attempts.reduce((sum, a) =>
+                  sum + (a.measured_data?.score || 0), 0) / attempts.length;
+
+                return (
+                  <button
+                    key={date}
+                    onClick={() => handleViewAttempts(date, attempts[0].completion_id)}
+                    className="w-full rounded-xl border-2 border-gray-200 bg-gradient-to-r from-indigo-50 to-purple-50 p-4 text-left transition-all hover:border-indigo-300 hover:shadow-md"
+                  >
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <IconCalendar size={18} className="text-indigo-600" />
+                          <span className="font-semibold text-gray-900">{date}</span>
+                        </div>
+                        <div className="flex flex-wrap gap-3 text-sm text-gray-600">
+                          <span>
+                            {t("tasks:attempts_count", { count: attempts.length })}
+                          </span>
+                          {avgScore > 0 && (
+                            <span className="text-green-600 font-medium">
+                              {t("tasks:avg_score")}: {avgScore.toFixed(1)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="rounded-full bg-indigo-100 px-4 py-2">
+                          <span className="font-bold text-indigo-700">
+                            {attempts.length}
+                          </span>
+                        </div>
+                        <IconChevronRight size={20} className="text-gray-400" />
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
