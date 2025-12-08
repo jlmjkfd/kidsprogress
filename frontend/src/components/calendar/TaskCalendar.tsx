@@ -132,6 +132,11 @@ export function TaskCalendar({
     tasks.forEach(task => {
       if (!task.scheduled_date) return;
       if (!task.scheduled_date.startsWith(dateStr)) return;
+
+      // Skip informational tasks (they can't be overdue)
+      if (task.is_informational) return;
+
+      // Skip completed/skipped/archived tasks
       if (task.status === 'completed' || task.status === 'skipped' || task.status === 'archived') return;
 
       if (task.obligation_level === 'must_do') {
