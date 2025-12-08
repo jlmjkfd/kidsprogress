@@ -233,10 +233,9 @@ class TestDeviceRetrieval:
 
     @pytest.mark.asyncio
     async def test_get_parent_devices_invalid_id(self, device_service):
-        """Test getting devices with invalid parent ID returns empty list."""
-        devices = await device_service.get_parent_devices("invalid-id")
-
-        assert devices == []
+        """Test getting devices with invalid parent ID raises ValueError."""
+        with pytest.raises(ValueError, match="Invalid parent_id"):
+            await device_service.get_parent_devices("invalid-id")
 
     @pytest.mark.asyncio
     async def test_get_parent_devices_no_devices(self, device_service, test_db):

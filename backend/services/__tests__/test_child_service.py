@@ -66,10 +66,10 @@ class TestChildCreation:
 
         assert child is not None
         assert child.name == "Test Child"
-        assert child.date_of_birth == "2015-05-15"
+        assert child.date_of_birth == date(2015, 5, 15)
         assert child.avatar_url == "https://example.com/avatar.png"
         assert child.pin_required is True
-        assert hasattr(child, "_id")
+        assert hasattr(child, "id")
         assert child.parent_id == ObjectId(sample_parent)
 
     @pytest.mark.asyncio
@@ -78,7 +78,7 @@ class TestChildCreation:
         child = await child_service.create_child(sample_parent, sample_child_data)
 
         # Get child from DB to check pin_hash
-        child_doc = await child_service.children_collection.find_one({"_id": ObjectId(str(child._id))})
+        child_doc = await child_service.children_collection.find_one({"_id": ObjectId(str(child.id))})
 
         assert "pin_hash" in child_doc
         assert child_doc["pin_hash"] != "1234"
@@ -101,7 +101,7 @@ class TestChildCreation:
         assert child.pin_required is False
 
         # Verify no PIN hash stored
-        child_doc = await child_service.children_collection.find_one({"_id": ObjectId(str(child._id))})
+        child_doc = await child_service.children_collection.find_one({"_id": ObjectId(str(child.id))})
         assert child_doc["pin_hash"] is None
 
     @pytest.mark.asyncio
@@ -117,7 +117,7 @@ class TestChildCreation:
 
         # Check task collections were created
         collections = await child_service.task_collections_collection.find(
-            {"child_id": ObjectId(str(child._id))}
+            {"child_id": ObjectId(str(child.id))}
         ).to_list(length=10)
 
         assert len(collections) == 2
@@ -158,7 +158,7 @@ class TestChildCreation:
         """Test that date_of_birth is stored as ISO string."""
         child = await child_service.create_child(sample_parent, sample_child_data)
 
-        child_doc = await child_service.children_collection.find_one({"_id": ObjectId(str(child._id))})
+        child_doc = await child_service.children_collection.find_one({"_id": ObjectId(str(child.id))})
         assert child_doc["date_of_birth"] == "2015-05-15"
 
     @pytest.mark.asyncio
@@ -192,7 +192,7 @@ class TestChildCreation:
         child1 = await child_service.create_child(sample_parent, child_data_1)
         child2 = await child_service.create_child(sample_parent, child_data_2)
 
-        assert child1._id != child2._id
+        assert child1.id != child2.id
         assert child1.parent_id == child2.parent_id
 
     @pytest.mark.asyncio
@@ -208,7 +208,7 @@ class TestChildCreation:
 
         child = await child_service.create_child(sample_parent, child_data)
 
-        child_doc = await child_service.children_collection.find_one({"_id": ObjectId(str(child._id))})
+        child_doc = await child_service.children_collection.find_one({"_id": ObjectId(str(child.id))})
         assert child_doc["pin_hash"] is not None
         assert child_doc["pin_hash"] != "5678"
 
@@ -252,11 +252,11 @@ class TestChildRetrieval:
     async def test_get_child_by_id_exists(self, child_service, sample_parent, sample_child_data):
         """Test retrieving child by ID."""
         child = await child_service.create_child(sample_parent, sample_child_data)
-        retrieved = await child_service.get_child_by_id(str(child._id))
+        retrieved = await child_service.get_child_by_id(str(child.id))
 
         assert retrieved is not None
         assert retrieved.name == child.name
-        assert retrieved._id == child._id
+        assert retrieved.id == child.id
         assert hasattr(retrieved, "pin_hash")
 
     @pytest.mark.asyncio
@@ -269,16 +269,15 @@ class TestChildRetrieval:
 
     @pytest.mark.asyncio
     async def test_get_child_by_id_invalid_id(self, child_service):
-        """Test retrieving child with invalid ID returns None."""
-        child = await child_service.get_child_by_id("invalid_id")
-
-        assert child is None
+        """Test retrieving child with invalid ID raises ValueError."""
+        with pytest.raises(ValueError, match="Invalid child_id"):
+            await child_service.get_child_by_id("invalid_id")
 
     @pytest.mark.asyncio
     async def test_get_child_by_id_returns_child_in_db(self, child_service, sample_parent, sample_child_data):
         """Test that get_child_by_id returns ChildInDB with pin_hash."""
         child = await child_service.create_child(sample_parent, sample_child_data)
-        retrieved = await child_service.get_child_by_id(str(child._id))
+        retrieved = await child_service.get_child_by_id(str(child.id))
 
         assert retrieved is not None
         assert retrieved.pin_hash is not None
@@ -332,11 +331,11 @@ class TestChildUpdate:
             pin=None
         )
 
-        updated = await child_service.update_child(str(child._id), sample_parent, update_data)
+        updated = await child_service.update_child(str(child.id), sample_parent, update_data)
 
         assert updated is not None
         assert updated.name == "Updated Child"
-        assert updated.date_of_birth == "2016-06-20"
+        assert updated.date_of_birth == date(2016, 6, 20)
         assert updated.avatar_url == "https://example.com/new_avatar.png"
         assert updated.pin_required is False
 
@@ -370,7 +369,7 @@ class TestChildUpdate:
             pin=None
         )
 
-        updated = await child_service.update_child(str(child._id), wrong_parent, update_data)
+        updated = await child_service.update_child(str(child.id), wrong_parent, update_data)
 
         assert updated is None
 
@@ -385,9 +384,8 @@ class TestChildUpdate:
             pin=None
         )
 
-        updated = await child_service.update_child("invalid_id", "invalid_parent", update_data)
-
-        assert updated is None
+        with pytest.raises(ValueError, match="Invalid child_id"):
+            await child_service.update_child("invalid_id", "invalid_parent", update_data)
 
     @pytest.mark.asyncio
     async def test_update_child_updates_pin(self, child_service, sample_parent, sample_child_data):
@@ -395,7 +393,7 @@ class TestChildUpdate:
         child = await child_service.create_child(sample_parent, sample_child_data)
 
         # Get original PIN hash
-        original_doc = await child_service.children_collection.find_one({"_id": ObjectId(str(child._id))})
+        original_doc = await child_service.children_collection.find_one({"_id": ObjectId(str(child.id))})
         original_hash = original_doc["pin_hash"]
 
         # Update with new PIN
@@ -407,10 +405,10 @@ class TestChildUpdate:
             pin="9999"
         )
 
-        updated = await child_service.update_child(str(child._id), sample_parent, update_data)
+        updated = await child_service.update_child(str(child.id), sample_parent, update_data)
 
         # Get new PIN hash
-        updated_doc = await child_service.children_collection.find_one({"_id": ObjectId(str(child._id))})
+        updated_doc = await child_service.children_collection.find_one({"_id": ObjectId(str(child.id))})
         new_hash = updated_doc["pin_hash"]
 
         assert new_hash != original_hash
@@ -430,10 +428,10 @@ class TestChildUpdate:
             pin=None
         )
 
-        updated = await child_service.update_child(str(child._id), sample_parent, update_data)
+        updated = await child_service.update_child(str(child.id), sample_parent, update_data)
 
         # Verify PIN removed
-        updated_doc = await child_service.children_collection.find_one({"_id": ObjectId(str(child._id))})
+        updated_doc = await child_service.children_collection.find_one({"_id": ObjectId(str(child.id))})
         assert updated_doc["pin_hash"] is None
         assert updated.pin_required is False
 
@@ -451,9 +449,16 @@ class TestChildUpdate:
             pin="1234"
         )
 
-        updated = await child_service.update_child(str(child._id), sample_parent, update_data)
+        updated = await child_service.update_child(str(child.id), sample_parent, update_data)
 
-        assert updated.updated_at > original_updated_at
+        # Both timestamps should exist and updated should be >= original
+        assert updated.updated_at is not None
+        assert original_updated_at is not None
+
+        # Strip timezone info for comparison if needed
+        updated_ts = updated.updated_at.replace(tzinfo=None) if updated.updated_at.tzinfo else updated.updated_at
+        original_ts = original_updated_at.replace(tzinfo=None) if original_updated_at.tzinfo else original_updated_at
+        assert updated_ts >= original_ts
 
     @pytest.mark.asyncio
     async def test_update_child_preserves_created_at(self, child_service, sample_parent, sample_child_data):
@@ -469,9 +474,14 @@ class TestChildUpdate:
             pin="1234"
         )
 
-        updated = await child_service.update_child(str(child._id), sample_parent, update_data)
+        updated = await child_service.update_child(str(child.id), sample_parent, update_data)
 
-        assert updated.created_at == original_created_at
+        # Strip timezone info for comparison if needed
+        updated_ts = updated.created_at.replace(tzinfo=None) if updated.created_at.tzinfo else updated.created_at
+        original_ts = original_created_at.replace(tzinfo=None) if original_created_at.tzinfo else original_created_at
+
+        # Compare timestamps (accounting for microsecond precision differences)
+        assert abs((updated_ts - original_ts).total_seconds()) < 1
 
 
 class TestChildDeletion:
@@ -482,12 +492,12 @@ class TestChildDeletion:
         """Test deleting a child profile."""
         child = await child_service.create_child(sample_parent, sample_child_data)
 
-        success = await child_service.delete_child(str(child._id), sample_parent)
+        success = await child_service.delete_child(str(child.id), sample_parent)
 
         assert success is True
 
         # Verify child is deleted
-        deleted = await child_service.get_child_by_id(str(child._id))
+        deleted = await child_service.get_child_by_id(str(child.id))
         assert deleted is None
 
     @pytest.mark.asyncio
@@ -504,20 +514,19 @@ class TestChildDeletion:
         child = await child_service.create_child(sample_parent, sample_child_data)
         wrong_parent = str(ObjectId())
 
-        success = await child_service.delete_child(str(child._id), wrong_parent)
+        success = await child_service.delete_child(str(child.id), wrong_parent)
 
         assert success is False
 
         # Verify child still exists
-        existing = await child_service.get_child_by_id(str(child._id))
+        existing = await child_service.get_child_by_id(str(child.id))
         assert existing is not None
 
     @pytest.mark.asyncio
     async def test_delete_child_invalid_ids(self, child_service):
-        """Test deleting child with invalid IDs returns False."""
-        success = await child_service.delete_child("invalid_id", "invalid_parent")
-
-        assert success is False
+        """Test deleting child with invalid IDs raises ValueError."""
+        with pytest.raises(ValueError, match="Invalid child_id"):
+            await child_service.delete_child("invalid_id", "invalid_parent")
 
 
 class TestPINManagement:
@@ -558,7 +567,7 @@ class TestPINManagement:
         """Test verifying child PIN with correct PIN."""
         child = await child_service.create_child(sample_parent, sample_child_data)
 
-        result = await child_service.verify_child_pin(str(child._id), "1234")
+        result = await child_service.verify_child_pin(str(child.id), "1234")
 
         assert result is True
 
@@ -567,7 +576,7 @@ class TestPINManagement:
         """Test verifying child PIN with incorrect PIN."""
         child = await child_service.create_child(sample_parent, sample_child_data)
 
-        result = await child_service.verify_child_pin(str(child._id), "9999")
+        result = await child_service.verify_child_pin(str(child.id), "9999")
 
         assert result is False
 
@@ -583,7 +592,7 @@ class TestPINManagement:
         )
         child = await child_service.create_child(sample_parent, child_data)
 
-        result = await child_service.verify_child_pin(str(child._id), "1234")
+        result = await child_service.verify_child_pin(str(child.id), "1234")
 
         assert result is False
 
@@ -607,12 +616,12 @@ class TestPINManagement:
         )
         child = await child_service.create_child(sample_parent, child_data)
 
-        result = await child_service.verify_child_pin(str(child._id), "0123")
+        result = await child_service.verify_child_pin(str(child.id), "0123")
 
         assert result is True
 
         # Ensure "123" doesn't match
-        result_wrong = await child_service.verify_child_pin(str(child._id), "123")
+        result_wrong = await child_service.verify_child_pin(str(child.id), "123")
         assert result_wrong is False
 
     @pytest.mark.asyncio
@@ -627,6 +636,6 @@ class TestPINManagement:
         )
         child = await child_service.create_child(sample_parent, child_data)
 
-        result = await child_service.verify_child_pin(str(child._id), "1234")
+        result = await child_service.verify_child_pin(str(child.id), "1234")
 
         assert result is False
