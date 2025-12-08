@@ -461,6 +461,7 @@ class TaskCRUD:
             "parent_id": parent_id_obj,
             "scheduled_date": {"$lt": today_start},
             "status": {"$nin": ["completed", "skipped", "archived"]},
+            "is_informational": {"$ne": True},  # Exclude informational tasks
         }
 
         if must_do_only:
@@ -506,6 +507,7 @@ class TaskCRUD:
             "parent_id": parent_id_obj,
             "scheduled_date": {"$lt": today_start},
             "status": {"$nin": ["completed", "skipped", "archived"]},
+            "is_informational": {"$ne": True},  # Exclude informational tasks
         }).to_list(None)
 
         # Count by obligation level
