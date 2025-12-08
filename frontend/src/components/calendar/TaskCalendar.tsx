@@ -146,28 +146,35 @@ export function TaskCalendar({
     return null;
   };
 
+  // Dimension 1: Day Type - Controls background color
   const getDayTypeBgColor = (
     dayType: DayType | undefined,
-    isToday: boolean,
-    overdueLevel: 'must-do' | 'other' | null
+    isToday: boolean
   ) => {
-    // Overdue tasks take priority - different colors by level
-    if (overdueLevel === 'must-do') return "bg-red-50 border-red-300";
-    if (overdueLevel === 'other') return "bg-orange-50 border-orange-300";
-
-    if (isToday) return "bg-blue-100 border-blue-500";
+    if (isToday) return "bg-blue-100";
 
     switch (dayType) {
       case "school_day":
-        return "bg-blue-50 border-blue-200";
+        return "bg-blue-50";
       case "holiday":
-        return "bg-green-50 border-green-200";
+        return "bg-green-50";
       case "special_school_day":
-        return "bg-purple-50 border-purple-200";
+        return "bg-purple-50";
       case "weekend":
       default:
-        return "bg-white border-gray-200";
+        return "bg-white";
     }
+  };
+
+  // Dimension 2: Overdue Status - Controls border style
+  const getOverdueBorderClass = (overdueLevel: 'must-do' | 'other' | null) => {
+    if (overdueLevel === 'must-do') {
+      return "border-2 border-red-500"; // Thick red border for urgent
+    }
+    if (overdueLevel === 'other') {
+      return "border-2 border-orange-400"; // Thick orange border for medium priority
+    }
+    return "border border-gray-200"; // Thin gray border for normal
   };
 
   // Helper functions for different views
@@ -440,43 +447,39 @@ export function TaskCalendar({
                       }
                       handleDayClick(dateStr, dayTasks, dayType);
                     }}
-                    className={`flex flex-col items-center justify-center rounded-md border p-1 min-h-[48px] sm:min-h-[56px] ${
+                    className={`flex flex-col items-center justify-center rounded-md p-1 min-h-[48px] sm:min-h-[56px] ${
                       isSelected
-                        ? 'border-blue-500 border-2 ring-1 ring-blue-200'
+                        ? 'border-blue-500 border-2 ring-1 ring-blue-200 ' + getDayTypeBgColor(dayType, isTodayDate)
                         : isOtherMonth
-                          ? 'bg-gray-50 border-gray-200'
-                          : getDayTypeBgColor(dayType, isTodayDate, overdueLevel)
+                          ? 'bg-gray-50 border border-gray-200'
+                          : getDayTypeBgColor(dayType, isTodayDate) + ' ' + getOverdueBorderClass(overdueLevel)
                     } transition-colors hover:border-gray-400 cursor-pointer ${
                       hasNonInfoTasks && !isOtherMonth ? 'font-semibold' : ''
                     }`}
                   >
                     {/* Day number */}
                     <div
-                      className={`text-sm ${
+                      className={`text-sm font-semibold ${
                         isOtherMonth
                           ? 'text-gray-400'
-                          : overdueLevel === 'must-do'
-                            ? 'text-red-700 font-bold'
-                            : overdueLevel === 'other'
-                              ? 'text-orange-700 font-bold'
-                              : isTodayDate
-                                ? 'text-blue-700'
-                                : 'text-gray-700'
+                          : isTodayDate
+                            ? 'text-blue-700'
+                            : 'text-gray-700'
                       }`}
                     >
                       {day}
                     </div>
 
-                    {/* Task indicator dot - red for must-do overdue, orange for other overdue, blue for normal */}
+                    {/* Task indicator dot - matches overdue border color */}
                     {hasNonInfoTasks && (
                       <div className="mt-0.5">
-                        <div className={`h-1 w-1 rounded-full ${
+                        <div className={`h-1.5 w-1.5 rounded-full ${
                           isOtherMonth
                             ? 'bg-gray-400'
                             : overdueLevel === 'must-do'
                               ? 'bg-red-500'
                               : overdueLevel === 'other'
-                                ? 'bg-orange-500'
+                                ? 'bg-orange-400'
                                 : 'bg-blue-500'
                         }`} />
                       </div>
