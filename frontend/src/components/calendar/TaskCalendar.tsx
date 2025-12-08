@@ -118,11 +118,29 @@ export function TaskCalendar({
     );
   };
 
+  // Helper to check if a date has overdue MUST_DO tasks
+  const hasOverdueMustDo = (dateStr: string): boolean => {
+    const taskDate = new Date(dateStr + 'T00:00:00');
+    const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+    if (taskDate >= todayDate) return false; // Not overdue if today or future
+
+    return tasks.some(task => {
+      if (!task.scheduled_date) return false;
+      if (!task.scheduled_date.startsWith(dateStr)) return false;
+      if (task.status === 'completed' || task.status === 'skipped' || task.status === 'archived') return false;
+      return task.obligation_level === 'must_do';
+    });
+  };
 
   const getDayTypeBgColor = (
     dayType: DayType | undefined,
-    isToday: boolean
+    isToday: boolean,
+    hasOverdue: boolean
   ) => {
+    // Overdue MUST_DO tasks take priority
+    if (hasOverdue) return "bg-red-50 border-red-300";
+
     if (isToday) return "bg-blue-100 border-blue-500";
 
     switch (dayType) {
@@ -395,6 +413,7 @@ export function TaskCalendar({
                 const dayType = dayTypeMap.get(dateStr);
                 const isOtherMonth = monthType !== 'current';
                 const isSelected = dateStr === selectedDate;
+                const hasOverdue = monthType === 'current' && hasOverdueMustDo(dateStr);
 
                 return (
                   <div
@@ -412,7 +431,7 @@ export function TaskCalendar({
                         ? 'border-blue-500 border-2 ring-1 ring-blue-200'
                         : isOtherMonth
                           ? 'bg-gray-50 border-gray-200'
-                          : getDayTypeBgColor(dayType, isTodayDate)
+                          : getDayTypeBgColor(dayType, isTodayDate, hasOverdue)
                     } transition-colors hover:border-gray-400 cursor-pointer ${
                       hasNonInfoTasks && !isOtherMonth ? 'font-semibold' : ''
                     }`}
@@ -422,19 +441,21 @@ export function TaskCalendar({
                       className={`text-sm ${
                         isOtherMonth
                           ? 'text-gray-400'
-                          : isTodayDate
-                            ? 'text-blue-700'
-                            : 'text-gray-700'
+                          : hasOverdue
+                            ? 'text-red-700 font-bold'
+                            : isTodayDate
+                              ? 'text-blue-700'
+                              : 'text-gray-700'
                       }`}
                     >
                       {day}
                     </div>
 
-                    {/* Task indicator dot */}
+                    {/* Task indicator dot - red for overdue, blue for normal */}
                     {hasNonInfoTasks && (
                       <div className="mt-0.5">
                         <div className={`h-1 w-1 rounded-full ${
-                          isOtherMonth ? 'bg-gray-400' : 'bg-blue-500'
+                          isOtherMonth ? 'bg-gray-400' : hasOverdue ? 'bg-red-500' : 'bg-blue-500'
                         }`} />
                       </div>
                     )}
