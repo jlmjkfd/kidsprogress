@@ -432,8 +432,14 @@ export default function ChildTasksPage() {
                   <TaskCard
                     key={task._id}
                     task={task}
+                    // Template tasks show "Continue" button, regular tasks show "Pause"
+                    onContinue={
+                      task.template_id && !isInformationalTask(task)
+                        ? () => navigate(`/child-portal/${childId}/tasks/execute/${task._id}`)
+                        : undefined
+                    }
                     onPause={
-                      !isInformationalTask(task)
+                      !task.template_id && !isInformationalTask(task)
                         ? () => handlePauseTask(task._id)
                         : undefined
                     }
@@ -563,6 +569,7 @@ interface TaskCardProps {
   onComplete?: () => void;
   onViewResult?: () => void;
   onViewAttempts?: () => void;
+  onContinue?: () => void; // For template tasks in IN_PROGRESS state
 }
 
 function TaskCard({
@@ -573,11 +580,13 @@ function TaskCard({
   onComplete,
   onViewResult,
   onViewAttempts,
+  onContinue,
 }: TaskCardProps) {
   const { t } = useTranslation(["tasks"]);
 
   const isInProgress = task.status === "in_progress";
   const isPaused = task.status === "paused";
+  const isTemplateTask = !!task.template_id;
 
   return (
     <div
@@ -653,7 +662,19 @@ function TaskCard({
             </button>
           )}
 
-          {onPause && (
+          {/* Continue button for template tasks (instead of pause) */}
+          {onContinue && (
+            <button
+              onClick={onContinue}
+              className="flex min-h-[64px] items-center justify-center gap-3 rounded-2xl bg-blue-600 px-8 py-4 text-xl font-bold text-white shadow-lg transition-all hover:scale-105 hover:bg-blue-700"
+            >
+              <IconPlayerPlay size={28} />
+              {t("tasks:continue")}
+            </button>
+          )}
+
+          {/* Pause button for regular tasks only */}
+          {onPause && !isTemplateTask && (
             <button
               onClick={onPause}
               className="flex min-h-[64px] items-center justify-center gap-3 rounded-2xl bg-yellow-600 px-8 py-4 text-xl font-bold text-white shadow-lg transition-all hover:scale-105 hover:bg-yellow-700"
