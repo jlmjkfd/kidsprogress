@@ -254,7 +254,10 @@ class ActivityService:
             duration_minutes=duration_minutes,
         )
 
-        await self.activity_usage.insert_one(usage.model_dump(by_alias=True))
+        # Convert date to string for MongoDB storage
+        usage_doc = usage.model_dump(by_alias=True)
+        usage_doc["usage_date"] = usage_date.isoformat()
+        await self.activity_usage.insert_one(usage_doc)
 
         # Increment times_used on activity
         await self.activities.update_one(
