@@ -25,7 +25,7 @@ describe('useRemoveParentPin', () => {
 
   it('should remove PIN successfully', async () => {
     server.use(
-      http.post('http://localhost:8000/api/auth/parent-pin/remove', () => {
+      http.delete('http://localhost:8000/api/auth/parent-pin', () => {
         return HttpResponse.json({ message: 'PIN removed successfully' })
       })
     )
@@ -44,7 +44,7 @@ describe('useRemoveParentPin', () => {
     let endpointCalled = false
 
     server.use(
-      http.post('http://localhost:8000/api/auth/parent-pin/remove', () => {
+      http.delete('http://localhost:8000/api/auth/parent-pin', () => {
         endpointCalled = true
         return HttpResponse.json({ message: 'PIN removed successfully' })
       })
@@ -71,7 +71,7 @@ describe('useRemoveParentPin', () => {
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries')
 
     server.use(
-      http.post('http://localhost:8000/api/auth/parent-pin/remove', () => {
+      http.delete('http://localhost:8000/api/auth/parent-pin', () => {
         return HttpResponse.json({ message: 'PIN removed successfully' })
       })
     )
@@ -91,7 +91,7 @@ describe('useRemoveParentPin', () => {
 
   it('should succeed even if no PIN was set', async () => {
     server.use(
-      http.post('http://localhost:8000/api/auth/parent-pin/remove', () => {
+      http.delete('http://localhost:8000/api/auth/parent-pin', () => {
         return HttpResponse.json({ message: 'No PIN to remove' })
       })
     )
@@ -107,7 +107,7 @@ describe('useRemoveParentPin', () => {
 
   it('should handle authentication required error', async () => {
     server.use(
-      http.post('http://localhost:8000/api/auth/parent-pin/remove', () => {
+      http.delete('http://localhost:8000/api/auth/parent-pin', () => {
         return new HttpResponse(null, { status: 403 })
       })
     )

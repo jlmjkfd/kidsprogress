@@ -285,7 +285,7 @@ describe('useOverdueStats', () => {
     renderHook(() => useOverdueStats(childId), { wrapper })
 
     await waitFor(() => {
-      const data = queryClient.getQueryData(['overdue-stats', childId])
+      const data = queryClient.getQueryData(['tasks', 'child', childId, 'overdue', 'stats'])
       expect(data).toBeDefined()
     })
   })

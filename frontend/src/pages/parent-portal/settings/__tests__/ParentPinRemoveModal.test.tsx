@@ -53,7 +53,7 @@ describe('ParentPinRemoveModal', () => {
     let removeCalled = false
 
     server.use(
-      http.post('http://localhost:8000/api/auth/parent-pin/remove', () => {
+      http.delete('http://localhost:8000/api/auth/parent-pin', () => {
         removeCalled = true
         return HttpResponse.json({ message: 'PIN removed successfully' })
       })
@@ -78,7 +78,7 @@ describe('ParentPinRemoveModal', () => {
     const user = userEvent.setup()
 
     server.use(
-      http.post('http://localhost:8000/api/auth/parent-pin/remove', () => {
+      http.delete('http://localhost:8000/api/auth/parent-pin', () => {
         return HttpResponse.json({ message: 'PIN removed successfully' })
       })
     )

@@ -87,9 +87,10 @@ describe('DeviceManagementSection', () => {
       error: null,
     } as any)
 
-    render(<DeviceManagementSection />, { wrapper: createWrapper() })
+    const { container } = render(<DeviceManagementSection />, { wrapper: createWrapper() })
 
-    expect(screen.getByText(/common:loading/i)).toBeInTheDocument()
+    // Check for loading spinner instead of text
+    expect(container.querySelector('.animate-spin')).toBeInTheDocument()
   })
 
   it('should render device list', () => {
