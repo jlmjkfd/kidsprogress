@@ -62,10 +62,18 @@ class TimeBlockService:
                 status=TaskStatus.PENDING,
             )
 
-            task_result = await self.tasks.insert_one(task.model_dump(by_alias=True))
+            # Insert task -  MongoDB requires _id as ObjectId not string
+            task_doc = task.model_dump(by_alias=True)
+            # Convert string IDs back to ObjectId for MongoDB
+            for key in ['_id', 'collection_id', 'child_id', 'parent_id', 'source_id']:
+                if key in task_doc and isinstance(task_doc[key], str):
+                    task_doc[key] = ObjectId(task_doc[key])
+            task_result = await self.tasks.insert_one(task_doc)
             time_block.task_id = task_result.inserted_id
 
-        result = await self.time_blocks.insert_one(time_block.model_dump(by_alias=True))
+        # Convert to dict with proper serialization (mode='json' handles date/enum objects)
+        time_block_doc = time_block.model_dump(by_alias=True, mode='json')
+        result = await self.time_blocks.insert_one(time_block_doc)
         time_block.id = result.inserted_id
         return time_block
 
@@ -79,7 +87,7 @@ class TimeBlockService:
     ) -> List[TimeBlock]:
         """Get all time blocks for a specific date."""
         cursor = self.time_blocks.find({
-            "child_id": child_id,
+            "child_id": str(child_id),  # Stored as string from mode='json'
             "date": target_date.isoformat()
         })
         return [TimeBlock(**doc) async for doc in cursor]
@@ -89,7 +97,7 @@ class TimeBlockService:
     ) -> List[TimeBlock]:
         """Get all time blocks in a date range."""
         cursor = self.time_blocks.find({
-            "child_id": child_id,
+            "child_id": str(child_id),  # Stored as string from mode='json'
             "date": {
                 "$gte": start_date.isoformat(),
                 "$lte": end_date.isoformat()
@@ -105,9 +113,13 @@ class TimeBlockService:
         if not update_data:
             return await self.get_time_block(block_id)
 
-        # Convert date to ISO string if present
-        if "date" in update_data:
+        # Convert date/enum to proper format for MongoDB
+        if "date" in update_data and update_data["date"]:
             update_data["date"] = update_data["date"].isoformat()
+        if "day_type" in update_data and update_data["day_type"]:
+            from backend.models.time_block import DayTypeEnum
+            if isinstance(update_data["day_type"], DayTypeEnum):
+                update_data["day_type"] = update_data["day_type"].value
 
         update_data["updated_at"] = utcnow()
 
@@ -125,7 +137,9 @@ class TimeBlockService:
 
         # Delete associated task if exists
         if time_block.task_id:
-            await self.tasks.delete_one({"_id": time_block.task_id})
+            # task_id may be string from MongoDB, convert to ObjectId
+            task_obj_id = time_block.task_id if isinstance(time_block.task_id, ObjectId) else ObjectId(time_block.task_id)
+            await self.tasks.delete_one({"_id": task_obj_id})
 
         result = await self.time_blocks.delete_one({"_id": block_id})
         return result.deleted_count > 0
@@ -136,8 +150,9 @@ class TimeBlockService:
     ) -> DayType:
         """Create or update day type for a date."""
         # Check if day type already exists for this date
+        # child_id stored as string from mode='json'
         existing = await self.day_types.find_one({
-            "child_id": ObjectId(data.child_id),
+            "child_id": data.child_id,
             "date": data.date.isoformat()
         })
 
@@ -163,7 +178,9 @@ class TimeBlockService:
             notes=data.notes,
         )
 
-        result = await self.day_types.insert_one(day_type.model_dump(by_alias=True))
+        # Convert to dict with proper serialization (mode='json' handles date/enum objects)
+        day_type_doc = day_type.model_dump(by_alias=True, mode='json')
+        result = await self.day_types.insert_one(day_type_doc)
         day_type.id = result.inserted_id
         return day_type
 
@@ -172,7 +189,7 @@ class TimeBlockService:
     ) -> Optional[DayType]:
         """Get day type for a specific date."""
         doc = await self.day_types.find_one({
-            "child_id": child_id,
+            "child_id": str(child_id),  # Stored as string from mode='json'
             "date": target_date.isoformat()
         })
         return DayType(**doc) if doc else None
@@ -182,7 +199,7 @@ class TimeBlockService:
     ) -> List[DayType]:
         """Get day types in a date range."""
         cursor = self.day_types.find({
-            "child_id": child_id,
+            "child_id": str(child_id),  # Stored as string from mode='json'
             "date": {
                 "$gte": start_date.isoformat(),
                 "$lte": end_date.isoformat()
@@ -198,12 +215,14 @@ class TimeBlockService:
         if not update_data:
             return await self.get_day_type(child_id, target_date)
 
-        if "day_type" in update_data:
-            update_data["day_type"] = update_data["day_type"].value
+        if "day_type" in update_data and update_data["day_type"]:
+            from backend.models.time_block import DayTypeEnum
+            if isinstance(update_data["day_type"], DayTypeEnum):
+                update_data["day_type"] = update_data["day_type"].value
 
         result = await self.day_types.find_one_and_update(
             {
-                "child_id": child_id,
+                "child_id": str(child_id),  # Stored as string from mode='json'
                 "date": target_date.isoformat()
             },
             {"$set": update_data},
@@ -217,7 +236,7 @@ class TimeBlockService:
     ) -> bool:
         """Delete day type for a date."""
         result = await self.day_types.delete_one({
-            "child_id": child_id,
+            "child_id": str(child_id),  # Stored as string from mode='json'
             "date": target_date.isoformat()
         })
         return result.deleted_count > 0
