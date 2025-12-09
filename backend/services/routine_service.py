@@ -122,15 +122,16 @@ class RoutineService:
             )
 
         # Also cancel any existing task for that date
+        # source_id stored as string from model_dump json_encoders
         query = {
-            "source_id": routine_id,
-            "task_source": TaskSource.ROUTINE,
+            "source_id": str(routine_id),
+            "task_source": TaskSource.ROUTINE.value,  # Stored as string value
         }
         query.update(date_range_query("scheduled_date", skip_date, skip_date))
 
         await self.tasks.update_many(
             query,
-            {"$set": {"status": "skipped", "updated_at": utcnow()}}
+            {"$set": {"status": TaskStatus.SKIPPED.value, "updated_at": utcnow()}}
         )
 
         return True
@@ -183,9 +184,10 @@ class RoutineService:
             return None
 
         # Check if task already exists for this date
+        # source_id stored as string from model_dump json_encoders
         query = {
-            "source_id": routine.id,
-            "task_source": TaskSource.ROUTINE,
+            "source_id": str(routine.id),
+            "task_source": TaskSource.ROUTINE.value,  # Stored as string value
         }
         query.update(date_range_query("scheduled_date", target_date, target_date))
 

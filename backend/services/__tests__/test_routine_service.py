@@ -629,14 +629,15 @@ async def test_cancel_routine_instance_adds_to_skip_dates(routine_service: Routi
 async def test_cancel_routine_instance_marks_task_as_skipped(routine_service: RoutineService, sample_routine, test_db):
     """Test canceling instance marks existing task as skipped."""
     # Create a task for that date
+    # Use string IDs to match how the service stores tasks
     task_data = {
         "_id": ObjectId(),
-        "collection_id": sample_routine["collection_id"],
-        "child_id": sample_routine["child_id"],
-        "parent_id": sample_routine["parent_id"],
+        "collection_id": str(sample_routine["collection_id"]),
+        "child_id": str(sample_routine["child_id"]),
+        "parent_id": str(sample_routine["parent_id"]),
         "title": "Test Task",
         "task_source": "routine",
-        "source_id": sample_routine["_id"],
+        "source_id": str(sample_routine["_id"]),
         "scheduled_date": datetime.combine(date(2025, 12, 15), datetime.min.time()),
         "status": "pending",
         "created_at": utcnow(),
@@ -688,13 +689,8 @@ async def test_generate_tasks_for_date_returns_none_for_invalid_date(routine_ser
 
 
 @pytest.mark.asyncio
-@pytest.mark.skip(reason="date_range_query matching needs investigation")
 async def test_generate_tasks_for_date_returns_existing_task_if_already_exists(routine_service: RoutineService, sample_routine, test_db):
-    """Test generating task returns existing task if already exists.
-
-    NOTE: This test is skipped because the date_range_query doesn't match correctly.
-    The service should find and return existing tasks, but the query needs fixing.
-    """
+    """Test generating task returns existing task if already exists."""
     routine = await routine_service.get_routine(sample_routine["_id"])
 
     task1 = await routine_service.generate_tasks_for_date(routine, date(2025, 12, 10))
@@ -702,7 +698,7 @@ async def test_generate_tasks_for_date_returns_existing_task_if_already_exists(r
 
     # Verify only one task was created in the database
     task_count = await test_db.tasks.count_documents({})
-    assert task_count == 1  # Only one task should exist
+    assert task_count == 1, f"Expected 1 task, found {task_count}"
     # Both should return the same task
     assert str(task1.id) == str(task2.id)
 
