@@ -60,7 +60,9 @@ class RoutineService:
             subtasks=data.subtasks,
         )
 
-        result = await self.routines.insert_one(routine.model_dump(by_alias=True))
+        # Convert to dict with proper serialization (mode='json' handles date objects)
+        routine_doc = routine.model_dump(by_alias=True, mode='json')
+        result = await self.routines.insert_one(routine_doc)
         routine.id = result.inserted_id
         return routine
 
