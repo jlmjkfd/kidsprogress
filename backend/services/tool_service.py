@@ -212,8 +212,10 @@ class ToolService:
         applicabilities = []
 
         for tool in tools:
+            # Convert tool.id to ObjectId if needed (handles string from MongoDB)
+            tool_id = tool.id if isinstance(tool.id, ObjectId) else ObjectId(tool.id)
             applicability = await self.check_tool_applicability_for_task(
-                tool.id, task_id
+                tool_id, task_id
             )
             if applicability.is_applicable:
                 applicabilities.append(applicability)
