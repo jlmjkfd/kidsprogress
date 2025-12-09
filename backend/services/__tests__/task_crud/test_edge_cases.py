@@ -1,5 +1,9 @@
 """Tests for edge cases and boundary conditions.
 
+NOTE: IDE type checker may report false positives about missing parameters
+(e.g., "priority_boost" or "title"). These are incorrect - TaskUpdate and
+TaskCreate have these fields as Optional with defaults. Tests work correctly.
+
 This test module covers:
 - Concurrent updates
 - Very long text fields

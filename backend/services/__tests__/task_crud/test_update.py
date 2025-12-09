@@ -7,6 +7,10 @@ This test module covers:
 - Updating metrics, quality aspects, tools, and subtasks
 - Validation and error cases
 - Timestamp management
+
+NOTE: IDE type checker may report false positives about missing parameters
+(e.g., "priority_boost" or "title"). These are incorrect - TaskUpdate has ALL
+fields as Optional with default None. The tests work correctly.
 """
 import pytest
 from datetime import datetime, timedelta
