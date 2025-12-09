@@ -71,7 +71,11 @@ async def get_child(
 
     Requires authentication and ownership.
     """
-    child = await child_service.get_child_by_id(child_id)
+    try:
+        child = await child_service.get_child_by_id(child_id)
+    except ValueError:
+        # Invalid ID format
+        raise not_found("Child")
 
     if not child:
         raise not_found("Child")

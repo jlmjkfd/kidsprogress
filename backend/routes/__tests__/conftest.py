@@ -2,7 +2,7 @@
 import pytest
 import pytest_asyncio
 from fastapi.testclient import TestClient
-from httpx import AsyncClient
+from httpx import AsyncClient, ASGITransport
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 import sys
 from pathlib import Path
@@ -76,8 +76,8 @@ async def client(test_app, test_db):
 
     test_app.dependency_overrides[get_db] = override_get_db
 
-    # Create async client
-    async with AsyncClient(app=test_app, base_url="http://test") as async_client:
+    # Create async client with ASGITransport
+    async with AsyncClient(transport=ASGITransport(app=test_app), base_url="http://test") as async_client:
         yield async_client
 
     # Clean up overrides
@@ -99,8 +99,8 @@ async def authenticated_client(test_app, test_db, sample_user):
     test_app.dependency_overrides[get_db] = override_get_db
     test_app.dependency_overrides[get_current_user] = override_get_current_user
 
-    # Create async client
-    async with AsyncClient(app=test_app, base_url="http://test") as async_client:
+    # Create async client with ASGITransport
+    async with AsyncClient(transport=ASGITransport(app=test_app), base_url="http://test") as async_client:
         yield async_client
 
     # Clean up overrides
