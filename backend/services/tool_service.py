@@ -273,5 +273,8 @@ class ToolService:
             # Check if already exists
             existing = await self.tools.find_one({"code": tool_data["code"]})
             if not existing:
-                tool = Tool(**tool_data)
-                await self.tools.insert_one(tool.model_dump(by_alias=True))
+                # Insert dict directly to preserve ObjectId types
+                tool_data["created_at"] = utcnow()
+                tool_data["updated_at"] = utcnow()
+                tool_data["is_active"] = True
+                await self.tools.insert_one(tool_data)

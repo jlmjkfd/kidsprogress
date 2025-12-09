@@ -184,9 +184,8 @@ class RoutineService:
             return None
 
         # Check if task already exists for this date
-        # source_id stored as string from model_dump json_encoders
         query = {
-            "source_id": str(routine.id),
+            "source_id": routine.id if isinstance(routine.id, ObjectId) else ObjectId(routine.id),
             "task_source": TaskSource.ROUTINE.value,  # Stored as string value
         }
         query.update(date_range_query("scheduled_date", target_date, target_date))
@@ -196,38 +195,42 @@ class RoutineService:
             return Task(**existing)
 
         # Create task from routine template
-        task = Task(
-            collection_id=routine.collection_id,
-            child_id=routine.child_id,
-            parent_id=routine.parent_id,
-            title=routine.title,
-            description=routine.description,
-            task_type_code=routine.task_type_code,
-            task_source=TaskSource.ROUTINE,
-            source_id=routine.id,
-            source_metadata=TaskSourceMetadata(
-                source_name=routine.title,
-                source_description=routine.description,
-                generation_date=utcnow(),
-                recurrence_info=routine.recurrence.to_human_readable()
-            ),
-            scheduling_type=routine.scheduling_type,
-            scheduled_date=datetime.combine(target_date, datetime.min.time()),
-            fixed_time_slot=routine.fixed_time_slot,
-            preferred_time_slot=routine.preferred_time_slot,
-            obligation_level=routine.obligation_level,
-            priority_boost=routine.priority_boost,
-            concurrent_allowed=routine.concurrent_allowed,
-            concurrent_compatible_with=routine.concurrent_compatible_with,
-            metrics=routine.metrics,
-            quality_aspects=routine.quality_aspects,
-            tools=routine.tools,
-            subtasks=routine.subtasks,
-            status=TaskStatus.PENDING,  # Auto-activate tasks from routines
-        )
+        # Create document dict without using model_dump(by_alias=True) to avoid ObjectId->string conversion
+        doc = {
+            "collection_id": routine.collection_id if isinstance(routine.collection_id, ObjectId) else ObjectId(routine.collection_id),
+            "child_id": routine.child_id if isinstance(routine.child_id, ObjectId) else ObjectId(routine.child_id),
+            "parent_id": routine.parent_id if isinstance(routine.parent_id, ObjectId) else ObjectId(routine.parent_id),
+            "title": routine.title,
+            "description": routine.description,
+            "task_type_code": routine.task_type_code,
+            "task_source": TaskSource.ROUTINE.value,
+            "source_id": routine.id if isinstance(routine.id, ObjectId) else ObjectId(routine.id),
+            "source_metadata": {
+                "source_name": routine.title,
+                "source_description": routine.description,
+                "generation_date": utcnow(),
+                "recurrence_info": routine.recurrence.to_human_readable()
+            },
+            "scheduling_type": routine.scheduling_type.value if routine.scheduling_type else None,
+            "scheduled_date": datetime.combine(target_date, datetime.min.time()),
+            "fixed_time_slot": routine.fixed_time_slot.model_dump() if routine.fixed_time_slot else None,
+            "preferred_time_slot": routine.preferred_time_slot,
+            "obligation_level": routine.obligation_level.value if routine.obligation_level else None,
+            "priority_boost": routine.priority_boost,
+            "concurrent_allowed": routine.concurrent_allowed,
+            "concurrent_compatible_with": routine.concurrent_compatible_with or [],
+            "metrics": [m.model_dump() if hasattr(m, 'model_dump') else m for m in routine.metrics] if routine.metrics else [],
+            "quality_aspects": [q.model_dump() if hasattr(q, 'model_dump') else q for q in routine.quality_aspects] if routine.quality_aspects else [],
+            "tools": [t.model_dump() if hasattr(t, 'model_dump') else t for t in routine.tools] if routine.tools else [],
+            "subtasks": [s.model_dump(by_alias=True) if hasattr(s, 'model_dump') else s for s in routine.subtasks] if routine.subtasks else [],
+            "status": TaskStatus.PENDING.value,
+            "created_at": utcnow(),
+            "updated_at": utcnow(),
+        }
 
-        result = await self.tasks.insert_one(task.model_dump(by_alias=True))
-        task.id = result.inserted_id
+        result = await self.tasks.insert_one(doc)
+        doc["_id"] = result.inserted_id
+        task = Task(**doc)
 
         # Update routine's last_generated_date
         await self.routines.update_one(
