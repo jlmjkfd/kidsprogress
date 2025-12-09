@@ -65,29 +65,34 @@ class LLMLogger:
         Returns:
             Log entry ID
         """
-        log_entry = LLMLog(
-            service=service,
-            feature=feature,
-            provider=provider,
-            model=model,
-            messages=messages,
-            response_text=response_text,
-            response_raw=response_raw,
-            user_id=PyObjectId(user_id) if user_id else None,
-            child_id=PyObjectId(child_id) if child_id else None,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            additional_params=additional_params or {},
-            prompt_tokens=prompt_tokens,
-            completion_tokens=completion_tokens,
-            total_tokens=total_tokens,
-            latency_ms=latency_ms,
-            finish_reason=finish_reason,
-            error=error,
-            error_type=error_type,
-        )
+        # Create document dict without using model_dump(by_alias=True) to avoid ObjectId->string conversion
+        doc = {
+            "service": service,
+            "feature": feature,
+            "provider": provider,
+            "model": model,
+            "messages": messages,
+            "response_text": response_text,
+            "response_raw": response_raw,
+            "user_id": ObjectId(user_id) if user_id else None,
+            "child_id": ObjectId(child_id) if child_id else None,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "additional_params": additional_params or {},
+            "prompt_tokens": prompt_tokens,
+            "completion_tokens": completion_tokens,
+            "total_tokens": total_tokens,
+            "latency_ms": latency_ms,
+            "finish_reason": finish_reason,
+            "error": error,
+            "error_type": error_type,
+            "created_at": datetime.utcnow(),
+        }
 
-        result = await self.collection.insert_one(log_entry.model_dump(by_alias=True, exclude_none=True))
+        # Remove None values
+        doc = {k: v for k, v in doc.items() if v is not None}
+
+        result = await self.collection.insert_one(doc)
         return str(result.inserted_id)
 
     async def get_logs(

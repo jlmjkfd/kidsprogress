@@ -200,7 +200,11 @@ async def submit_task_completion(
 
         # Save to database
         try:
-            completion_dict = completion.model_dump(by_alias=True)
+            # Use model_dump without by_alias to avoid ObjectId->string conversion
+            # Then manually handle _id field
+            completion_dict = completion.model_dump(exclude={'id'})
+            if completion.id:
+                completion_dict['_id'] = completion.id
             print(f"DEBUG - After model_dump, first answer type: {type(completion_dict.get('detailed_data', {}).get('answers', {}).get('q1'))}")
             await completions_collection.insert_one(completion_dict)
         except Exception as e:

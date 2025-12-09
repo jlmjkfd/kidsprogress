@@ -34,26 +34,30 @@ class ToolService:
         if existing:
             raise ValueError(f"Tool with code '{data.code}' already exists")
 
-        tool = Tool(
-            code=data.code,
-            name=data.name,
-            description=data.description,
-            icon=data.icon,
-            category=data.category,
-            scope=data.scope,
-            applicable_task_types=data.applicable_task_types,
-            applicable_activity_types=data.applicable_activity_types,
-            display_mode=data.display_mode,
-            integration_type=data.integration_type,
-            integration_config=data.integration_config,
-            requires_parent_approval=data.requires_parent_approval,
-            is_system=False,
-            created_by=PyObjectId(parent_id),
-        )
+        # Create document dict without using model_dump(by_alias=True) to avoid ObjectId->string conversion
+        doc = {
+            "code": data.code,
+            "name": data.name,
+            "description": data.description,
+            "icon": data.icon,
+            "category": data.category.value,
+            "scope": data.scope.value,
+            "applicable_task_types": data.applicable_task_types or [],
+            "applicable_activity_types": data.applicable_activity_types or [],
+            "display_mode": data.display_mode.value,
+            "integration_type": data.integration_type.value,
+            "integration_config": data.integration_config or {},
+            "requires_parent_approval": data.requires_parent_approval,
+            "is_system": False,
+            "is_active": True,
+            "created_by": parent_id,
+            "created_at": utcnow(),
+            "updated_at": utcnow(),
+        }
 
-        result = await self.tools.insert_one(tool.model_dump(by_alias=True))
-        tool.id = result.inserted_id
-        return tool
+        result = await self.tools.insert_one(doc)
+        doc["_id"] = result.inserted_id
+        return Tool(**doc)
 
     async def get_tool(self, tool_id: ObjectId) -> Optional[Tool]:
         """Get tool by ID."""
