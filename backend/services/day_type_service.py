@@ -2,7 +2,7 @@
 from typing import List, Optional, Dict, Any
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from bson import ObjectId
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 from backend.models.day_type import (
     DayTypeEntry,
@@ -14,6 +14,11 @@ from backend.models.day_type import (
 )
 from backend.utils.datetime_utils import utcnow
 from backend.utils.validators import validate_object_id
+
+
+def _date_to_datetime(d: date) -> datetime:
+    """Convert date to datetime for MongoDB storage."""
+    return datetime.combine(d, datetime.min.time())
 
 
 class DayTypeService:
@@ -40,9 +45,10 @@ class DayTypeService:
         child_id_obj = validate_object_id(data.child_id, "child_id", raise_http_exception=False)
 
         # Check if entry already exists for this date
+        date_datetime = _date_to_datetime(data.date)
         existing = await self.day_types_collection.find_one({
             "child_id": child_id_obj,
-            "date": data.date,
+            "date": date_datetime,
         })
 
         if existing:
@@ -51,7 +57,7 @@ class DayTypeService:
         doc = {
             "child_id": child_id_obj,
             "parent_id": parent_id_obj,
-            "date": data.date,
+            "date": date_datetime,
             "day_type": data.day_type.value,
             "name": data.name,
             "description": data.description,
@@ -83,7 +89,7 @@ class DayTypeService:
         doc = await self.day_types_collection.find_one({
             "child_id": child_id_obj,
             "parent_id": parent_id_obj,
-            "date": target_date,
+            "date": _date_to_datetime(target_date),
         })
 
         return DayTypeEntry(**doc) if doc else None
@@ -108,7 +114,7 @@ class DayTypeService:
         cursor = self.day_types_collection.find({
             "child_id": child_id_obj,
             "parent_id": parent_id_obj,
-            "date": {"$gte": start_date, "$lte": end_date},
+            "date": {"$gte": _date_to_datetime(start_date), "$lte": _date_to_datetime(end_date)},
         }).sort("date", 1)
 
         entries = []
