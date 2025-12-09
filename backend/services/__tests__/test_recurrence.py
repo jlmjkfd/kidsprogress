@@ -1160,6 +1160,7 @@ class TestEdgeCases:
         from motor.motor_asyncio import AsyncIOMotorDatabase
         db: AsyncIOMotorDatabase = recurrence_service.db
         task_doc = await db.tasks.find_one({"_id": recurring_task["_id"]})
+        assert task_doc is not None
         task = Task(**task_doc)
 
         assert len(task.exceptions) == 3

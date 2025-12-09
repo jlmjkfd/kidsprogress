@@ -106,7 +106,7 @@ class TestKidsCreateTasks:
         task_data = ChildTaskCreate(
             title="Do homework",
             description="Math exercises",
-            scheduled_date="2025-12-10T14:00:00",
+            scheduled_date=datetime.fromisoformat("2025-12-10T14:00:00"),
             estimated_duration_minutes=30,
             quick_capture=False
         )
