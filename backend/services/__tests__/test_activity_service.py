@@ -983,10 +983,10 @@ async def test_track_usage_creates_usage_record_in_db(activity_service: Activity
         30
     )
 
-    # Verify record exists - activity_id and task_id are stored as strings
+    # Verify record exists - activity_id and task_id are now stored as ObjectIds
     count = await test_db.activity_usage.count_documents({
-        "activity_id": str(sample_activity["_id"]),
-        "task_id": str(task_data["_id"]),
+        "activity_id": sample_activity["_id"],
+        "task_id": task_data["_id"],
     })
     assert count == 1
 
@@ -1021,9 +1021,9 @@ async def test_track_usage_multiple_usages_same_day(activity_service: ActivitySe
     await activity_service.track_usage(sample_activity["_id"], task1_data["_id"], 20)
     await activity_service.track_usage(sample_activity["_id"], task2_data["_id"], 25)
 
-    # Verify both records exist - activity_id is stored as string
+    # Verify both records exist - activity_id is now stored as ObjectId
     count = await test_db.activity_usage.count_documents({
-        "activity_id": str(sample_activity["_id"]),
+        "activity_id": sample_activity["_id"],
         "usage_date": today.isoformat(),
     })
     assert count == 2

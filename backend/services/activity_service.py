@@ -14,9 +14,7 @@ from backend.models.activity import (
 from backend.models.task import (
     Task,
     TaskSource,
-    TaskSourceMetadata,
     TaskStatus,
-    PyObjectId,
 )
 from backend.utils.datetime_utils import utcnow
 
@@ -34,31 +32,35 @@ class ActivityService:
         self, parent_id: ObjectId, data: ActivityCreate
     ) -> Activity:
         """Create a new activity."""
-        activity = Activity(
-            child_id=PyObjectId(data.child_id),
-            parent_id=PyObjectId(parent_id),
-            collection_id=PyObjectId(data.collection_id),
-            title=data.title,
-            description=data.description,
-            activity_type=data.activity_type,
-            task_type_code=data.task_type_code,
-            usage_rules=data.usage_rules,
-            scheduling_type=data.scheduling_type,
-            preferred_time_slot=data.preferred_time_slot,
-            obligation_level=data.obligation_level,
-            priority_boost=data.priority_boost,
-            concurrent_allowed=data.concurrent_allowed,
-            concurrent_compatible_with=data.concurrent_compatible_with,
-            estimated_duration_minutes=data.estimated_duration_minutes,
-            metrics=data.metrics,
-            quality_aspects=data.quality_aspects,
-            tools=data.tools,
-            subtasks=data.subtasks,
-        )
+        # Create document dict without using model_dump(by_alias=True) to avoid ObjectId->string conversion
+        doc = {
+            "child_id": ObjectId(data.child_id),
+            "parent_id": parent_id,
+            "collection_id": ObjectId(data.collection_id),
+            "title": data.title,
+            "description": data.description,
+            "activity_type": data.activity_type.value,
+            "task_type_code": data.task_type_code,
+            "usage_rules": data.usage_rules.model_dump() if data.usage_rules else None,
+            "scheduling_type": data.scheduling_type.value if data.scheduling_type else None,
+            "preferred_time_slot": data.preferred_time_slot,
+            "obligation_level": data.obligation_level.value if data.obligation_level else None,
+            "priority_boost": data.priority_boost,
+            "concurrent_allowed": data.concurrent_allowed,
+            "concurrent_compatible_with": data.concurrent_compatible_with or [],
+            "estimated_duration_minutes": data.estimated_duration_minutes,
+            "metrics": [m.model_dump() for m in data.metrics] if data.metrics else [],
+            "quality_aspects": data.quality_aspects or [],
+            "tools": [t.model_dump() for t in data.tools] if data.tools else [],
+            "subtasks": [s.model_dump() for s in data.subtasks] if data.subtasks else [],
+            "is_active": True,
+            "created_at": utcnow(),
+            "updated_at": utcnow(),
+        }
 
-        result = await self.activities.insert_one(activity.model_dump(by_alias=True))
-        activity.id = result.inserted_id
-        return activity
+        result = await self.activities.insert_one(doc)
+        doc["_id"] = result.inserted_id
+        return Activity(**doc)
 
     async def get_activity(self, activity_id: ObjectId) -> Optional[Activity]:
         """Get activity by ID."""
@@ -196,38 +198,44 @@ class ActivityService:
     ) -> Task:
         """Create a task instance from an activity."""
         # Create task
-        task = Task(
-            collection_id=activity.collection_id,
-            child_id=activity.child_id,
-            parent_id=activity.parent_id,
-            title=activity.title,
-            description=activity.description,
-            task_type_code=activity.task_type_code,
-            task_source=TaskSource.ACTIVITY,
-            source_id=activity.id,
-            source_metadata=TaskSourceMetadata(
-                source_name=activity.title,
-                source_description=activity.description,
-                generation_date=utcnow(),
-            ),
-            scheduling_type=activity.scheduling_type,
-            scheduled_date=datetime.combine(scheduled_date, datetime.min.time()),
-            preferred_time_slot=activity.preferred_time_slot,
-            obligation_level=activity.obligation_level,
-            priority_boost=activity.priority_boost,
-            concurrent_allowed=activity.concurrent_allowed,
-            concurrent_compatible_with=activity.concurrent_compatible_with,
-            metrics=activity.metrics,
-            quality_aspects=activity.quality_aspects,
-            tools=activity.tools,
-            subtasks=activity.subtasks,
-            status=TaskStatus.PENDING,
-        )
+        # Create document dict without using model_dump(by_alias=True) to avoid ObjectId->string conversion
+        doc = {
+            "collection_id": activity.collection_id if isinstance(activity.collection_id, ObjectId) else ObjectId(activity.collection_id),
+            "child_id": activity.child_id if isinstance(activity.child_id, ObjectId) else ObjectId(activity.child_id),
+            "parent_id": activity.parent_id if isinstance(activity.parent_id, ObjectId) else ObjectId(activity.parent_id),
+            "title": activity.title,
+            "description": activity.description,
+            "task_type_code": activity.task_type_code,
+            "task_source": TaskSource.ACTIVITY.value,
+            "source_id": activity.id if isinstance(activity.id, ObjectId) else ObjectId(activity.id),
+            "source_metadata": {
+                "source_name": activity.title,
+                "source_description": activity.description,
+                "generation_date": utcnow(),
+            },
+            "scheduling_type": activity.scheduling_type.value if activity.scheduling_type else None,
+            "scheduled_date": datetime.combine(scheduled_date, datetime.min.time()),
+            "preferred_time_slot": activity.preferred_time_slot,
+            "obligation_level": activity.obligation_level.value if activity.obligation_level else None,
+            "priority_boost": activity.priority_boost,
+            "concurrent_allowed": activity.concurrent_allowed,
+            "concurrent_compatible_with": activity.concurrent_compatible_with or [],
+            "metrics": [m.model_dump() if hasattr(m, 'model_dump') else m for m in activity.metrics] if activity.metrics else [],
+            "quality_aspects": [q.model_dump() if hasattr(q, 'model_dump') else q for q in activity.quality_aspects] if activity.quality_aspects else [],
+            "tools": [t.model_dump() if hasattr(t, 'model_dump') else t for t in activity.tools] if activity.tools else [],
+            "subtasks": [
+                {**s.model_dump(), "id": str(s.id)} if hasattr(s, 'model_dump') else s
+                for s in activity.subtasks
+            ] if activity.subtasks else [],
+            "status": TaskStatus.PENDING.value,
+            "created_at": utcnow(),
+            "updated_at": utcnow(),
+        }
 
-        result = await self.tasks.insert_one(task.model_dump(by_alias=True))
-        task.id = result.inserted_id
+        result = await self.tasks.insert_one(doc)
+        doc["_id"] = result.inserted_id
 
-        return task
+        return Task(**doc)
 
     async def track_usage(
         self, activity_id: ObjectId, task_id: ObjectId, duration_minutes: Optional[int]
@@ -245,23 +253,21 @@ class ActivityService:
         task = Task(**task_doc)
         usage_date = task.scheduled_date.date() if task.scheduled_date else date.today()
 
-        # Create usage record
-        usage = ActivityUsage(
-            activity_id=PyObjectId(activity_id),
-            child_id=activity.child_id,
-            task_id=PyObjectId(task_id),
-            usage_date=usage_date,
-            duration_minutes=duration_minutes,
-        )
-
-        # Convert date to string for MongoDB storage
-        usage_doc = usage.model_dump(by_alias=True)
-        usage_doc["usage_date"] = usage_date.isoformat()
-        await self.activity_usage.insert_one(usage_doc)
+        # Create usage record - build doc manually to avoid ObjectId->string conversion
+        usage_doc = {
+            "activity_id": activity_id,
+            "child_id": activity.child_id if isinstance(activity.child_id, ObjectId) else ObjectId(activity.child_id),
+            "task_id": task_id,
+            "usage_date": usage_date.isoformat(),  # Convert date to string for MongoDB storage
+            "duration_minutes": duration_minutes,
+            "created_at": utcnow(),
+        }
+        result = await self.activity_usage.insert_one(usage_doc)
+        usage_doc["_id"] = result.inserted_id
 
         # Increment times_used on activity
         await self.activities.update_one(
             {"_id": activity_id}, {"$inc": {"times_used": 1}}
         )
 
-        return usage
+        return ActivityUsage(**usage_doc)
