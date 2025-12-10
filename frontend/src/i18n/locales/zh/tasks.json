@@ -598,6 +598,9 @@
     "older_days_plural": "+ {{count}} 个更早的日期",
     "date_range": "{{start}} 至 {{end}}",
     "recent_missed_dates": "最近错过的日期",
+    "all_missed_dates": "所有错过的日期",
+    "show_all": "显示全部（{{count}}天）",
+    "show_recent": "仅显示最近",
     "collapse_section": "隐藏",
     "expand_section": "显示"
   }

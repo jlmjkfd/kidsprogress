@@ -28,6 +28,7 @@ export function OverdueTaskCard({ task, childId, onMarkDone, onMarkAllDone }: Ov
   const { t } = useTranslation(["tasks"]);
   const navigate = useNavigate();
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showAllDates, setShowAllDates] = useState(false);
 
   const handleOpenTask = () => {
     navigate(`/child-portal/${childId}/tasks/execute/${task.task_id}`);
@@ -175,11 +176,21 @@ export function OverdueTaskCard({ task, childId, onMarkDone, onMarkAllDone }: Ov
       {/* Expanded details */}
       {isExpanded && (
         <div className="mt-4 space-y-2 border-t border-orange-200 pt-4">
-          <p className="text-sm font-semibold text-gray-700">
-            {t("tasks:overdue_view.recent_missed_dates")}:
-          </p>
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-gray-700">
+              {showAllDates ? t("tasks:overdue_view.all_missed_dates") : t("tasks:overdue_view.recent_missed_dates")}:
+            </p>
+            {task.older_count > 0 && (
+              <button
+                onClick={() => setShowAllDates(!showAllDates)}
+                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+              >
+                {showAllDates ? t("tasks:overdue_view.show_recent") : t("tasks:overdue_view.show_all", { count: task.total_missed_days })}
+              </button>
+            )}
+          </div>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {task.recent_missed_dates.map((date) => {
+            {(showAllDates ? task.all_missed_dates : task.recent_missed_dates).map((date) => {
               // Construct virtual task ID for this specific date
               const virtualTaskId = `${task.source_id}_${date}`;
               const executePath = `/child-portal/${childId}/tasks/execute/${virtualTaskId}`;
@@ -211,12 +222,6 @@ export function OverdueTaskCard({ task, childId, onMarkDone, onMarkAllDone }: Ov
               );
             })}
           </div>
-
-          {task.older_count > 0 && (
-            <div className="mt-3 rounded-lg bg-gray-100 p-3 text-sm text-gray-600">
-              {t("tasks:overdue_view.older_days_plural", { count: task.older_count })}
-            </div>
-          )}
         </div>
       )}
     </div>

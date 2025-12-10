@@ -598,6 +598,9 @@
     "older_days_plural": "+ {{count}} older days",
     "date_range": "{{start}} to {{end}}",
     "recent_missed_dates": "Recent Missed Dates",
+    "all_missed_dates": "All Missed Dates",
+    "show_all": "Show All ({{count}} days)",
+    "show_recent": "Show Recent Only",
     "collapse_section": "Hide",
     "expand_section": "Show"
   }

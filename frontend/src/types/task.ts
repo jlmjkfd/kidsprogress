@@ -541,7 +541,8 @@ export interface OverdueRecurringTask extends OverdueTaskBase {
     start: string;
     end: string;
   };
-  recent_missed_dates: string[];
+  recent_missed_dates: string[];  // Last 7 dates (for initial display)
+  all_missed_dates: string[];     // All dates (for "Show All" feature)
   older_count: number;
 }
 

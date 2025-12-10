@@ -598,14 +598,19 @@ class TaskCRUD:
             task_source = first_task.get("task_source", "")
             has_criteria = True  # Force all recurring tasks to require execution
 
-            # Get recent missed dates (last 7) and older count
-            recent_dates = []
-            for t in instances[-7:]:
+            # Get all missed dates (not just last 7)
+            all_missed_dates = []
+            for t in instances:
                 date_obj = self._parse_date(t.get("scheduled_date"))
                 if date_obj:
-                    recent_dates.append(str(date_obj))
+                    all_missed_dates.append(str(date_obj))
 
-            older_count = max(0, len(instances) - 7)
+            # For backward compatibility, keep recent_missed_dates as last 7
+            recent_dates = all_missed_dates[-7:] if len(all_missed_dates) > 7 else all_missed_dates
+            older_count = max(0, len(all_missed_dates) - 7)
+
+            # NEW: Add all_missed_dates for frontend to access all dates
+            all_dates = all_missed_dates
 
             # Get date range
             first_date = self._parse_date(instances[0].get("scheduled_date"))
@@ -627,7 +632,8 @@ class TaskCRUD:
                     "start": str(first_date),
                     "end": str(last_date)
                 },
-                "recent_missed_dates": recent_dates,
+                "recent_missed_dates": recent_dates,  # Last 7 dates (backward compat)
+                "all_missed_dates": all_dates,  # NEW: All dates for "Show All" feature
                 "older_count": older_count,
                 "completion_type": "with_criteria" if has_criteria else "simple",
                 "has_metrics": bool(first_task.get("metrics")),
