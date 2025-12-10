@@ -485,9 +485,9 @@ class TaskCRUD:
         from datetime import date, timedelta
         from backend.utils.datetime_utils import get_local_today
 
-        # Use local timezone (NZ) instead of server timezone for date comparison
-        # This ensures tasks scheduled for "Dec 3" show as overdue starting "Dec 4" in NZ time
-        today = get_local_today()  # Defaults to Pacific/Auckland
+        # Use user's local timezone (from X-Timezone header) for date comparison
+        # Automatically works when user travels to different timezone
+        today = get_local_today()  # Uses request context timezone
         # Get tasks from 90 days ago to yesterday (includes overdue virtual instances)
         start_date = today - timedelta(days=90)
         end_date = today - timedelta(days=1)  # Yesterday

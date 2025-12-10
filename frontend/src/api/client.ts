@@ -2,6 +2,7 @@
  * API client configuration with axios
  */
 import axios from 'axios';
+import { getUserTimezone } from '@/utils/timezone';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
@@ -13,14 +14,26 @@ export const apiClient = axios.create({
   withCredentials: true, // Send cookies (for refresh token)
 });
 
-// Request interceptor to add JWT token
+// Request interceptor to add JWT token and timezone
 apiClient.interceptors.request.use(
   (config) => {
-    // Get token from Redux store (will be implemented in auth slice)
+    // Get token from localStorage
     const token = localStorage.getItem('auth_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // Add user's timezone to all requests
+    // This allows backend to handle dates in user's local timezone
+    // Automatically updates when user travels (browser detects timezone)
+    try {
+      const timezone = getUserTimezone();
+      config.headers['X-Timezone'] = timezone;
+    } catch (error) {
+      console.warn('Failed to set timezone header, backend will use UTC', error);
+      config.headers['X-Timezone'] = 'UTC';
+    }
+
     return config;
   },
   (error) => {

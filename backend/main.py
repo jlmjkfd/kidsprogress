@@ -163,6 +163,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Timezone middleware - extract timezone from X-Timezone header
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+from backend.utils.timezone_context import set_request_timezone
+
+class TimezoneMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        """Extract timezone from X-Timezone header and set in context."""
+        timezone = request.headers.get("X-Timezone", "UTC")
+        set_request_timezone(timezone)
+        response = await call_next(request)
+        return response
+
+app.add_middleware(TimezoneMiddleware)
+
 # Include routers
 app.include_router(auth.router)
 app.include_router(children.router)

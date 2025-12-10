@@ -108,11 +108,12 @@ class OverdueTasksSpec(QuerySpecification):
         """Initialize specification.
 
         Args:
-            as_of_date: Date to check against. Defaults to today in local timezone.
+            as_of_date: Date to check against. Defaults to today in user's timezone
+                       (from X-Timezone request header).
         """
         if as_of_date is None:
             from backend.utils.datetime_utils import get_local_today
-            self.as_of_date = get_local_today()
+            self.as_of_date = get_local_today()  # Uses request context timezone
         else:
             self.as_of_date = as_of_date
 
