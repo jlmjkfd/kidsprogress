@@ -511,3 +511,44 @@ export interface StartTaskResponse {
   task: Task;
   concurrent_tasks: ConcurrentTaskWarning[];
 }
+
+// ==================== Overdue Task Types ====================
+
+export interface OverdueTaskBase {
+  task_id: string;
+  title: string;
+  description: string | null;
+  task_type_code: string | null;
+  task_source: string;
+  completion_type: "simple" | "with_criteria";
+  has_metrics: boolean;
+  has_quality_aspects: boolean;
+  has_tools: boolean;
+  has_subtasks: boolean;
+  days_overdue: number;
+}
+
+export interface OverdueOneOffTask extends OverdueTaskBase {
+  is_recurring: false;
+  scheduled_date: string;
+}
+
+export interface OverdueRecurringTask extends OverdueTaskBase {
+  is_recurring: true;
+  source_id: string;
+  total_missed_days: number;
+  missed_date_range: {
+    start: string;
+    end: string;
+  };
+  recent_missed_dates: string[];
+  older_count: number;
+}
+
+export type OverdueTask = OverdueOneOffTask | OverdueRecurringTask;
+
+export interface OverdueTasksResponse {
+  must_do: OverdueTask[];
+  should_do: OverdueTask[];
+  optional: OverdueTask[];
+}

@@ -21,7 +21,7 @@ import {
   IconPlus,
   IconAlertTriangle,
 } from "@tabler/icons-react";
-import { useTasksByChild, useOverdueTasks, useOverdueStats } from "@/api/queries/useTasks";
+import { useTasksByChild, useOverdueStats } from "@/api/queries/useTasks";
 import {
   useStartTask,
   usePauseTask,
@@ -34,6 +34,7 @@ import { TaskCalendar } from "@/components/calendar";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { QuickCaptureModal } from "@/components/QuickCaptureModal";
 import { PlanAheadModal } from "@/components/PlanAheadModal";
+import { OverdueView } from "@/components/OverdueView";
 
 type ViewMode = "list" | "calendar" | "overdue";
 
@@ -58,7 +59,6 @@ export default function ChildTasksPage() {
 
   // TODO: Implement proper child authentication to get child_id
   const { data: allTasks, isLoading } = useTasksByChild(selectedChildId || "");
-  const { data: overdueTasks } = useOverdueTasks(selectedChildId || "", false);
   const { data: overdueStats } = useOverdueStats(selectedChildId || "");
   const startTaskMutation = useStartTask();
   const pauseTaskMutation = usePauseTask();
@@ -268,94 +268,8 @@ export default function ChildTasksPage() {
         {/* View Content */}
         {viewMode === "overdue" ? (
           /* Overdue View */
-          <div className="space-y-6">
-            {/* Stats Summary */}
-            {overdueStats && overdueStats.total_overdue > 0 && (
-              <div className="rounded-3xl bg-gradient-to-r from-orange-50 to-red-50 p-6 shadow-xl">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <h3 className="text-2xl font-bold text-gray-900">
-                      {overdueStats.total_overdue} {t("tasks:overdue_tasks")}
-                    </h3>
-                    {overdueStats.must_do_overdue > 0 && (
-                      <p className="mt-1 flex items-center gap-2 text-lg font-semibold text-red-600">
-                        <IconAlertTriangle size={20} />
-                        {overdueStats.must_do_overdue} {t("tasks:unified_model.must_do")} tasks
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
+          <OverdueView childId={selectedChildId || ""} />
 
-            {/* Overdue Tasks List */}
-            {overdueTasks && overdueTasks.length > 0 ? (
-              <div className="space-y-3">
-                {overdueTasks.map((task) => {
-                  const canStart = task.status === "pending" && !isInformationalTask(task);
-                  const taskDate = task.scheduled_date ? new Date(task.scheduled_date).toLocaleDateString() : "";
-
-                  return (
-                    <div key={task._id} className="space-y-2">
-                      {/* Date Label */}
-                      <div className="flex items-center gap-2 text-sm font-semibold text-gray-600">
-                        <IconClock size={16} />
-                        <span>{t("tasks:overdue_view.scheduled_for")} {taskDate}</span>
-                        {task.obligation_level === "must_do" && (
-                          <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-bold text-red-700">
-                            {t("tasks:unified_model.must_do")}
-                          </span>
-                        )}
-                      </div>
-
-                      <TaskCard
-                        task={task}
-                        onStart={
-                          canStart
-                            ? () => handleStartTask(task._id, task)
-                            : undefined
-                        }
-                        onPause={
-                          task.status === "in_progress" &&
-                          !isInformationalTask(task)
-                            ? () => handlePauseTask(task._id)
-                            : undefined
-                        }
-                        onResume={
-                          task.status === "paused" && !isInformationalTask(task)
-                            ? () => handleResumeTask(task._id)
-                            : undefined
-                        }
-                        onComplete={
-                          (task.status === "in_progress" ||
-                            task.status === "paused") &&
-                          !isInformationalTask(task)
-                            ? () => handleCompleteTask(task._id)
-                            : undefined
-                        }
-                        onViewResult={
-                          task.status === "completed" && task.template_id
-                            ? () => handleViewResult(task._id)
-                            : undefined
-                        }
-                        onViewAttempts={() => handleViewAttempts(task._id)}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="rounded-3xl bg-white p-12 text-center shadow-xl">
-                <IconCheck className="mx-auto mb-4 text-green-400" size={80} />
-                <h3 className="mb-2 text-3xl font-bold text-gray-900">
-                  {t("tasks:child_portal.all_done")}
-                </h3>
-                <p className="text-xl text-gray-600">
-                  {t("tasks:overdue_view.no_overdue")}
-                </p>
-              </div>
-            )}
-          </div>
         ) : viewMode === "calendar" ? (
           <div className="space-y-6">
             <TaskCalendar

@@ -24,24 +24,43 @@ describe('useOverdueTasks', () => {
   it('should fetch overdue tasks successfully', async () => {
     server.use(
       http.get('http://localhost:8000/api/tasks/child/:childId/overdue', () => {
-        return HttpResponse.json([
-          {
-            _id: 'task-1',
-            title: 'Overdue Task 1',
-            status: 'pending',
-            obligation_level: 'must_do',
-            scheduled_date: '2025-12-07T00:00:00Z',
-            is_informational: false,
-          },
-          {
-            _id: 'task-2',
-            title: 'Overdue Task 2',
-            status: 'in_progress',
-            obligation_level: 'should_do',
-            scheduled_date: '2025-12-06T00:00:00Z',
-            is_informational: false,
-          },
-        ])
+        return HttpResponse.json({
+          must_do: [
+            {
+              task_id: 'task-1',
+              title: 'Overdue Task 1',
+              is_recurring: false,
+              scheduled_date: '2025-12-07',
+              completion_type: 'simple',
+              has_metrics: false,
+              has_quality_aspects: false,
+              has_tools: false,
+              has_subtasks: false,
+              days_overdue: 3,
+              task_source: 'one_time',
+              description: null,
+              task_type_code: null,
+            },
+          ],
+          should_do: [
+            {
+              task_id: 'task-2',
+              title: 'Overdue Task 2',
+              is_recurring: false,
+              scheduled_date: '2025-12-06',
+              completion_type: 'simple',
+              has_metrics: false,
+              has_quality_aspects: false,
+              has_tools: false,
+              has_subtasks: false,
+              days_overdue: 4,
+              task_source: 'one_time',
+              description: null,
+              task_type_code: null,
+            },
+          ],
+          optional: [],
+        })
       })
     )
 
@@ -51,9 +70,11 @@ describe('useOverdueTasks', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
-    expect(result.current.data).toHaveLength(2)
-    expect(result.current.data?.[0].title).toBe('Overdue Task 1')
-    expect(result.current.data?.[1].title).toBe('Overdue Task 2')
+    expect(result.current.data?.must_do).toHaveLength(1)
+    expect(result.current.data?.should_do).toHaveLength(1)
+    expect(result.current.data?.optional).toHaveLength(0)
+    expect(result.current.data?.must_do[0].title).toBe('Overdue Task 1')
+    expect(result.current.data?.should_do[0].title).toBe('Overdue Task 2')
   })
 
   it('should fetch must-do overdue tasks only when mustDoOnly=true', async () => {

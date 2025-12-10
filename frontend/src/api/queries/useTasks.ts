@@ -61,7 +61,7 @@ export const useOverdueTasks = (childId: string, mustDoOnly: boolean = false) =>
   return useQuery({
     queryKey: ["tasks", "child", childId, "overdue", mustDoOnly],
     queryFn: async () => {
-      const response = await apiClient.get<Task[]>(
+      const response = await apiClient.get<import("@/types/task").OverdueTasksResponse>(
         `/api/tasks/child/${childId}/overdue`,
         { params: { must_do_only: mustDoOnly } }
       );
