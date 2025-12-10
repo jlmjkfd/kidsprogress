@@ -105,15 +105,15 @@ class TaskLifecycle:
         Raises:
             ValueError: If task cannot be started
         """
-        # Check if this is a virtual task ID (ID contains underscore and is not a valid ObjectId)
-        is_virtual_id = "_" in task_id and not ObjectId.is_valid(task_id)
-        print(f"DEBUG start_task: task_id={task_id}, is_virtual_id={is_virtual_id}")
+        # Use TaskIdentifier to check if this is a virtual task
+        from backend.models.task_identifier import TaskIdentifier
+        identifier = TaskIdentifier(raw_id=task_id)
+        print(f"DEBUG start_task: task_id={task_id}, is_virtual={identifier.is_virtual}")
 
-        if is_virtual_id:
+        if identifier.is_virtual:
             # First check if this virtual task was already materialized
-            parts = task_id.split("_")
-            template_id = parts[0]
-            occurrence_date = "_".join(parts[1:])
+            template_id = identifier.template_id
+            occurrence_date = identifier.occurrence_date.isoformat()
 
             # Look for already materialized task
             # Note: child_id may be stored as string or ObjectId
@@ -335,10 +335,11 @@ class TaskLifecycle:
         Returns:
             Updated task or None if not found or invalid state
         """
-        # Check if this is a virtual task
-        is_virtual = "_" in task_id and not ObjectId.is_valid(task_id)
+        # Use TaskIdentifier to check if this is a virtual task
+        from backend.models.task_identifier import TaskIdentifier
+        identifier = TaskIdentifier(raw_id=task_id)
 
-        if is_virtual:
+        if identifier.is_virtual:
             # Get child to find parent
             child = await self.db.children.find_one({"_id": ObjectId(child_id)})
             if not child:
@@ -446,10 +447,11 @@ class TaskLifecycle:
         Returns:
             Updated task or None if not found
         """
-        # Check if this is a virtual task
-        is_virtual = "_" in task_id and not ObjectId.is_valid(task_id)
+        # Use TaskIdentifier to check if this is a virtual task
+        from backend.models.task_identifier import TaskIdentifier
+        identifier = TaskIdentifier(raw_id=task_id)
 
-        if is_virtual:
+        if identifier.is_virtual:
             # Materialize virtual task first
             child = await self.db.children.find_one({"_id": ObjectId(child_id)})
             if not child:

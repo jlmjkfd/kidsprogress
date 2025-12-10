@@ -99,19 +99,18 @@ async def prepare_task_execution(
     # Calculate session number for multi-completion tracking
     scheduled_date = task_obj.scheduled_date.strftime("%Y-%m-%d") if task_obj.scheduled_date else None
 
+    # Use TaskIdentifier to handle virtual vs real task IDs
+    from backend.models.task_identifier import TaskIdentifier
+    from bson import ObjectId
+    identifier = TaskIdentifier(raw_id=task_id)
+
     # For virtual tasks, query by template ID; for real tasks, query by task ID
-    if "_" in task_id:
-        # Virtual task - extract template ID
-        template_id_str = task_id.rsplit("_", 1)[0]
-        try:
-            from bson import ObjectId
-            template_id_obj = ObjectId(template_id_str)
-            session_count = await completions_collection.count_documents({
-                "task_id": template_id_obj,
-                "scheduled_date": scheduled_date
-            })
-        except:
-            session_count = 0
+    if identifier.is_virtual:
+        template_id_obj = ObjectId(identifier.template_id)
+        session_count = await completions_collection.count_documents({
+            "task_id": template_id_obj,
+            "scheduled_date": scheduled_date
+        })
     else:
         # Real task
         session_count = await completions_collection.count_documents({
@@ -166,27 +165,20 @@ async def submit_task_completion(
 
     # Get handler from plugin registry and process completion
     try:
-        # Check if this is a virtual task and extract template ID
-        is_virtual_task = "_" in task_id
-        if is_virtual_task:
-            template_id_str = task_id.rsplit("_", 1)[0]
-        else:
-            template_id_str = None
+        # Use TaskIdentifier to handle virtual vs real task IDs
+        from backend.models.task_identifier import TaskIdentifier
+        identifier = TaskIdentifier(raw_id=task_id)
 
         # Calculate session number for this completion
         scheduled_date = task_obj.scheduled_date.strftime("%Y-%m-%d") if task_obj.scheduled_date else None
 
-        # For virtual tasks, query by template ID; for real tasks, query by task ID
-        if is_virtual_task and template_id_str:
-            # Virtual task - extract template ID
-            try:
-                template_id_obj = ObjectId(template_id_str)
-                existing_completions = await completions_collection.count_documents({
-                    "task_id": template_id_obj,
-                    "scheduled_date": scheduled_date
-                })
-            except:
-                existing_completions = 0
+        # Query by template ID for virtual tasks, task ID for real tasks
+        if identifier.is_virtual:
+            template_id_obj = ObjectId(identifier.template_id)
+            existing_completions = await completions_collection.count_documents({
+                "task_id": template_id_obj,
+                "scheduled_date": scheduled_date
+            })
         else:
             # Real task
             existing_completions = await completions_collection.count_documents({
@@ -362,15 +354,15 @@ async def get_completions(
     query = {}
 
     if task_id:
+        # Use TaskIdentifier to handle virtual vs real task IDs
+        from backend.models.task_identifier import TaskIdentifier
+        identifier = TaskIdentifier(raw_id=task_id)
+
         # Handle virtual task IDs (template_id_date format)
-        if "_" in task_id:
-            # Virtual task - extract template ID
-            template_id_str = task_id.rsplit("_", 1)[0]
-            try:
-                template_id_obj = ObjectId(template_id_str)
-                query["$or"] = [{"task_id": template_id_obj}, {"task_id": template_id_str}]
-            except:
-                query["task_id"] = task_id
+        if identifier.is_virtual:
+            # Virtual task - query by template ID
+            template_id_obj = ObjectId(identifier.template_id)
+            query["$or"] = [{"task_id": template_id_obj}, {"task_id": identifier.template_id}]
         else:
             # Regular task ID - handle both ObjectId and string formats
             try:

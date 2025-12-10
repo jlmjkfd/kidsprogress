@@ -447,41 +447,35 @@ class TaskCRUD:
         Returns:
             Task or None if not found or unauthorized
         """
-        # Check if this is a virtual task ID (format: template_id_date)
-        if "_" in task_id and not task_id.count("_") > 2:
-            # This might be a virtual task ID - try to parse it
-            parts = task_id.rsplit("_", 1)  # Split from right to get last underscore
-            if len(parts) == 2:
-                template_id_str, date_str = parts
-                try:
-                    # Validate the template ID is a valid ObjectId
-                    template_id_obj = validate_object_id(template_id_str, "template_id", raise_http_exception=False)
+        from backend.models.task_identifier import TaskIdentifier
+        from backend.services.virtual_instance_service import VirtualInstanceService
 
-                    # Parse the date
-                    from datetime import datetime
-                    from backend.services.virtual_instance_service import VirtualInstanceService
-                    occurrence_date = datetime.fromisoformat(date_str).date()
+        identifier = TaskIdentifier(raw_id=task_id)
 
-                    # Fetch the template task
-                    parent_id_obj = validate_object_id(parent_id, "parent_id", raise_http_exception=False)
-                    template_doc = await self.tasks_collection.find_one({
-                        "_id": template_id_obj,
-                        "$or": [{"parent_id": parent_id_obj}, {"parent_id": parent_id}]
-                    })
+        # Handle virtual task IDs
+        if identifier.is_virtual:
+            # Validate and fetch template
+            template_id_obj = validate_object_id(identifier.template_id, "template_id", raise_http_exception=False)
+            parent_id_obj = validate_object_id(parent_id, "parent_id", raise_http_exception=False)
 
-                    if template_doc and template_doc.get("is_recurring"):
-                        # Generate virtual instance for this date
-                        template = Task(**template_doc)
-                        virtual_instance = VirtualInstanceService._create_virtual_instance(
-                            template, occurrence_date
-                        )
-                        # Use model_construct to bypass validation for virtual task ID
-                        return Task.model_construct(**virtual_instance)
-                except (ValueError, TypeError):
-                    # Not a valid virtual task ID, continue to regular lookup
-                    pass
+            template_doc = await self.tasks_collection.find_one({
+                "_id": template_id_obj,
+                "$or": [{"parent_id": parent_id_obj}, {"parent_id": parent_id}]
+            })
 
-        # Regular task lookup by ObjectId
+            if template_doc and template_doc.get("is_recurring"):
+                # Generate virtual instance for this occurrence date
+                template = Task(**template_doc)
+                virtual_instance = VirtualInstanceService._create_virtual_instance(
+                    template, identifier.occurrence_date
+                )
+                # Use model_construct to bypass validation for virtual task ID
+                return Task.model_construct(**virtual_instance)
+
+            # Template not found or not recurring
+            return None
+
+        # Handle regular task lookup by ObjectId
         task_id_obj = validate_object_id(task_id, "task_id", raise_http_exception=False)
         parent_id_obj = validate_object_id(parent_id, "parent_id", raise_http_exception=False)
 
@@ -854,17 +848,14 @@ class TaskCRUD:
         Returns:
             True if deleted/exception added, False if not found or unauthorized
         """
-        # Check if this is a virtual task
-        is_virtual = "_" in task_id and not ObjectId.is_valid(task_id)
+        # Use TaskIdentifier to check if this is a virtual task
+        from backend.models.task_identifier import TaskIdentifier
+        identifier = TaskIdentifier(raw_id=task_id)
 
-        if is_virtual:
-            # Parse virtual task ID to get template ID and date
-            parts = task_id.split("_")
-            if len(parts) < 2:
-                return False
-
-            template_id = parts[0]
-            occurrence_date = "_".join(parts[1:])
+        if identifier.is_virtual:
+            # Get template ID and occurrence date from identifier
+            template_id = identifier.template_id
+            occurrence_date = identifier.occurrence_date.isoformat()
 
             # Add exception to template to mark this occurrence as deleted
             if recurrence_component:
