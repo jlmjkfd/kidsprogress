@@ -176,11 +176,17 @@ class TaskLifecycle:
             raise ValueError("Task not found")
 
         # If already in progress, just return the task (idempotent)
-        if existing.get("status") == TaskStatus.IN_PROGRESS.value:
+        current_status = TaskStatus(existing.get("status"))
+        if current_status == TaskStatus.IN_PROGRESS:
             return {"task": Task(**existing), "concurrent_tasks": []}
 
-        if existing.get("status") != TaskStatus.PENDING.value:
-            raise ValueError(f"Can only start tasks in PENDING status, current: {existing.get('status')}")
+        # Validate state transition using state machine
+        from backend.models.task_state_machine import TaskStateMachine
+        TaskStateMachine.validate_transition(
+            current_status,
+            TaskStatus.IN_PROGRESS,
+            reason="starting task"
+        )
 
         # Check for concurrent tasks
         assert self.session is not None, "Session not set"
@@ -243,8 +249,14 @@ class TaskLifecycle:
         if not existing:
             return None
 
-        if existing.get("status") != TaskStatus.IN_PROGRESS.value:
-            raise ValueError("Can only pause tasks in IN_PROGRESS status")
+        # Validate state transition using state machine
+        from backend.models.task_state_machine import TaskStateMachine
+        current_status = TaskStatus(existing.get("status"))
+        TaskStateMachine.validate_transition(
+            current_status,
+            TaskStatus.PAUSED,
+            reason=reason or "pausing task"
+        )
 
         pause_record = TaskPauseRecord(
             paused_at=utcnow(), resumed_at=None, paused_by=paused_by, reason=reason
@@ -287,8 +299,14 @@ class TaskLifecycle:
         if not existing:
             return None
 
-        if existing.get("status") != TaskStatus.PAUSED.value:
-            raise ValueError("Can only resume tasks in PAUSED status")
+        # Validate state transition using state machine
+        from backend.models.task_state_machine import TaskStateMachine
+        current_status = TaskStatus(existing.get("status"))
+        TaskStateMachine.validate_transition(
+            current_status,
+            TaskStatus.IN_PROGRESS,
+            reason="resuming task"
+        )
 
         # Update current pause record with resume time
         pause_history = existing.get("pause_history", [])
@@ -374,10 +392,15 @@ class TaskLifecycle:
         if not existing:
             return None
 
-        current_status = existing.get("status")
-        # Allow completing from PENDING (simple tasks), IN_PROGRESS (active tasks), or PAUSED (resumed tasks)
-        if current_status not in [TaskStatus.PENDING.value, TaskStatus.IN_PROGRESS.value, TaskStatus.PAUSED.value]:
-            raise ValueError(f"Can only complete tasks in PENDING, IN_PROGRESS, or PAUSED status, current status: {current_status}")
+        # Validate state transition using state machine
+        from backend.models.task_state_machine import TaskStateMachine
+        current_status = TaskStatus(existing.get("status"))
+
+        TaskStateMachine.validate_transition(
+            current_status,
+            TaskStatus.COMPLETED,
+            reason="completing task"
+        )
 
         result = await self.tasks_collection.find_one_and_update(
             {"_id": task_id_obj, "child_id": child_id_obj},
