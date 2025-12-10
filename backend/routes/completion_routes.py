@@ -202,8 +202,8 @@ async def submit_task_completion(
             config=task_obj.execution_config or {}
         )
 
-        # For virtual tasks, use template ID; for real tasks, use task_id
-        completion_task_id = template_id_str if is_virtual_task and template_id_str else task_id
+        # For virtual tasks, use template ID string; for real tasks, use task_id
+        completion_task_id = identifier.template_id if identifier.is_virtual else task_id
 
         completion = await handler.process_completion(
             task_id=completion_task_id,
@@ -250,14 +250,17 @@ async def submit_task_completion(
         # Check if task should auto-complete (plugin-defined logic)
         should_complete = await handler.should_auto_complete(completion)
 
-        # Extract actual template ID for virtual tasks (is_virtual_task already defined above)
-        if is_virtual_task and template_id_str:
+        # Extract actual task ID for database operations
+        if identifier.is_virtual:
             try:
-                actual_task_id = ObjectId(template_id_str)
+                actual_task_id = ObjectId(identifier.template_id)
             except:
                 actual_task_id = None
         else:
-            actual_task_id = ObjectId(task_id)
+            try:
+                actual_task_id = ObjectId(task_id)
+            except:
+                actual_task_id = None
 
         # Multi-completion logic
         # max_completions can be: None/undefined (single completion), 0 (unlimited), or number > 0 (specific limit)
@@ -267,7 +270,7 @@ async def submit_task_completion(
         is_multi_completion = hasattr(task_obj, 'max_completions_per_period') and task_obj.max_completions_per_period is not None
 
         # Only update task status if NOT a virtual task (virtual tasks don't modify template status)
-        if not is_virtual_task and actual_task_id and is_multi_completion:
+        if not identifier.is_virtual and actual_task_id and is_multi_completion:
             # Multi-completion task
             if max_completions == 0:
                 # Unlimited attempts - always reset to pending
@@ -308,7 +311,7 @@ async def submit_task_completion(
                         }
                     }
                 )
-        elif not is_virtual_task and actual_task_id:
+        elif not identifier.is_virtual and actual_task_id:
             # Single completion task (original behavior) - but skip for virtual tasks
             if should_complete:
                 await tasks_collection.update_one(
