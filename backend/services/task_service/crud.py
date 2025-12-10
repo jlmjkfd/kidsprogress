@@ -546,6 +546,40 @@ class TaskCRUD:
             # Sort instances by date
             instances.sort(key=lambda t: t.get("scheduled_date", ""))
 
+            # Filter out dates that have completions
+            source_id_obj = None
+            try:
+                source_id_obj = ObjectId(source_id) if ObjectId.is_valid(source_id) else None
+            except:
+                pass
+
+            if source_id_obj:
+                # Query for completions of this recurring task
+                completions_cursor = self.db.task_completions.find({
+                    "task_id": source_id_obj
+                })
+                completions = await completions_cursor.to_list(length=None)
+
+                # Build set of completed dates
+                completed_dates = set()
+                for comp in completions:
+                    if comp.get("scheduled_date"):
+                        completed_dates.add(comp["scheduled_date"])
+
+                # Filter instances to only include dates WITHOUT completions
+                incomplete_instances = []
+                for instance in instances:
+                    instance_date = self._parse_date(instance.get("scheduled_date"))
+                    if instance_date and str(instance_date) not in completed_dates:
+                        incomplete_instances.append(instance)
+
+                # If all dates are completed, skip this task entirely
+                if not incomplete_instances:
+                    continue
+
+                # Use filtered instances for the rest of the logic
+                instances = incomplete_instances
+
             # Get first instance for task info
             first_task = instances[0]
             obligation_str = first_task.get("obligation_level", "optional")
