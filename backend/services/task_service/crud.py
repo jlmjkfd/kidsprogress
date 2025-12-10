@@ -321,8 +321,15 @@ class TaskCRUD:
             List of tasks (includes both one-time tasks and virtual instances)
         """
         from datetime import date, timedelta
-        from backend.utils.query_builders import date_range_query
         from backend.services.virtual_instance_service import VirtualInstanceService
+        from backend.services.task_service.queries.specifications import (
+            ChildTasksSpec,
+            ParentTasksSpec,
+            NonRecurringTasksSpec,
+            RecurringTasksSpec,
+            DateRangeSpec,
+            TaskStatusSpec,
+        )
 
         child_id_obj = validate_object_id(child_id, "child_id", raise_http_exception=False)
         parent_id_obj = validate_object_id(parent_id, "parent_id", raise_http_exception=False)
@@ -333,17 +340,12 @@ class TaskCRUD:
         if not end_date:
             end_date = date.today() + timedelta(days=60)
 
-        # Query for non-recurring tasks within date range
-        query: Dict[str, Any] = {
-            "child_id": child_id_obj,
-            "parent_id": parent_id_obj,
-            "is_recurring": False  # Get one-time tasks only
-        }
+        # Build query for non-recurring tasks within date range using specifications
+        spec = ChildTasksSpec(child_id) & ParentTasksSpec(parent_id) & NonRecurringTasksSpec() & DateRangeSpec(start_date, end_date)
         if status:
-            query["status"] = status.value
+            spec = spec & TaskStatusSpec(status.value)
 
-        # Add date filter for one-time tasks
-        query.update(date_range_query("scheduled_date", start_date, end_date))
+        query = spec.to_query()
 
         cursor = self.tasks_collection.find(query).sort("scheduled_date", 1)
         tasks = []
@@ -360,11 +362,8 @@ class TaskCRUD:
             tasks.append(task_dict)
 
         # Get recurring task templates (no date filter, no status filter)
-        recurring_query: Dict[str, Any] = {
-            "child_id": child_id_obj,
-            "parent_id": parent_id_obj,
-            "is_recurring": True
-        }
+        recurring_spec = ChildTasksSpec(child_id) & ParentTasksSpec(parent_id) & RecurringTasksSpec()
+        recurring_query = recurring_spec.to_query()
 
         recurring_cursor = self.tasks_collection.find(recurring_query)
         recurring_templates = []
