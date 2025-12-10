@@ -24,6 +24,15 @@ class TaskCRUD:
         self.collections_collection = db.task_collections
         self.school_calendar_service = school_calendar_service
 
+        # Initialize strategy factory for handling real vs virtual tasks
+        from backend.services.task_service.strategies.factory import TaskStrategyFactory
+        collections = {
+            "tasks": db.tasks,
+            "sessions": db.active_task_sessions,
+            "completions": db.task_completions,
+        }
+        self.strategy_factory = TaskStrategyFactory(db, collections)
+
     @staticmethod
     def _parse_date(date_obj) -> Optional[date]:
         """Parse a date from various formats (datetime, date, string).
@@ -448,45 +457,11 @@ class TaskCRUD:
             Task or None if not found or unauthorized
         """
         from backend.models.task_identifier import TaskIdentifier
-        from backend.services.virtual_instance_service import VirtualInstanceService
 
         identifier = TaskIdentifier(raw_id=task_id)
+        strategy = self.strategy_factory.get_strategy(identifier)
 
-        # Handle virtual task IDs
-        if identifier.is_virtual:
-            # Validate and fetch template
-            template_id_obj = validate_object_id(identifier.template_id, "template_id", raise_http_exception=False)
-            parent_id_obj = validate_object_id(parent_id, "parent_id", raise_http_exception=False)
-
-            template_doc = await self.tasks_collection.find_one({
-                "_id": template_id_obj,
-                "$or": [{"parent_id": parent_id_obj}, {"parent_id": parent_id}]
-            })
-
-            if template_doc and template_doc.get("is_recurring"):
-                # Generate virtual instance for this occurrence date
-                template = Task(**template_doc)
-                virtual_instance = VirtualInstanceService._create_virtual_instance(
-                    template, identifier.occurrence_date
-                )
-                # Use model_construct to bypass validation for virtual task ID
-                return Task.model_construct(**virtual_instance)
-
-            # Template not found or not recurring
-            return None
-
-        # Handle regular task lookup by ObjectId
-        task_id_obj = validate_object_id(task_id, "task_id", raise_http_exception=False)
-        parent_id_obj = validate_object_id(parent_id, "parent_id", raise_http_exception=False)
-
-        doc = await self.tasks_collection.find_one({
-            "_id": task_id_obj,
-            "$or": [{"parent_id": parent_id_obj}, {"parent_id": parent_id}]
-        })
-        if not doc:
-            return None
-
-        return Task(**doc)
+        return await strategy.get_task(identifier, parent_id)
 
     async def get_overdue_tasks(
         self,
@@ -848,31 +823,9 @@ class TaskCRUD:
         Returns:
             True if deleted/exception added, False if not found or unauthorized
         """
-        # Use TaskIdentifier to check if this is a virtual task
+        # Use strategy pattern to handle deletion
         from backend.models.task_identifier import TaskIdentifier
         identifier = TaskIdentifier(raw_id=task_id)
+        strategy = self.strategy_factory.get_strategy(identifier)
 
-        if identifier.is_virtual:
-            # Get template ID and occurrence date from identifier
-            template_id = identifier.template_id
-            occurrence_date = identifier.occurrence_date.isoformat()
-
-            # Add exception to template to mark this occurrence as deleted
-            if recurrence_component:
-                result = await recurrence_component.add_recurrence_exception(
-                    template_id,
-                    parent_id,
-                    occurrence_date,
-                    "deleted"
-                )
-                return result is not None
-            return False
-
-        # For real tasks, perform actual deletion
-        task_id_obj = validate_object_id(task_id, "task_id", raise_http_exception=False)
-        parent_id_obj = validate_object_id(parent_id, "parent_id", raise_http_exception=False)
-
-        result = await self.tasks_collection.delete_one(
-            {"_id": task_id_obj, "parent_id": parent_id_obj}
-        )
-        return result.deleted_count > 0
+        return await strategy.delete_task(identifier, parent_id, recurrence_component)
