@@ -73,10 +73,8 @@ export function EditOccurrenceModal({
       } else if (editOption === "all") {
         // Edit all occurrences - redirect to template editing
         if (onEditTemplate && task.source_recurring_task_id) {
-          // Call onEditTemplate FIRST, then close
-          // This ensures the template is loaded before modal state is cleared
+          // Call onEditTemplate - parent will handle closing this modal
           onEditTemplate(task.source_recurring_task_id);
-          onClose();
         }
         return;
       }

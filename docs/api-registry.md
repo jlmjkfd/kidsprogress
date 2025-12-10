@@ -272,6 +272,25 @@
 - **Returns**: `{ total_overdue: number, must_do_overdue: number, by_date: Record<string, number> }`
 - **Status**: ✓ Active (UI complete)
 
+#### POST /api/tasks/bulk/complete-recurring
+- **Route**: `backend/routes/tasks.py`
+- **Service**: `backend/services/task_service/lifecycle.py` (complete_recurring_tasks_bulk)
+- **Used in**:
+  - `frontend/src/api/mutations/useTaskMutations.ts` (useCompleteRecurringTasksBulk)
+  - `frontend/src/components/OverdueView.tsx` - "Mark All Done" action for recurring tasks
+- **Query Params**:
+  - `source_id`: Source template ID (routine_id or activity_id)
+  - `child_id`: Child's ID
+  - `date_list`: List of dates in YYYY-MM-DD format
+- **Returns**: `{ completed_count: number, failed_count: number, errors: string[] }`
+- **Features**:
+  - Completes multiple virtual task instances in one request
+  - Materializes virtual tasks as needed
+  - Skips already completed/skipped tasks
+  - Returns detailed results with error handling
+- **Use Case**: Bulk catch-up for recurring tasks with many overdue instances
+- **Status**: ✓ Active (UI complete)
+
 #### POST /api/tasks/child/{child_id}/create
 - **Route**: `backend/routes/tasks.py`
 - **Service**: `backend/services/task_service/crud.py` (create_task_as_child)

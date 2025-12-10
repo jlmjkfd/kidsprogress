@@ -373,8 +373,10 @@ class TaskLifecycle:
         if not existing:
             return None
 
-        if existing.get("status") != TaskStatus.IN_PROGRESS.value:
-            raise ValueError("Can only complete tasks in IN_PROGRESS status")
+        current_status = existing.get("status")
+        # Allow completing from PENDING (simple tasks), IN_PROGRESS (active tasks), or PAUSED (resumed tasks)
+        if current_status not in [TaskStatus.PENDING.value, TaskStatus.IN_PROGRESS.value, TaskStatus.PAUSED.value]:
+            raise ValueError(f"Can only complete tasks in PENDING, IN_PROGRESS, or PAUSED status, current status: {current_status}")
 
         result = await self.tasks_collection.find_one_and_update(
             {"_id": task_id_obj, "child_id": child_id_obj},

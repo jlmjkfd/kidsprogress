@@ -133,6 +133,7 @@ export function OverdueView({ childId }: OverdueViewProps) {
               <OverdueTaskCard
                 key={task.task_id}
                 task={task}
+                childId={childId}
                 onMarkDone={handleMarkDone}
                 onMarkAllDone={handleMarkAllDone}
               />
@@ -163,6 +164,7 @@ export function OverdueView({ childId }: OverdueViewProps) {
                 <OverdueTaskCard
                   key={task.task_id}
                   task={task}
+                  childId={childId}
                   onMarkDone={handleMarkDone}
                   onMarkAllDone={handleMarkAllDone}
                 />
@@ -194,6 +196,7 @@ export function OverdueView({ childId }: OverdueViewProps) {
                 <OverdueTaskCard
                   key={task.task_id}
                   task={task}
+                  childId={childId}
                   onMarkDone={handleMarkDone}
                   onMarkAllDone={handleMarkAllDone}
                 />

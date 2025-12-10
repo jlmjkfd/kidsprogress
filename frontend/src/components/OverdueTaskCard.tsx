@@ -19,17 +19,18 @@ import { OverdueTask } from "@/types/task";
 
 interface OverdueTaskCardProps {
   task: OverdueTask;
+  childId: string;
   onMarkDone?: (taskId: string) => void;
   onMarkAllDone?: (sourceId: string) => void;
 }
 
-export function OverdueTaskCard({ task, onMarkDone, onMarkAllDone }: OverdueTaskCardProps) {
+export function OverdueTaskCard({ task, childId, onMarkDone, onMarkAllDone }: OverdueTaskCardProps) {
   const { t } = useTranslation(["tasks"]);
   const navigate = useNavigate();
   const [isExpanded, setIsExpanded] = useState(false);
 
   const handleOpenTask = () => {
-    navigate(`/child-portal/tasks/${task.task_id}/execute`);
+    navigate(`/child-portal/${childId}/tasks/execute/${task.task_id}`);
   };
 
   const handleMarkDone = () => {
@@ -178,29 +179,37 @@ export function OverdueTaskCard({ task, onMarkDone, onMarkAllDone }: OverdueTask
             {t("tasks:overdue_view.recent_missed_dates")}:
           </p>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {task.recent_missed_dates.map((date) => (
-              <div
-                key={date}
-                className="flex items-center justify-between rounded-lg bg-white p-3 shadow-sm"
-              >
-                <span className="text-sm text-gray-700">{date}</span>
-                {task.completion_type === "simple" ? (
-                  <button
-                    onClick={() => onMarkDone && onMarkDone(task.task_id)}
-                    className="rounded-lg bg-green-100 p-1 text-green-700 transition-colors hover:bg-green-200"
-                  >
-                    <IconCheck size={16} />
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleOpenTask}
-                    className="rounded-lg bg-blue-100 p-1 text-blue-700 transition-colors hover:bg-blue-200"
-                  >
-                    <IconArrowRight size={16} />
-                  </button>
-                )}
-              </div>
-            ))}
+            {task.recent_missed_dates.map((date) => {
+              // Construct virtual task ID for this specific date
+              const virtualTaskId = `${task.source_id}_${date}`;
+              const executePath = `/child-portal/${childId}/tasks/execute/${virtualTaskId}`;
+
+              return (
+                <div
+                  key={date}
+                  className="flex items-center justify-between rounded-lg bg-white p-3 shadow-sm"
+                >
+                  <span className="text-sm text-gray-700">{date}</span>
+                  {task.completion_type === "simple" ? (
+                    <button
+                      onClick={() => onMarkDone && onMarkDone(virtualTaskId)}
+                      className="rounded-lg bg-green-100 p-1 text-green-700 transition-colors hover:bg-green-200"
+                      title={t("tasks:overdue_view.mark_done")}
+                    >
+                      <IconCheck size={16} />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => navigate(executePath)}
+                      className="rounded-lg bg-blue-100 p-1 text-blue-700 transition-colors hover:bg-blue-200"
+                      title={t("tasks:overdue_view.open_task")}
+                    >
+                      <IconArrowRight size={16} />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
           {task.older_count > 0 && (

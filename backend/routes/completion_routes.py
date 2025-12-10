@@ -8,6 +8,8 @@ from backend.models.task_template import TaskCompletion
 from backend.models.task import Task
 from backend.models.user import User
 from backend.routes.auth import get_current_user
+from backend.routes.tasks import get_task_service
+from backend.services.task_service import TaskService
 from backend.db.connection import db
 from backend.templates.registry import create_handler
 from backend.utils.datetime_utils import utcnow
@@ -55,19 +57,17 @@ async def save_task_progress(
 async def prepare_task_execution(
     task_id: str,
     current_user: User = Depends(get_current_user),
+    service: TaskService = Depends(get_task_service),
 ):
-    """Get execution configuration for task."""
+    """Get execution configuration for task (supports virtual task IDs)."""
     database = db.get_database()
-    tasks_collection = database["tasks"]
     templates_collection = database["task_templates"]
     completions_collection = database["task_completions"]
 
-    # Get task
-    task = await tasks_collection.find_one({"_id": ObjectId(task_id)})
-    if not task:
+    # Get task (handles both real and virtual task IDs)
+    task_obj = await service.get_task_by_id(task_id, str(current_user.id))
+    if not task_obj:
         raise not_found("Task")
-
-    task_obj = Task(**task)
 
     # Check if task has template
     if not task_obj.template_id:
@@ -82,7 +82,7 @@ async def prepare_task_execution(
     template_obj = TaskTemplate(**template)
 
     # Check if there's saved progress
-    progress_state = task.get("progress_state")
+    progress_state = getattr(task_obj, "progress_state", None)
     is_resuming = bool(progress_state)
 
     if progress_state:
@@ -98,10 +98,26 @@ async def prepare_task_execution(
 
     # Calculate session number for multi-completion tracking
     scheduled_date = task_obj.scheduled_date.strftime("%Y-%m-%d") if task_obj.scheduled_date else None
-    session_count = await completions_collection.count_documents({
-        "task_id": ObjectId(task_id),
-        "scheduled_date": scheduled_date
-    })
+
+    # For virtual tasks, query by template ID; for real tasks, query by task ID
+    if "_" in task_id:
+        # Virtual task - extract template ID
+        template_id_str = task_id.rsplit("_", 1)[0]
+        try:
+            from bson import ObjectId
+            template_id_obj = ObjectId(template_id_str)
+            session_count = await completions_collection.count_documents({
+                "task_id": template_id_obj,
+                "scheduled_date": scheduled_date
+            })
+        except:
+            session_count = 0
+    else:
+        # Real task
+        session_count = await completions_collection.count_documents({
+            "task_id": ObjectId(task_id),
+            "scheduled_date": scheduled_date
+        })
 
     return {
         "task_id": task_id,
@@ -120,19 +136,18 @@ async def submit_task_completion(
     child_id: str = Body(...),
     completion_data: Dict[str, Any] = Body(...),
     current_user: User = Depends(get_current_user),
+    service: TaskService = Depends(get_task_service),
 ):
-    """Submit task completion data."""
+    """Submit task completion data (supports virtual task IDs)."""
     database = db.get_database()
     tasks_collection = database["tasks"]
     templates_collection = database["task_templates"]
     completions_collection = database["task_completions"]
 
-    # Get task
-    task = await tasks_collection.find_one({"_id": ObjectId(task_id)})
-    if not task:
+    # Get task (handles both real and virtual task IDs)
+    task_obj = await service.get_task_by_id(task_id, str(current_user.id))
+    if not task_obj:
         raise not_found("Task")
-
-    task_obj = Task(**task)
 
     # Verify task belongs to user
     if str(task_obj.parent_id) != str(current_user.id):
@@ -151,12 +166,33 @@ async def submit_task_completion(
 
     # Get handler from plugin registry and process completion
     try:
+        # Check if this is a virtual task and extract template ID
+        is_virtual_task = "_" in task_id
+        if is_virtual_task:
+            template_id_str = task_id.rsplit("_", 1)[0]
+        else:
+            template_id_str = None
+
         # Calculate session number for this completion
         scheduled_date = task_obj.scheduled_date.strftime("%Y-%m-%d") if task_obj.scheduled_date else None
-        existing_completions = await completions_collection.count_documents({
-            "task_id": ObjectId(task_id),
-            "scheduled_date": scheduled_date
-        })
+
+        # For virtual tasks, query by template ID; for real tasks, query by task ID
+        if is_virtual_task and template_id_str:
+            # Virtual task - extract template ID
+            try:
+                template_id_obj = ObjectId(template_id_str)
+                existing_completions = await completions_collection.count_documents({
+                    "task_id": template_id_obj,
+                    "scheduled_date": scheduled_date
+                })
+            except:
+                existing_completions = 0
+        else:
+            # Real task
+            existing_completions = await completions_collection.count_documents({
+                "task_id": ObjectId(task_id),
+                "scheduled_date": scheduled_date
+            })
         session_number = existing_completions + 1
 
         # Debug: Check incoming data types
@@ -173,8 +209,12 @@ async def submit_task_completion(
             plugin_id=task_obj.template_id,
             config=task_obj.execution_config or {}
         )
+
+        # For virtual tasks, use template ID; for real tasks, use task_id
+        completion_task_id = template_id_str if is_virtual_task and template_id_str else task_id
+
         completion = await handler.process_completion(
-            task_id=task_id,
+            task_id=completion_task_id,
             child_id=child_id,
             data=completion_data
         )
@@ -188,6 +228,8 @@ async def submit_task_completion(
         if not completion.measured_data:
             metrics = await handler.calculate_metrics(completion)
             completion.measured_data = metrics
+        else:
+            metrics = completion.measured_data
 
         # Debug: Check completion before saving
         print("DEBUG - Before saving to DB:")
@@ -216,6 +258,15 @@ async def submit_task_completion(
         # Check if task should auto-complete (plugin-defined logic)
         should_complete = await handler.should_auto_complete(completion)
 
+        # Extract actual template ID for virtual tasks (is_virtual_task already defined above)
+        if is_virtual_task and template_id_str:
+            try:
+                actual_task_id = ObjectId(template_id_str)
+            except:
+                actual_task_id = None
+        else:
+            actual_task_id = ObjectId(task_id)
+
         # Multi-completion logic
         # max_completions can be: None/undefined (single completion), 0 (unlimited), or number > 0 (specific limit)
         max_completions = task_obj.max_completions_per_period
@@ -223,12 +274,13 @@ async def submit_task_completion(
         # Check if this is a multi-completion task (field is set, regardless of value)
         is_multi_completion = hasattr(task_obj, 'max_completions_per_period') and task_obj.max_completions_per_period is not None
 
-        if is_multi_completion:
+        # Only update task status if NOT a virtual task (virtual tasks don't modify template status)
+        if not is_virtual_task and actual_task_id and is_multi_completion:
             # Multi-completion task
             if max_completions == 0:
                 # Unlimited attempts - always reset to pending
                 await tasks_collection.update_one(
-                    {"_id": ObjectId(task_id)},
+                    {"_id": actual_task_id},
                     {
                         "$set": {
                             "status": "pending",
@@ -241,7 +293,7 @@ async def submit_task_completion(
             elif session_number >= max_completions:
                 # Max completions reached, complete the task
                 await tasks_collection.update_one(
-                    {"_id": ObjectId(task_id)},
+                    {"_id": actual_task_id},
                     {
                         "$set": {
                             "status": "completed",
@@ -254,7 +306,7 @@ async def submit_task_completion(
             else:
                 # More attempts allowed, reset to pending
                 await tasks_collection.update_one(
-                    {"_id": ObjectId(task_id)},
+                    {"_id": actual_task_id},
                     {
                         "$set": {
                             "status": "pending",
@@ -264,11 +316,11 @@ async def submit_task_completion(
                         }
                     }
                 )
-        else:
-            # Single completion task (original behavior)
+        elif not is_virtual_task and actual_task_id:
+            # Single completion task (original behavior) - but skip for virtual tasks
             if should_complete:
                 await tasks_collection.update_one(
-                    {"_id": ObjectId(task_id)},
+                    {"_id": actual_task_id},
                     {
                         "$set": {
                             "status": "completed",
@@ -310,8 +362,21 @@ async def get_completions(
     query = {}
 
     if task_id:
-        # Handle both ObjectId and string formats for backwards compatibility
-        query["$or"] = [{"task_id": ObjectId(task_id)}, {"task_id": task_id}]
+        # Handle virtual task IDs (template_id_date format)
+        if "_" in task_id:
+            # Virtual task - extract template ID
+            template_id_str = task_id.rsplit("_", 1)[0]
+            try:
+                template_id_obj = ObjectId(template_id_str)
+                query["$or"] = [{"task_id": template_id_obj}, {"task_id": template_id_str}]
+            except:
+                query["task_id"] = task_id
+        else:
+            # Regular task ID - handle both ObjectId and string formats
+            try:
+                query["$or"] = [{"task_id": ObjectId(task_id)}, {"task_id": task_id}]
+            except:
+                query["task_id"] = task_id
 
     if child_id:
         # Handle both ObjectId and string formats for backwards compatibility

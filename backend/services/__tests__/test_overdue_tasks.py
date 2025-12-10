@@ -103,6 +103,7 @@ async def sample_tasks(test_db, sample_parent, sample_child):
             "status": TaskStatus.PENDING.value,
             "obligation_level": ObligationLevel.MUST_DO.value,
             "is_informational": False,
+            "is_recurring": False,
             "created_at": utcnow()
         },
         # Overdue SHOULD_DO task
@@ -116,6 +117,7 @@ async def sample_tasks(test_db, sample_parent, sample_child):
             "status": TaskStatus.IN_PROGRESS.value,
             "obligation_level": ObligationLevel.SHOULD_DO.value,
             "is_informational": False,
+            "is_recurring": False,
             "created_at": utcnow()
         },
         # Overdue OPTIONAL task
@@ -129,6 +131,7 @@ async def sample_tasks(test_db, sample_parent, sample_child):
             "status": TaskStatus.PAUSED.value,
             "obligation_level": ObligationLevel.OPTIONAL.value,
             "is_informational": False,
+            "is_recurring": False,
             "created_at": utcnow()
         },
         # Completed overdue (should NOT appear)
@@ -142,6 +145,7 @@ async def sample_tasks(test_db, sample_parent, sample_child):
             "status": TaskStatus.COMPLETED.value,
             "obligation_level": ObligationLevel.MUST_DO.value,
             "is_informational": False,
+            "is_recurring": False,
             "created_at": utcnow()
         },
         # Future task (should NOT appear)
@@ -155,6 +159,7 @@ async def sample_tasks(test_db, sample_parent, sample_child):
             "status": TaskStatus.PENDING.value,
             "obligation_level": ObligationLevel.MUST_DO.value,
             "is_informational": False,
+            "is_recurring": False,
             "created_at": utcnow()
         },
         # Informational overdue (should NOT appear)
@@ -168,6 +173,7 @@ async def sample_tasks(test_db, sample_parent, sample_child):
             "status": TaskStatus.PENDING.value,
             "obligation_level": ObligationLevel.MUST_DO.value,
             "is_informational": True,
+            "is_recurring": False,
             "created_at": utcnow()
         },
     ]
@@ -282,6 +288,7 @@ class TestOverdueTasks:
             "status": TaskStatus.ARCHIVED.value,
             "obligation_level": ObligationLevel.MUST_DO.value,
             "is_informational": False,
+            "is_recurring": False,
             "created_at": utcnow()
         })
 
@@ -330,6 +337,7 @@ class TestOverdueTasks:
             "status": TaskStatus.SKIPPED.value,
             "obligation_level": ObligationLevel.MUST_DO.value,
             "is_informational": False,
+            "is_recurring": False,
             "created_at": utcnow()
         })
 

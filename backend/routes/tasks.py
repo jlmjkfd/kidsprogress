@@ -304,6 +304,7 @@ async def complete_task(
             raise not_found("Task")
         return task
     except ValueError as e:
+        print(f"ValueError in complete_task: {e}")
         raise bad_request(str(e))
 
 

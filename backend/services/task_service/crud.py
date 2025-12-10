@@ -24,6 +24,32 @@ class TaskCRUD:
         self.collections_collection = db.task_collections
         self.school_calendar_service = school_calendar_service
 
+    @staticmethod
+    def _parse_date(date_obj) -> Optional[date]:
+        """Parse a date from various formats (datetime, date, string).
+
+        Args:
+            date_obj: Can be datetime, date, or ISO string
+
+        Returns:
+            date object or None if invalid
+        """
+        if not date_obj:
+            return None
+        if isinstance(date_obj, datetime):
+            return date_obj.date()
+        elif isinstance(date_obj, date):
+            return date_obj
+        elif isinstance(date_obj, str):
+            try:
+                if "T" in date_obj:
+                    return datetime.fromisoformat(date_obj.replace("Z", "+00:00")).date()
+                else:
+                    return datetime.fromisoformat(date_obj).date()
+            except (ValueError, AttributeError):
+                return None
+        return None
+
     async def create_task(self, parent_id: str, task_data: TaskCreate) -> Task:
         """Create a new task (status: DRAFT).
 
@@ -412,15 +438,50 @@ class TaskCRUD:
         return tasks
 
     async def get_task_by_id(self, task_id: str, parent_id: str) -> Optional[Task]:
-        """Get a task by ID.
+        """Get a task by ID (supports both real and virtual task IDs).
 
         Args:
-            task_id: Task's ObjectId as string
+            task_id: Task's ObjectId as string, or virtual task ID (template_id_date)
             parent_id: Parent's ObjectId as string (for authorization)
 
         Returns:
             Task or None if not found or unauthorized
         """
+        # Check if this is a virtual task ID (format: template_id_date)
+        if "_" in task_id and not task_id.count("_") > 2:
+            # This might be a virtual task ID - try to parse it
+            parts = task_id.rsplit("_", 1)  # Split from right to get last underscore
+            if len(parts) == 2:
+                template_id_str, date_str = parts
+                try:
+                    # Validate the template ID is a valid ObjectId
+                    template_id_obj = validate_object_id(template_id_str, "template_id", raise_http_exception=False)
+
+                    # Parse the date
+                    from datetime import datetime
+                    from backend.services.virtual_instance_service import VirtualInstanceService
+                    occurrence_date = datetime.fromisoformat(date_str).date()
+
+                    # Fetch the template task
+                    parent_id_obj = validate_object_id(parent_id, "parent_id", raise_http_exception=False)
+                    template_doc = await self.tasks_collection.find_one({
+                        "_id": template_id_obj,
+                        "$or": [{"parent_id": parent_id_obj}, {"parent_id": parent_id}]
+                    })
+
+                    if template_doc and template_doc.get("is_recurring"):
+                        # Generate virtual instance for this date
+                        template = Task(**template_doc)
+                        virtual_instance = VirtualInstanceService._create_virtual_instance(
+                            template, occurrence_date
+                        )
+                        # Use model_construct to bypass validation for virtual task ID
+                        return Task.model_construct(**virtual_instance)
+                except (ValueError, TypeError):
+                    # Not a valid virtual task ID, continue to regular lookup
+                    pass
+
+        # Regular task lookup by ObjectId
         task_id_obj = validate_object_id(task_id, "task_id", raise_http_exception=False)
         parent_id_obj = validate_object_id(parent_id, "parent_id", raise_http_exception=False)
 
@@ -441,6 +502,8 @@ class TaskCRUD:
     ) -> Dict[str, Any]:
         """Get all overdue tasks for a child, grouped by obligation level.
 
+        This includes virtual instances from recurring templates.
+
         Args:
             child_id: Child's ObjectId as string
             parent_id: Parent's ObjectId as string (for authorization)
@@ -451,39 +514,57 @@ class TaskCRUD:
         """
         from backend.models.task import ObligationLevel, TaskSource
         from collections import defaultdict
+        from datetime import date, timedelta
 
-        child_id_obj = validate_object_id(child_id, "child_id", raise_http_exception=False)
-        parent_id_obj = validate_object_id(parent_id, "parent_id", raise_http_exception=False)
+        today = date.today()
+        # Get tasks from 90 days ago to yesterday (includes overdue virtual instances)
+        start_date = today - timedelta(days=90)
+        end_date = today - timedelta(days=1)  # Yesterday
 
-        today_start = datetime.combine(date.today(), datetime.min.time())
+        # Get all tasks including virtual instances
+        all_tasks_list = await self.get_tasks_by_child(
+            child_id,
+            parent_id,
+            status=None,
+            start_date=start_date,
+            end_date=end_date
+        )
 
-        query = {
-            "child_id": child_id_obj,
-            "parent_id": parent_id_obj,
-            "scheduled_date": {"$lt": today_start},
-            "status": {"$nin": ["completed", "skipped", "archived"]},
-            "is_informational": {"$ne": True},
-        }
+        # Filter for overdue tasks only (status not completed/skipped/archived, not informational)
+        overdue_tasks = []
+        for task_dict in all_tasks_list:
+            # Skip completed, skipped, archived tasks
+            if task_dict.get("status") in ["completed", "skipped", "archived"]:
+                continue
+            # Skip informational tasks
+            if task_dict.get("is_informational"):
+                continue
+            # Must be scheduled before today
+            scheduled_date = self._parse_date(task_dict.get("scheduled_date"))
+            if scheduled_date and scheduled_date < today:
+                overdue_tasks.append(task_dict)
 
-        if must_do_only:
-            query["obligation_level"] = ObligationLevel.MUST_DO.value
-
-        # Get all overdue tasks sorted by scheduled_date (oldest first for better grouping)
-        cursor = self.tasks_collection.find(query).sort("scheduled_date", 1)
-        all_tasks = await cursor.to_list(None)
-
-        # Group by source_id for recurring tasks
+        # Group by source_recurring_task_id for virtual recurring tasks
         recurring_groups = defaultdict(list)
         one_off_tasks = []
 
-        for doc in all_tasks:
-            task_obj = Task(**doc)
+        for task_dict in overdue_tasks:
+            # Check if this is a recurring task instance (virtual or materialized)
+            source_id = task_dict.get("source_recurring_task_id") or task_dict.get("source_id")
+            is_virtual = task_dict.get("is_virtual", False)
+            is_recurring = task_dict.get("is_recurring", False)
+            task_source = task_dict.get("task_source", "one_time")  # Default to one_time
 
-            # Check if this is a recurring task instance
-            if task_obj.source_id and task_obj.task_source in [TaskSource.ROUTINE, TaskSource.ACTIVITY]:
-                recurring_groups[str(task_obj.source_id)].append(task_obj)
+            # Group recurring tasks by their source template ID
+            # Group if has source_id AND (is_virtual OR is_recurring)
+            # This includes routine/activity tasks AND manually created recurring tasks
+            if source_id and (is_virtual or is_recurring):
+                # Use source_id for grouping
+                group_key = source_id if isinstance(source_id, str) else str(source_id)
+                recurring_groups[group_key].append(task_dict)
             else:
-                one_off_tasks.append(task_obj)
+                # Treat as one-off task (non-recurring tasks without source_id)
+                one_off_tasks.append(task_dict)
 
         # Build response grouped by obligation level
         result = {
@@ -495,45 +576,60 @@ class TaskCRUD:
         # Process recurring task groups
         for source_id, instances in recurring_groups.items():
             # Sort instances by date
-            instances.sort(key=lambda t: t.scheduled_date)
+            instances.sort(key=lambda t: t.get("scheduled_date", ""))
 
-            # Get first instance as template for task info
+            # Get first instance for task info
             first_task = instances[0]
-            obligation = first_task.obligation_level or ObligationLevel.OPTIONAL
+            obligation_str = first_task.get("obligation_level", "optional")
+            obligation = ObligationLevel(obligation_str) if obligation_str else ObligationLevel.OPTIONAL
+
+            # Apply must_do filter if requested
+            if must_do_only and obligation != ObligationLevel.MUST_DO:
+                continue
 
             # Determine completion type
-            has_criteria = bool(
-                first_task.metrics or
-                first_task.quality_aspects or
-                first_task.tools or
-                (first_task.subtasks and len(first_task.subtasks) > 0)
-            )
+            # ALL recurring tasks require execution (navigate to task page, not mark done directly)
+            # This includes routine/activity tasks AND manually created recurring tasks
+            task_source = first_task.get("task_source", "")
+            has_criteria = True  # Force all recurring tasks to require execution
 
             # Get recent missed dates (last 7) and older count
-            recent_dates = [str(t.scheduled_date.date()) for t in instances[-7:]]
+            recent_dates = []
+            for t in instances[-7:]:
+                date_obj = self._parse_date(t.get("scheduled_date"))
+                if date_obj:
+                    recent_dates.append(str(date_obj))
+
             older_count = max(0, len(instances) - 7)
 
+            # Get date range
+            first_date = self._parse_date(instances[0].get("scheduled_date"))
+            last_date = self._parse_date(instances[-1].get("scheduled_date"))
+
+            if not first_date or not last_date:
+                continue  # Skip if dates are invalid
+
             task_data = {
-                "task_id": str(first_task.id),
-                "title": first_task.title,
-                "description": first_task.description,
-                "task_type_code": first_task.task_type_code,
+                "task_id": first_task.get("_id"),
+                "title": first_task.get("title", ""),
+                "description": first_task.get("description"),
+                "task_type_code": first_task.get("task_type_code"),
                 "is_recurring": True,
-                "task_source": first_task.task_source.value,
-                "source_id": str(first_task.source_id),
+                "task_source": task_source,
+                "source_id": source_id,
                 "total_missed_days": len(instances),
                 "missed_date_range": {
-                    "start": str(instances[0].scheduled_date.date()),
-                    "end": str(instances[-1].scheduled_date.date())
+                    "start": str(first_date),
+                    "end": str(last_date)
                 },
                 "recent_missed_dates": recent_dates,
                 "older_count": older_count,
                 "completion_type": "with_criteria" if has_criteria else "simple",
-                "has_metrics": bool(first_task.metrics),
-                "has_quality_aspects": bool(first_task.quality_aspects),
-                "has_tools": bool(first_task.tools),
-                "has_subtasks": bool(first_task.subtasks),
-                "days_overdue": (today_start.date() - instances[0].scheduled_date.date()).days
+                "has_metrics": bool(first_task.get("metrics")),
+                "has_quality_aspects": bool(first_task.get("quality_aspects")),
+                "has_tools": bool(first_task.get("tools")),
+                "has_subtasks": bool(first_task.get("subtasks")),
+                "days_overdue": (today - first_date).days
             }
 
             # Add to appropriate obligation level
@@ -545,30 +641,40 @@ class TaskCRUD:
                 result["optional"].append(task_data)
 
         # Process one-off tasks
-        for task in one_off_tasks:
-            obligation = task.obligation_level or ObligationLevel.OPTIONAL
+        for task_dict in one_off_tasks:
+            obligation_str = task_dict.get("obligation_level", "optional")
+            obligation = ObligationLevel(obligation_str) if obligation_str else ObligationLevel.OPTIONAL
+
+            # Apply must_do filter if requested
+            if must_do_only and obligation != ObligationLevel.MUST_DO:
+                continue
 
             has_criteria = bool(
-                task.metrics or
-                task.quality_aspects or
-                task.tools or
-                (task.subtasks and len(task.subtasks) > 0)
+                task_dict.get("metrics") or
+                task_dict.get("quality_aspects") or
+                task_dict.get("tools") or
+                (task_dict.get("subtasks") and len(task_dict.get("subtasks", [])) > 0)
             )
 
+            # Parse scheduled date
+            scheduled_date = self._parse_date(task_dict.get("scheduled_date"))
+            if not scheduled_date:
+                continue  # Skip if date is invalid
+
             task_data = {
-                "task_id": str(task.id),
-                "title": task.title,
-                "description": task.description,
-                "task_type_code": task.task_type_code,
+                "task_id": task_dict.get("_id"),
+                "title": task_dict.get("title", ""),
+                "description": task_dict.get("description"),
+                "task_type_code": task_dict.get("task_type_code"),
                 "is_recurring": False,
-                "task_source": task.task_source.value,
-                "scheduled_date": str(task.scheduled_date.date()),
-                "days_overdue": (today_start.date() - task.scheduled_date.date()).days,
+                "task_source": task_dict.get("task_source", ""),
+                "scheduled_date": str(scheduled_date),
+                "days_overdue": (today - scheduled_date).days,
                 "completion_type": "with_criteria" if has_criteria else "simple",
-                "has_metrics": bool(task.metrics),
-                "has_quality_aspects": bool(task.quality_aspects),
-                "has_tools": bool(task.tools),
-                "has_subtasks": bool(task.subtasks)
+                "has_metrics": bool(task_dict.get("metrics")),
+                "has_quality_aspects": bool(task_dict.get("quality_aspects")),
+                "has_tools": bool(task_dict.get("tools")),
+                "has_subtasks": bool(task_dict.get("subtasks"))
             }
 
             if obligation == ObligationLevel.MUST_DO:

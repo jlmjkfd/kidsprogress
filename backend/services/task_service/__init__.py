@@ -334,7 +334,7 @@ class TaskService:
         Returns:
             Updated task or None if not found or invalid state
         """
-        return await self.lifecycle.complete_task(task_id, child_id, self.crud)
+        return await self.lifecycle.complete_task(task_id, child_id)
 
     async def cancel_task(self, task_id: str, parent_id: str) -> Optional[Task]:
         """Cancel a task (any status -> CANCELLED).

@@ -445,11 +445,13 @@ export default function ChildTasksPage() {
           }}
           onEditTemplate={() => {
             // Open unified task modal with the template
+            setShowRecurringDialog(false);
             setEditingTask(pendingEditTask);
             setPendingEditTask(null);
           }}
           onEditOccurrence={() => {
             // This shouldn't happen for templates, but handle gracefully
+            setShowRecurringDialog(false);
             setEditingTask(pendingEditTask);
             setPendingEditTask(null);
           }}
