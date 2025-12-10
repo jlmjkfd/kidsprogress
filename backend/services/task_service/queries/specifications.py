@@ -108,9 +108,13 @@ class OverdueTasksSpec(QuerySpecification):
         """Initialize specification.
 
         Args:
-            as_of_date: Date to check against. Defaults to today.
+            as_of_date: Date to check against. Defaults to today in local timezone.
         """
-        self.as_of_date = as_of_date or date.today()
+        if as_of_date is None:
+            from backend.utils.datetime_utils import get_local_today
+            self.as_of_date = get_local_today()
+        else:
+            self.as_of_date = as_of_date
 
     def to_query(self):
         """Convert to MongoDB query.

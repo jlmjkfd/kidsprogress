@@ -483,8 +483,11 @@ class TaskCRUD:
         from backend.models.task import ObligationLevel, TaskSource
         from collections import defaultdict
         from datetime import date, timedelta
+        from backend.utils.datetime_utils import get_local_today
 
-        today = date.today()
+        # Use local timezone (NZ) instead of server timezone for date comparison
+        # This ensures tasks scheduled for "Dec 3" show as overdue starting "Dec 4" in NZ time
+        today = get_local_today()  # Defaults to Pacific/Auckland
         # Get tasks from 90 days ago to yesterday (includes overdue virtual instances)
         start_date = today - timedelta(days=90)
         end_date = today - timedelta(days=1)  # Yesterday
