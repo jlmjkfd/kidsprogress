@@ -10,8 +10,6 @@ import {
   IconChevronUp,
   IconCheck,
   IconArrowRight,
-  IconPhoto,
-  IconClock,
   IconChartBar,
   IconList,
   IconRepeat,
