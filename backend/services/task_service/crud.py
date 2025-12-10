@@ -438,8 +438,8 @@ class TaskCRUD:
         child_id: str,
         parent_id: str,
         must_do_only: bool = False
-    ) -> List[Dict[str, Any]]:
-        """Get all overdue tasks for a child.
+    ) -> Dict[str, Any]:
+        """Get all overdue tasks for a child, grouped by obligation level.
 
         Args:
             child_id: Child's ObjectId as string
@@ -447,9 +447,10 @@ class TaskCRUD:
             must_do_only: If True, only return MUST_DO tasks
 
         Returns:
-            List of overdue tasks
+            Dict with must_do, should_do, and optional task lists
         """
-        from backend.models.task import ObligationLevel
+        from backend.models.task import ObligationLevel, TaskSource
+        from collections import defaultdict
 
         child_id_obj = validate_object_id(child_id, "child_id", raise_http_exception=False)
         parent_id_obj = validate_object_id(parent_id, "parent_id", raise_http_exception=False)
@@ -461,23 +462,127 @@ class TaskCRUD:
             "parent_id": parent_id_obj,
             "scheduled_date": {"$lt": today_start},
             "status": {"$nin": ["completed", "skipped", "archived"]},
-            "is_informational": {"$ne": True},  # Exclude informational tasks
+            "is_informational": {"$ne": True},
         }
 
         if must_do_only:
             query["obligation_level"] = ObligationLevel.MUST_DO.value
 
-        cursor = self.tasks_collection.find(query).sort("scheduled_date", -1)  # Newest first
-        tasks = []
+        # Get all overdue tasks sorted by scheduled_date (oldest first for better grouping)
+        cursor = self.tasks_collection.find(query).sort("scheduled_date", 1)
+        all_tasks = await cursor.to_list(None)
 
-        async for doc in cursor:
+        # Group by source_id for recurring tasks
+        recurring_groups = defaultdict(list)
+        one_off_tasks = []
+
+        for doc in all_tasks:
             task_obj = Task(**doc)
-            task_dict = task_obj.model_dump(mode='json', by_alias=True)
-            if "_id" in task_dict and not isinstance(task_dict["_id"], str):
-                task_dict["_id"] = str(task_dict["_id"])
-            tasks.append(task_dict)
 
-        return tasks
+            # Check if this is a recurring task instance
+            if task_obj.source_id and task_obj.task_source in [TaskSource.ROUTINE, TaskSource.ACTIVITY]:
+                recurring_groups[str(task_obj.source_id)].append(task_obj)
+            else:
+                one_off_tasks.append(task_obj)
+
+        # Build response grouped by obligation level
+        result = {
+            "must_do": [],
+            "should_do": [],
+            "optional": []
+        }
+
+        # Process recurring task groups
+        for source_id, instances in recurring_groups.items():
+            # Sort instances by date
+            instances.sort(key=lambda t: t.scheduled_date)
+
+            # Get first instance as template for task info
+            first_task = instances[0]
+            obligation = first_task.obligation_level or ObligationLevel.OPTIONAL
+
+            # Determine completion type
+            has_criteria = bool(
+                first_task.metrics or
+                first_task.quality_aspects or
+                first_task.tools or
+                (first_task.subtasks and len(first_task.subtasks) > 0)
+            )
+
+            # Get recent missed dates (last 7) and older count
+            recent_dates = [str(t.scheduled_date.date()) for t in instances[-7:]]
+            older_count = max(0, len(instances) - 7)
+
+            task_data = {
+                "task_id": str(first_task.id),
+                "title": first_task.title,
+                "description": first_task.description,
+                "task_type_code": first_task.task_type_code,
+                "is_recurring": True,
+                "task_source": first_task.task_source.value,
+                "source_id": str(first_task.source_id),
+                "total_missed_days": len(instances),
+                "missed_date_range": {
+                    "start": str(instances[0].scheduled_date.date()),
+                    "end": str(instances[-1].scheduled_date.date())
+                },
+                "recent_missed_dates": recent_dates,
+                "older_count": older_count,
+                "completion_type": "with_criteria" if has_criteria else "simple",
+                "has_metrics": bool(first_task.metrics),
+                "has_quality_aspects": bool(first_task.quality_aspects),
+                "has_tools": bool(first_task.tools),
+                "has_subtasks": bool(first_task.subtasks),
+                "days_overdue": (today_start.date() - instances[0].scheduled_date.date()).days
+            }
+
+            # Add to appropriate obligation level
+            if obligation == ObligationLevel.MUST_DO:
+                result["must_do"].append(task_data)
+            elif obligation == ObligationLevel.SHOULD_DO:
+                result["should_do"].append(task_data)
+            else:
+                result["optional"].append(task_data)
+
+        # Process one-off tasks
+        for task in one_off_tasks:
+            obligation = task.obligation_level or ObligationLevel.OPTIONAL
+
+            has_criteria = bool(
+                task.metrics or
+                task.quality_aspects or
+                task.tools or
+                (task.subtasks and len(task.subtasks) > 0)
+            )
+
+            task_data = {
+                "task_id": str(task.id),
+                "title": task.title,
+                "description": task.description,
+                "task_type_code": task.task_type_code,
+                "is_recurring": False,
+                "task_source": task.task_source.value,
+                "scheduled_date": str(task.scheduled_date.date()),
+                "days_overdue": (today_start.date() - task.scheduled_date.date()).days,
+                "completion_type": "with_criteria" if has_criteria else "simple",
+                "has_metrics": bool(task.metrics),
+                "has_quality_aspects": bool(task.quality_aspects),
+                "has_tools": bool(task.tools),
+                "has_subtasks": bool(task.subtasks)
+            }
+
+            if obligation == ObligationLevel.MUST_DO:
+                result["must_do"].append(task_data)
+            elif obligation == ObligationLevel.SHOULD_DO:
+                result["should_do"].append(task_data)
+            else:
+                result["optional"].append(task_data)
+
+        # Sort each group by days_overdue (most overdue first)
+        for key in result:
+            result[key].sort(key=lambda x: x.get("days_overdue", 0), reverse=True)
+
+        return result
 
     async def get_overdue_stats(
         self,

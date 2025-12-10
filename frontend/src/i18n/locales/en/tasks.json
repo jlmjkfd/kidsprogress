@@ -572,6 +572,32 @@
   "overdue_view": {
     "no_overdue": "No overdue tasks! Keep up the great work!",
     "scheduled_for": "Scheduled:",
-    "must_do_count": "{{count}} MUST DO tasks"
+    "must_do_count": "{{count}} MUST DO tasks",
+    "must_do": "Must Do",
+    "should_do": "Should Do",
+    "optional": "Optional",
+    "missed_days": "{{count}} missed day",
+    "missed_days_plural": "{{count}} missed days",
+    "days_ago": "{{count}} day ago",
+    "days_ago_plural": "{{count}} days ago",
+    "view_details": "View Details",
+    "hide_details": "Hide Details",
+    "mark_done": "Mark Done",
+    "mark_all_done": "Mark All Done",
+    "open_task": "Open Task",
+    "criteria_required": "Complete to mark done",
+    "photo_required": "Photo required",
+    "timer_required": "Timer required",
+    "metrics_count": "{{count}} metric",
+    "metrics_count_plural": "{{count}} metrics",
+    "subtasks_count": "{{count}} subtask",
+    "subtasks_count_plural": "{{count}} subtasks",
+    "recurring_task": "Recurring Task",
+    "one_time_task": "One-time Task",
+    "older_days": "+ {{count}} older day",
+    "older_days_plural": "+ {{count}} older days",
+    "date_range": "{{start}} to {{end}}",
+    "collapse_section": "Hide",
+    "expand_section": "Show"
   }
 }

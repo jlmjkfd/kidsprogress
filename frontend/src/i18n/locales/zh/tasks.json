@@ -573,6 +573,32 @@
   "overdue_view": {
     "no_overdue": "没有逾期任务！继续保持！",
     "scheduled_for": "计划时间：",
-    "must_do_count": "{{count}} 个必做任务"
+    "must_do_count": "{{count}} 个必做任务",
+    "must_do": "必做",
+    "should_do": "应做",
+    "optional": "可选",
+    "missed_days": "错过 {{count}} 天",
+    "missed_days_plural": "错过 {{count}} 天",
+    "days_ago": "{{count}} 天前",
+    "days_ago_plural": "{{count}} 天前",
+    "view_details": "查看详情",
+    "hide_details": "隐藏详情",
+    "mark_done": "标记完成",
+    "mark_all_done": "全部标记完成",
+    "open_task": "打开任务",
+    "criteria_required": "完成后标记",
+    "photo_required": "需要照片",
+    "timer_required": "需要计时",
+    "metrics_count": "{{count}} 个指标",
+    "metrics_count_plural": "{{count}} 个指标",
+    "subtasks_count": "{{count}} 个子任务",
+    "subtasks_count_plural": "{{count}} 个子任务",
+    "recurring_task": "重复任务",
+    "one_time_task": "一次性任务",
+    "older_days": "+ {{count}} 个更早的日期",
+    "older_days_plural": "+ {{count}} 个更早的日期",
+    "date_range": "{{start}} 至 {{end}}",
+    "collapse_section": "隐藏",
+    "expand_section": "显示"
   }
 }

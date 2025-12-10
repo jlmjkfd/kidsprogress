@@ -190,10 +190,16 @@ class TestOverdueTasks:
             must_do_only=False
         )
 
-        # Should return 3 tasks (MUST_DO, SHOULD_DO, OPTIONAL)
-        assert len(overdue_tasks) == 3
+        # Should return grouped structure with 3 obligation levels
+        assert "must_do" in overdue_tasks
+        assert "should_do" in overdue_tasks
+        assert "optional" in overdue_tasks
 
-        titles = {task["title"] for task in overdue_tasks}
+        # Get all tasks from all groups
+        all_tasks = overdue_tasks["must_do"] + overdue_tasks["should_do"] + overdue_tasks["optional"]
+        assert len(all_tasks) == 3
+
+        titles = {task["title"] for task in all_tasks}
         assert "Overdue Must-Do" in titles
         assert "Overdue Should-Do" in titles
         assert "Overdue Optional" in titles
@@ -214,10 +220,16 @@ class TestOverdueTasks:
             must_do_only=True
         )
 
-        # Should return only 1 MUST_DO task
-        assert len(overdue_tasks) == 1
-        assert overdue_tasks[0]["title"] == "Overdue Must-Do"
-        assert overdue_tasks[0]["obligation_level"] == ObligationLevel.MUST_DO.value
+        # Should return grouped structure with only MUST_DO having tasks
+        assert "must_do" in overdue_tasks
+        assert "should_do" in overdue_tasks
+        assert "optional" in overdue_tasks
+
+        assert len(overdue_tasks["must_do"]) == 1
+        assert len(overdue_tasks["should_do"]) == 0
+        assert len(overdue_tasks["optional"]) == 0
+
+        assert overdue_tasks["must_do"][0]["title"] == "Overdue Must-Do"
 
     @pytest.mark.asyncio
     async def test_get_overdue_stats(
@@ -280,7 +292,8 @@ class TestOverdueTasks:
         )
 
         # Should NOT include archived task
-        titles = {task["title"] for task in overdue_tasks}
+        all_tasks = overdue_tasks["must_do"] + overdue_tasks["should_do"] + overdue_tasks["optional"]
+        titles = {task["title"] for task in all_tasks}
         assert "Archived Overdue" not in titles
 
     @pytest.mark.asyncio
@@ -327,7 +340,8 @@ class TestOverdueTasks:
         )
 
         # Should NOT include skipped task
-        titles = {task["title"] for task in overdue_tasks}
+        all_tasks = overdue_tasks["must_do"] + overdue_tasks["should_do"] + overdue_tasks["optional"]
+        titles = {task["title"] for task in all_tasks}
         assert "Skipped Overdue" not in titles
 
     @pytest.mark.asyncio

@@ -125,8 +125,8 @@ class TaskService:
 
     async def get_overdue_tasks(
         self, child_id: str, parent_id: str, must_do_only: bool = False
-    ) -> List[Dict[str, Any]]:
-        """Get all overdue tasks for a child.
+    ) -> Dict[str, Any]:
+        """Get all overdue tasks for a child, grouped by obligation level.
 
         Args:
             child_id: Child's ObjectId as string
@@ -134,7 +134,7 @@ class TaskService:
             must_do_only: If True, only return MUST_DO tasks
 
         Returns:
-            List of overdue tasks
+            Dict with must_do, should_do, and optional task lists
         """
         return await self.crud.get_overdue_tasks(child_id, parent_id, must_do_only)
 
