@@ -224,9 +224,19 @@ class TaskLifecycle:
         if not result:
             raise ValueError("Task not found or could not be started")
 
-        # Create active session
-        assert self.session is not None, "Session not set"
-        await self.session.create_session(task_id, child_id)
+        # Publish TaskStarted event (handlers will create session)
+        from backend.services.event_bus import get_event_bus
+        from backend.services.event_bus.events import TaskStarted
+        from datetime import datetime
+
+        event = TaskStarted(
+            task_id=task_id,
+            child_id=child_id,
+            timestamp=datetime.now(),
+            task=Task(**result),
+            previous_status=current_status.value
+        )
+        await get_event_bus().publish(event)
 
         return {"task": Task(**result), "concurrent_tasks": concurrent_warnings}
 
@@ -275,12 +285,23 @@ class TaskLifecycle:
             return_document=True,
         )
 
-        # Remove active session
-        assert self.session is not None, "Session not set"
-        await self.session.remove_session(task_id)
-
         if not result:
             return None
+
+        # Publish TaskPaused event (handlers will remove session)
+        from backend.services.event_bus import get_event_bus
+        from backend.services.event_bus.events import TaskPaused
+        from datetime import datetime
+
+        event = TaskPaused(
+            task_id=task_id,
+            child_id=result.get("child_id"),
+            timestamp=datetime.now(),
+            task=Task(**result),
+            paused_by=paused_by,
+            reason=reason
+        )
+        await get_event_bus().publish(event)
 
         return Task(**result)
 
@@ -331,10 +352,18 @@ class TaskLifecycle:
             return_document=True,
         )
 
-        # Recreate active session
+        # Publish event to recreate active session
+        from backend.services.event_bus import get_event_bus
+        from backend.services.event_bus.events import TaskResumed
         child_id = str(existing["child_id"])
-        assert self.session is not None, "Session not set"
-        await self.session.create_session(task_id, child_id)
+        event = TaskResumed(
+            task_id=task_id,
+            child_id=child_id,
+            timestamp=datetime.now(),
+            task=Task(**result),
+            previous_status=current_status.value
+        )
+        await get_event_bus().publish(event)
 
         if not result:
             return None
@@ -414,9 +443,16 @@ class TaskLifecycle:
             return_document=True,
         )
 
-        # Remove active session
-        assert self.session is not None, "Session not set"
-        await self.session.remove_session(task_id)
+        # Publish event to remove active session
+        from backend.services.event_bus import get_event_bus
+        from backend.services.event_bus.events import TaskCompleted
+        event = TaskCompleted(
+            task_id=task_id,
+            child_id=str(result.get("child_id")),
+            timestamp=datetime.now(),
+            task=Task(**result)
+        )
+        await get_event_bus().publish(event)
 
         if not result:
             return None
@@ -447,9 +483,17 @@ class TaskLifecycle:
             return_document=True,
         )
 
-        # Remove active session if exists
-        assert self.session is not None, "Session not set"
-        await self.session.remove_session(task_id)
+        # Publish event to remove active session if exists
+        from backend.services.event_bus import get_event_bus
+        from backend.services.event_bus.events import TaskSkipped
+        event = TaskSkipped(
+            task_id=task_id,
+            child_id=str(result.get("child_id")),
+            timestamp=datetime.now(),
+            task=Task(**result),
+            skipped_by=parent_id
+        )
+        await get_event_bus().publish(event)
 
         if not result:
             return None
@@ -470,6 +514,8 @@ class TaskLifecycle:
         Returns:
             Updated task or None if not found
         """
+        original_task_id = task_id  # Keep original for event publishing
+
         # Use TaskIdentifier to check if this is a virtual task
         from backend.models.task_identifier import TaskIdentifier
         identifier = TaskIdentifier(raw_id=task_id)
@@ -544,9 +590,16 @@ class TaskLifecycle:
             return_document=True,
         )
 
-        # Remove active session if exists
-        assert self.session is not None, "Session not set"
-        await self.session.remove_session(task_id)
+        # Publish event to remove active session if exists
+        from backend.services.event_bus import get_event_bus
+        from backend.services.event_bus.events import TaskCompleted
+        event = TaskCompleted(
+            task_id=original_task_id,  # Use original task ID (might be virtual)
+            child_id=child_id,
+            timestamp=datetime.now(),
+            task=Task(**result)
+        )
+        await get_event_bus().publish(event)
 
         if not result:
             return None
@@ -610,9 +663,17 @@ class TaskLifecycle:
             return_document=True,
         )
 
-        # Remove active session if exists
-        assert self.session is not None, "Session not set"
-        await self.session.remove_session(task_id)
+        # Publish event to remove active session if exists
+        from backend.services.event_bus import get_event_bus
+        from backend.services.event_bus.events import TaskSkipped
+        event = TaskSkipped(
+            task_id=task_id,
+            child_id=str(result.get("child_id")),
+            timestamp=datetime.now(),
+            task=Task(**result),
+            skipped_by=parent_id
+        )
+        await get_event_bus().publish(event)
 
         if not result:
             return None

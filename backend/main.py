@@ -121,6 +121,25 @@ async def lifespan(app: FastAPI):
     init_scheduler(database)
     print("Cron job scheduler initialized")
 
+    # Register event handlers
+    from backend.services.event_bus import get_event_bus
+    from backend.services.event_bus.events import (
+        TaskStarted, TaskCompleted, TaskPaused, TaskResumed, TaskSkipped
+    )
+    from backend.services.event_bus.handlers import SessionHandler
+
+    event_bus = get_event_bus()
+    session_handler = SessionHandler(database)
+
+    # Subscribe to task events
+    event_bus.subscribe(TaskStarted, session_handler.on_task_started)
+    event_bus.subscribe(TaskCompleted, session_handler.on_task_completed)
+    event_bus.subscribe(TaskPaused, session_handler.on_task_paused)
+    event_bus.subscribe(TaskResumed, session_handler.on_task_resumed)
+    event_bus.subscribe(TaskSkipped, session_handler.on_task_skipped)
+
+    print("Event handlers registered")
+
     yield
 
     print("FastAPI shutting down...")
