@@ -241,10 +241,27 @@
 - **Service**: `backend/services/task_service/crud.py` (get_overdue_tasks)
 - **Used in**:
   - `frontend/src/api/queries/useTasks.ts` (useOverdueTasks)
-  - `frontend/src/pages/child-portal/tasks/index.tsx` - Overdue tab view
+  - `frontend/src/components/OverdueView.tsx` - Tiered overdue display
+  - `frontend/src/components/OverdueTaskCard.tsx` - Individual task cards
 - **Query params**: `must_do_only` (boolean, optional)
-- **Returns**: List of overdue tasks (scheduled before today AND not completed/skipped/archived)
-- **Status**: ✓ Active (UI complete)
+- **Returns**: Grouped overdue tasks by obligation level
+  ```typescript
+  {
+    must_do: OverdueTask[],
+    should_do: OverdueTask[],
+    optional: OverdueTask[]
+  }
+  ```
+  Where `OverdueTask` is:
+  - **One-off**: `{ task_id, title, scheduled_date, days_overdue, completion_type, has_metrics, has_quality_aspects, has_tools, has_subtasks, ... }`
+  - **Recurring**: Same fields plus `{ is_recurring: true, source_id, total_missed_days, missed_date_range, recent_missed_dates, older_count }`
+- **Features**:
+  - Groups recurring task instances by source_id (prevents long lists)
+  - Shows last 7 missed dates + older count for recurring tasks
+  - Indicates completion type: "simple" (can mark done) vs "with_criteria" (must open task)
+  - Excludes completed/skipped/archived/informational tasks
+  - Sorts by days_overdue within each group
+- **Status**: ✓ Active (UI complete with smart grouping)
 
 #### GET /api/tasks/child/{child_id}/overdue/stats
 - **Route**: `backend/routes/tasks.py`

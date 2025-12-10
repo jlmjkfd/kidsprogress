@@ -82,16 +82,27 @@ describe('useOverdueTasks', () => {
     server.use(
       http.get('http://localhost:8000/api/tasks/child/:childId/overdue', ({ request }) => {
         capturedUrl = request.url
-        return HttpResponse.json([
-          {
-            _id: 'task-1',
-            title: 'Must Do Overdue',
-            status: 'pending',
-            obligation_level: 'must_do',
-            scheduled_date: '2025-12-07T00:00:00Z',
-            is_informational: false,
-          },
-        ])
+        return HttpResponse.json({
+          must_do: [
+            {
+              task_id: 'task-1',
+              title: 'Must Do Overdue',
+              is_recurring: false,
+              scheduled_date: '2025-12-07',
+              completion_type: 'simple',
+              has_metrics: false,
+              has_quality_aspects: false,
+              has_tools: false,
+              has_subtasks: false,
+              days_overdue: 3,
+              task_source: 'one_time',
+              description: null,
+              task_type_code: null,
+            },
+          ],
+          should_do: [],
+          optional: [],
+        })
       })
     )
 
@@ -102,14 +113,19 @@ describe('useOverdueTasks', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
     expect(capturedUrl).toContain('must_do_only=true')
-    expect(result.current.data).toHaveLength(1)
-    expect(result.current.data?.[0].obligation_level).toBe('must_do')
+    expect(result.current.data?.must_do).toHaveLength(1)
+    expect(result.current.data?.should_do).toHaveLength(0)
+    expect(result.current.data?.optional).toHaveLength(0)
   })
 
-  it('should return empty array when no overdue tasks', async () => {
+  it('should return empty groups when no overdue tasks', async () => {
     server.use(
       http.get('http://localhost:8000/api/tasks/child/:childId/overdue', () => {
-        return HttpResponse.json([])
+        return HttpResponse.json({
+          must_do: [],
+          should_do: [],
+          optional: [],
+        })
       })
     )
 
@@ -119,7 +135,9 @@ describe('useOverdueTasks', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
-    expect(result.current.data).toEqual([])
+    expect(result.current.data?.must_do).toEqual([])
+    expect(result.current.data?.should_do).toEqual([])
+    expect(result.current.data?.optional).toEqual([])
   })
 
   it('should handle fetch error gracefully', async () => {
@@ -147,20 +165,30 @@ describe('useOverdueTasks', () => {
     expect(result.current.data).toBeUndefined()
   })
 
-  it('should exclude completed tasks', async () => {
+  it('should only include pending/in-progress tasks (backend filters completed/skipped/archived)', async () => {
     server.use(
       http.get('http://localhost:8000/api/tasks/child/:childId/overdue', () => {
-        return HttpResponse.json([
-          {
-            _id: 'task-1',
-            title: 'Overdue Pending',
-            status: 'pending',
-            obligation_level: 'must_do',
-            scheduled_date: '2025-12-07T00:00:00Z',
-            is_informational: false,
-          },
-          // Completed tasks should NOT appear
-        ])
+        return HttpResponse.json({
+          must_do: [
+            {
+              task_id: 'task-1',
+              title: 'Overdue Pending',
+              is_recurring: false,
+              scheduled_date: '2025-12-07',
+              completion_type: 'simple',
+              has_metrics: false,
+              has_quality_aspects: false,
+              has_tools: false,
+              has_subtasks: false,
+              days_overdue: 3,
+              task_source: 'one_time',
+              description: null,
+              task_type_code: null,
+            },
+          ],
+          should_do: [],
+          optional: [],
+        })
       })
     )
 
@@ -170,26 +198,35 @@ describe('useOverdueTasks', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
-    const statuses = result.current.data?.map(t => t.status) || []
-    expect(statuses).not.toContain('completed')
-    expect(statuses).not.toContain('skipped')
-    expect(statuses).not.toContain('archived')
+    // Backend already filters out completed/skipped/archived tasks
+    expect(result.current.data?.must_do).toHaveLength(1)
+    expect(result.current.data?.must_do[0].title).toBe('Overdue Pending')
   })
 
-  it('should exclude informational tasks', async () => {
+  it('should only include actionable tasks (backend filters informational)', async () => {
     server.use(
       http.get('http://localhost:8000/api/tasks/child/:childId/overdue', () => {
-        return HttpResponse.json([
-          {
-            _id: 'task-1',
-            title: 'Real Task',
-            status: 'pending',
-            obligation_level: 'must_do',
-            scheduled_date: '2025-12-07T00:00:00Z',
-            is_informational: false,
-          },
-          // Informational tasks should NOT appear
-        ])
+        return HttpResponse.json({
+          must_do: [
+            {
+              task_id: 'task-1',
+              title: 'Real Task',
+              is_recurring: false,
+              scheduled_date: '2025-12-07',
+              completion_type: 'simple',
+              has_metrics: false,
+              has_quality_aspects: false,
+              has_tools: false,
+              has_subtasks: false,
+              days_overdue: 3,
+              task_source: 'one_time',
+              description: null,
+              task_type_code: null,
+            },
+          ],
+          should_do: [],
+          optional: [],
+        })
       })
     )
 
@@ -199,8 +236,8 @@ describe('useOverdueTasks', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
-    const informationalFlags = result.current.data?.map(t => t.is_informational) || []
-    expect(informationalFlags).not.toContain(true)
+    // Backend already filters out informational tasks
+    expect(result.current.data?.must_do).toHaveLength(1)
   })
 })
 
