@@ -354,6 +354,25 @@ async def uncomplete_task(
     return task
 
 
+@router.post("/bulk/complete-recurring")
+async def complete_recurring_tasks_bulk(
+    source_id: str = Query(..., description="Source template ID (routine_id or activity_id)"),
+    child_id: str = Query(..., description="Child's ID"),
+    date_list: List[str] = Query(..., description="List of dates in YYYY-MM-DD format"),
+    current_user: User = Depends(get_current_user),
+    service: TaskService = Depends(get_task_service),
+):
+    """Complete multiple instances of a recurring task in bulk.
+
+    This is useful for marking all overdue instances of a recurring task as done at once.
+    """
+    try:
+        result = await service.complete_recurring_tasks_bulk(source_id, child_id, date_list)
+        return result
+    except ValueError as e:
+        raise bad_request(str(e))
+
+
 @router.post("/{task_id}/skip", response_model=Task)
 async def skip_task(
     task_id: str,

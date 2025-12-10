@@ -1,5 +1,5 @@
 """Task lifecycle management (state transitions)."""
-from typing import Optional, Dict, Any, TYPE_CHECKING
+from typing import Optional, Dict, Any, List, TYPE_CHECKING
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from bson import ObjectId
 from datetime import datetime, timedelta, timezone
@@ -659,4 +659,68 @@ class TaskLifecycle:
         return {
             "is_valid": len(warnings) == 0,
             "warnings": warnings
+        }
+
+    async def complete_recurring_tasks_bulk(
+        self, source_id: str, child_id: str, date_list: List[str]
+    ) -> Dict[str, Any]:
+        """Complete multiple instances of a recurring task in bulk.
+
+        Args:
+            source_id: The source template ID (routine_id or activity_id)
+            child_id: Child's ObjectId as string
+            date_list: List of dates in YYYY-MM-DD format to complete
+
+        Returns:
+            Dict with completed_count, failed_count, and errors list
+        """
+        from datetime import datetime
+
+        child_id_obj = validate_object_id(child_id, "child_id", raise_http_exception=False)
+        source_id_obj = validate_object_id(source_id, "source_id", raise_http_exception=False)
+
+        # Get child to find parent
+        child = await self.db.children.find_one({"_id": child_id_obj})
+        if not child:
+            raise ValueError("Child not found")
+        parent_id = str(child.get("parent_id"))
+
+        # Get all tasks including virtual instances
+        assert self.crud is not None, "CRUD component not set"
+        all_tasks = await self.crud.get_tasks_by_child(child_id, parent_id)
+
+        completed_count = 0
+        failed_count = 0
+        errors = []
+
+        for date_str in date_list:
+            try:
+                # Find virtual task for this date
+                task_id = f"{source_id}_{date_str}"
+                virtual_task = None
+                for task in all_tasks:
+                    if task.get("_id") == task_id and task.get("is_virtual"):
+                        virtual_task = task
+                        break
+
+                if not virtual_task:
+                    # Skip if virtual task not found (might already be completed/skipped)
+                    continue
+
+                # Complete the task (will materialize if virtual)
+                result = await self.complete_task(task_id, child_id)
+                if result:
+                    completed_count += 1
+                else:
+                    failed_count += 1
+                    errors.append(f"Failed to complete task for {date_str}")
+
+            except Exception as e:
+                failed_count += 1
+                errors.append(f"Error completing {date_str}: {str(e)}")
+
+        return {
+            "completed_count": completed_count,
+            "failed_count": failed_count,
+            "errors": errors
         }

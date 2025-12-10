@@ -378,6 +378,21 @@ class TaskService:
         """
         return await self.lifecycle.uncomplete_task(task_id, parent_id)
 
+    async def complete_recurring_tasks_bulk(
+        self, source_id: str, child_id: str, date_list: List[str]
+    ) -> Dict[str, Any]:
+        """Complete multiple instances of a recurring task in bulk.
+
+        Args:
+            source_id: The source template ID (routine_id or activity_id)
+            child_id: Child's ObjectId as string
+            date_list: List of dates in YYYY-MM-DD format to complete
+
+        Returns:
+            Dict with completed_count, failed_count, and errors list
+        """
+        return await self.lifecycle.complete_recurring_tasks_bulk(source_id, child_id, date_list)
+
     async def skip_task(self, task_id: str, parent_id: str) -> Optional[Task]:
         """Mark a task as skipped (parent action for must_do/should_do tasks).
 

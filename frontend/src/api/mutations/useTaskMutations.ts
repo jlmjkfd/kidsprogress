@@ -180,7 +180,46 @@ export const useCompleteTask = () => {
       queryClient.invalidateQueries({ queryKey: ["task", data._id] });
       queryClient.invalidateQueries({ queryKey: ["tasks", "collection", data.collection_id] });
       queryClient.invalidateQueries({ queryKey: ["tasks", "child", data.child_id] });
+      queryClient.invalidateQueries({ queryKey: ["tasks", "child", data.child_id, "overdue"] });
       queryClient.invalidateQueries({ queryKey: ["activeTasks", data.child_id] });
+    },
+  });
+};
+
+export const useCompleteRecurringTasksBulk = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      sourceId,
+      childId,
+      dateList,
+    }: {
+      sourceId: string;
+      childId: string;
+      dateList: string[];
+    }) => {
+      const response = await apiClient.post<{
+        completed_count: number;
+        failed_count: number;
+        errors: string[];
+      }>(
+        `/api/tasks/bulk/complete-recurring`,
+        null,
+        {
+          params: {
+            source_id: sourceId,
+            child_id: childId,
+            date_list: dateList,
+          },
+        }
+      );
+      return response.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["tasks", "child", variables.childId] });
+      queryClient.invalidateQueries({ queryKey: ["tasks", "child", variables.childId, "overdue"] });
+      queryClient.invalidateQueries({ queryKey: ["activeTasks", variables.childId] });
     },
   });
 };

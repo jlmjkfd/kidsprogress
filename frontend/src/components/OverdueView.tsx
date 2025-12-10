@@ -11,7 +11,7 @@ import {
   IconChevronUp,
 } from "@tabler/icons-react";
 import { useOverdueTasks } from "@/api/queries/useTasks";
-import { useCompleteTask } from "@/api/mutations/useTaskMutations";
+import { useCompleteTask, useCompleteRecurringTasksBulk } from "@/api/mutations/useTaskMutations";
 import { OverdueTaskCard } from "./OverdueTaskCard";
 import LoadingSpinner from "./LoadingSpinner";
 
@@ -23,6 +23,7 @@ export function OverdueView({ childId }: OverdueViewProps) {
   const { t } = useTranslation(["tasks"]);
   const { data: overdueTasks, isLoading } = useOverdueTasks(childId);
   const completeTaskMutation = useCompleteTask();
+  const completeBulkMutation = useCompleteRecurringTasksBulk();
 
   const [shouldDoExpanded, setShouldDoExpanded] = useState(true);
   const [optionalExpanded, setOptionalExpanded] = useState(false);
@@ -67,9 +68,36 @@ export function OverdueView({ childId }: OverdueViewProps) {
   };
 
   const handleMarkAllDone = async (sourceId: string) => {
-    // TODO: Backend needs to support bulk completion endpoint
-    // For now, we'll complete tasks individually
-    console.log("Mark all done not yet implemented:", sourceId);
+    if (!overdueTasks) return;
+
+    // Find the recurring task to get all its dates
+    const allTasks = [
+      ...overdueTasks.must_do,
+      ...overdueTasks.should_do,
+      ...overdueTasks.optional,
+    ];
+    const recurringTask = allTasks.find(
+      (task) => task.is_recurring && task.source_id === sourceId
+    );
+
+    if (!recurringTask || !recurringTask.is_recurring) {
+      console.error("Recurring task not found:", sourceId);
+      return;
+    }
+
+    try {
+      const result = await completeBulkMutation.mutateAsync({
+        sourceId,
+        childId,
+        dateList: recurringTask.recent_missed_dates,
+      });
+
+      if (result.failed_count > 0) {
+        console.error("Some tasks failed to complete:", result.errors);
+      }
+    } catch (error) {
+      console.error("Failed to complete tasks in bulk:", error);
+    }
   };
 
   return (
