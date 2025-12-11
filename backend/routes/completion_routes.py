@@ -403,6 +403,42 @@ async def get_completions(
     }
 
 
+@router.get("/by-date/{task_id}")
+async def get_completion_counts_by_date(
+    task_id: str,
+    current_user: User = Depends(get_current_user),
+):
+    """Get completion counts grouped by scheduled_date for a recurring task."""
+    database = db.get_database()
+    collection = database["task_completions"]
+
+    # Parse task_id (could be template ID or regular task ID)
+    try:
+        task_id_obj = ObjectId(task_id)
+    except:
+        raise bad_request("Invalid task ID format")
+
+    # Query for completions with both ObjectId and string formats
+    completions_cursor = collection.find({
+        "$or": [
+            {"task_id": task_id_obj},
+            {"task_id": task_id}
+        ]
+    })
+    completions = await completions_cursor.to_list(length=None)
+
+    # Group by scheduled_date and count
+    date_counts = {}
+    for comp in completions:
+        scheduled_date = comp.get("scheduled_date")
+        if scheduled_date:
+            if scheduled_date not in date_counts:
+                date_counts[scheduled_date] = 0
+            date_counts[scheduled_date] += 1
+
+    return {"date_counts": date_counts}
+
+
 @router.get("/{completion_id}")
 async def get_completion(
     completion_id: str,

@@ -2,9 +2,11 @@
  * Overdue Task Card Component
  * Displays a single overdue task (one-off or recurring) with appropriate actions
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { apiClient } from "@/api/client";
 import {
   IconChevronDown,
   IconChevronUp,
@@ -30,6 +32,18 @@ export function OverdueTaskCard({ task, childId, onMarkDone, onMarkAllDone }: Ov
   const navigate = useNavigate();
   const [isExpanded, setIsExpanded] = useState(false);
   const [showAllDates, setShowAllDates] = useState(false);
+
+  // Fetch completion counts by date for this recurring task
+  const { data: completionData } = useQuery({
+    queryKey: ["completion-counts", task.source_id],
+    queryFn: async () => {
+      const response = await apiClient.get(`/api/completions/by-date/${task.source_id}`);
+      return response.data;
+    },
+    enabled: !!task.source_id && task.is_recurring,
+  });
+
+  const dateCounts = completionData?.date_counts || {};
 
   const handleOpenTask = () => {
     navigate(`/child-portal/${childId}/tasks/execute/${task.task_id}`);
@@ -196,6 +210,7 @@ export function OverdueTaskCard({ task, childId, onMarkDone, onMarkAllDone }: Ov
               const virtualTaskId = `${task.source_id}_${date}`;
               const executePath = `/child-portal/${childId}/tasks/execute/${virtualTaskId}`;
               const attemptsPath = `/child-portal/${childId}/tasks/attempts/${virtualTaskId}`;
+              const hasCompletions = dateCounts[date] > 0;
 
               return (
                 <div
@@ -221,13 +236,15 @@ export function OverdueTaskCard({ task, childId, onMarkDone, onMarkAllDone }: Ov
                         <IconArrowRight size={16} />
                       </button>
                     )}
-                    <button
-                      onClick={() => navigate(attemptsPath)}
-                      className="rounded-lg bg-purple-100 p-1 text-purple-700 transition-colors hover:bg-purple-200"
-                      title={t("tasks:view_attempts")}
-                    >
-                      <IconHistory size={16} />
-                    </button>
+                    {hasCompletions && (
+                      <button
+                        onClick={() => navigate(attemptsPath)}
+                        className="rounded-lg bg-purple-100 p-1 text-purple-700 transition-colors hover:bg-purple-200"
+                        title={t("tasks:view_attempts")}
+                      >
+                        <IconHistory size={16} />
+                      </button>
+                    )}
                   </div>
                 </div>
               );

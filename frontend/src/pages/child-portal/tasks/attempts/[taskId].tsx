@@ -25,6 +25,10 @@ export default function AttemptDetailPage() {
   const urlCompletionId = searchParams.get("completionId");
   const [selectedCompletionId, setSelectedCompletionId] = useState<string | null>(urlCompletionId);
 
+  // Parse virtual task ID (format: templateId_date)
+  const isVirtualTask = taskId?.includes("_");
+  const scheduledDate = isVirtualTask ? taskId?.split("_")[1] : null;
+
   // Fetch task and completions
   const { data: task, isLoading: taskLoading } = useTask(taskId || "");
   const { data: completionsData, isLoading: completionsLoading } = useCompletions({
@@ -33,7 +37,11 @@ export default function AttemptDetailPage() {
     limit: 100,
   });
 
-  const completions = completionsData?.completions || [];
+  // Filter completions by scheduled_date if this is a virtual task
+  const allCompletions = completionsData?.completions || [];
+  const completions = scheduledDate
+    ? allCompletions.filter(c => c.scheduled_date === scheduledDate)
+    : allCompletions;
   const selectedCompletion = completions.find(c => c.completion_id === selectedCompletionId) || completions[0];
 
   // Auto-select first completion if none selected
