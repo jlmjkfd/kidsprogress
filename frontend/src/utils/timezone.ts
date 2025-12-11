@@ -105,18 +105,22 @@ export function formatLocalDate(dateString: string | Date): string {
 }
 
 /**
- * Format time to locale-aware time string
+ * Format time to locale-aware time string in 12-hour format
  *
  * @param dateString - ISO date string or Date object
  * @returns Formatted time string (e.g., "2:30 PM")
  * @example
- * formatLocalTime("2025-12-11T14:30:00Z") // "2:30 PM" (in user's timezone)
+ * formatLocalTime("2025-12-11T14:30:00Z") // "2:30 PM" (converted to user's local timezone)
+ * formatLocalTime("2025-12-11T02:30:00Z") // "10:30 AM" (in UTC+8 timezone)
  */
 export function formatLocalTime(dateString: string | Date): string {
   const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+
+  // toLocaleTimeString automatically converts UTC to local timezone
   return date.toLocaleTimeString(undefined, {
-    hour: "2-digit",
+    hour: "numeric",
     minute: "2-digit",
+    hour12: true, // Force 12-hour format with AM/PM
   });
 }
 
