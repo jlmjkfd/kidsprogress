@@ -2,6 +2,7 @@
  * TaskCard - Displays a single task with actions
  */
 import { useTranslation } from "react-i18next";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   IconCalendar,
   IconClock,
@@ -15,6 +16,7 @@ import {
   IconRestore,
   IconX,
   IconCircleX,
+  IconHistory,
 } from "@tabler/icons-react";
 import { Task, SchedulingType, ObligationLevel } from "@/types/task";
 
@@ -42,6 +44,8 @@ export function TaskCard({
   onDelete,
 }: TaskCardProps) {
   const { t } = useTranslation(["common", "tasks"]);
+  const navigate = useNavigate();
+  const { id: childId } = useParams();
 
   // If this is a deleted occurrence, show restore UI
   if (task.is_deleted && task.source_recurring_task_id && task.scheduled_date) {
@@ -281,6 +285,17 @@ export function TaskCard({
                 title={t("tasks:uncomplete")}
               >
                 <IconX size={18} />
+              </button>
+            )}
+
+            {/* View Attempts Button - for ALL tasks with template_id */}
+            {task.template_id && childId && (
+              <button
+                onClick={() => navigate(`/child-portal/${childId}/tasks/attempts/${task._id}`)}
+                className="min-h-[44px] min-w-[44px] rounded-md p-2 text-purple-600 transition-colors hover:bg-purple-50"
+                title={t("tasks:view_attempts")}
+              >
+                <IconHistory size={18} />
               </button>
             )}
 

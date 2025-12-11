@@ -14,6 +14,7 @@ import {
   IconList,
   IconRepeat,
   IconCalendar,
+  IconHistory,
 } from "@tabler/icons-react";
 import { OverdueTask } from "@/types/task";
 
@@ -194,30 +195,40 @@ export function OverdueTaskCard({ task, childId, onMarkDone, onMarkAllDone }: Ov
               // Construct virtual task ID for this specific date
               const virtualTaskId = `${task.source_id}_${date}`;
               const executePath = `/child-portal/${childId}/tasks/execute/${virtualTaskId}`;
+              const attemptsPath = `/child-portal/${childId}/tasks/attempts/${virtualTaskId}`;
 
               return (
                 <div
                   key={date}
-                  className="flex items-center justify-between rounded-lg bg-white p-3 shadow-sm"
+                  className="flex items-center justify-between gap-2 rounded-lg bg-white p-3 shadow-sm"
                 >
                   <span className="text-sm text-gray-700">{date}</span>
-                  {task.completion_type === "simple" ? (
+                  <div className="flex items-center gap-1">
+                    {task.completion_type === "simple" ? (
+                      <button
+                        onClick={() => onMarkDone && onMarkDone(virtualTaskId)}
+                        className="rounded-lg bg-green-100 p-1 text-green-700 transition-colors hover:bg-green-200"
+                        title={t("tasks:overdue_view.mark_done")}
+                      >
+                        <IconCheck size={16} />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => navigate(executePath)}
+                        className="rounded-lg bg-blue-100 p-1 text-blue-700 transition-colors hover:bg-blue-200"
+                        title={t("tasks:overdue_view.open_task")}
+                      >
+                        <IconArrowRight size={16} />
+                      </button>
+                    )}
                     <button
-                      onClick={() => onMarkDone && onMarkDone(virtualTaskId)}
-                      className="rounded-lg bg-green-100 p-1 text-green-700 transition-colors hover:bg-green-200"
-                      title={t("tasks:overdue_view.mark_done")}
+                      onClick={() => navigate(attemptsPath)}
+                      className="rounded-lg bg-purple-100 p-1 text-purple-700 transition-colors hover:bg-purple-200"
+                      title={t("tasks:view_attempts")}
                     >
-                      <IconCheck size={16} />
+                      <IconHistory size={16} />
                     </button>
-                  ) : (
-                    <button
-                      onClick={() => navigate(executePath)}
-                      className="rounded-lg bg-blue-100 p-1 text-blue-700 transition-colors hover:bg-blue-200"
-                      title={t("tasks:overdue_view.open_task")}
-                    >
-                      <IconArrowRight size={16} />
-                    </button>
-                  )}
+                  </div>
                 </div>
               );
             })}
