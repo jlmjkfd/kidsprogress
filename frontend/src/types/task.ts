@@ -8,7 +8,6 @@
 export enum TaskStatus {
   PENDING = "pending", // Task waiting to be done (replaces DRAFT + SCHEDULED)
   IN_PROGRESS = "in_progress", // Child clicked start
-  PAUSED = "paused", // Child paused
   COMPLETED = "completed", // Task finished
   SKIPPED = "skipped", // Task was not done (overdue or manually skipped)
   ARCHIVED = "archived", // Completed and archived

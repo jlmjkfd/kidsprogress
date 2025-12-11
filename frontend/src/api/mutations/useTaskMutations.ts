@@ -118,52 +118,6 @@ export const useStartTask = () => {
   });
 };
 
-export const usePauseTask = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({
-      taskId,
-      pausedBy,
-      reason,
-    }: {
-      taskId: string;
-      pausedBy: "PARENT" | "CHILD";
-      reason?: string;
-    }) => {
-      const response = await apiClient.post<Task>(
-        `/api/tasks/${taskId}/pause`,
-        null,
-        { params: { paused_by: pausedBy, reason } }
-      );
-      return response.data;
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["task", data._id] });
-      queryClient.invalidateQueries({ queryKey: ["tasks", "collection", data.collection_id] });
-      queryClient.invalidateQueries({ queryKey: ["tasks", "child", data.child_id] });
-      queryClient.invalidateQueries({ queryKey: ["activeTasks", data.child_id] });
-    },
-  });
-};
-
-export const useResumeTask = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (taskId: string) => {
-      const response = await apiClient.post<Task>(`/api/tasks/${taskId}/resume`);
-      return response.data;
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["task", data._id] });
-      queryClient.invalidateQueries({ queryKey: ["tasks", "collection", data.collection_id] });
-      queryClient.invalidateQueries({ queryKey: ["tasks", "child", data.child_id] });
-      queryClient.invalidateQueries({ queryKey: ["activeTasks", data.child_id] });
-    },
-  });
-};
-
 export const useCompleteTask = () => {
   const queryClient = useQueryClient();
 
