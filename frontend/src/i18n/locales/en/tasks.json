@@ -104,6 +104,7 @@
   "score": "Score",
   "standard_task_instruction": "Click the button below when you have finished this task.",
   "mark_as_complete": "Mark as Complete",
+  "save_and_exit": "Save & Exit",
   "loading_execution": "Loading Task...",
   "do_again": "Do Again",
   "view_analysis": "View Analysis",

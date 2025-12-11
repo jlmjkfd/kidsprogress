@@ -36,10 +36,33 @@ export default function TaskExecutor({
     autoStart: hasTimer,
   });
 
-  // Auto-save progress every 30 seconds
+  // Auto-save to localStorage every 10 seconds (for browser crash recovery)
   useEffect(() => {
-    const saveProgress = async () => {
-      if (submitted || isSubmitting) return; // Don't save if already submitted
+    const saveToLocalStorage = () => {
+      if (submitted || isSubmitting) return;
+
+      const progressData = {
+        answers,
+        total_time_seconds: timerSeconds,
+        saved_at: new Date().toISOString()
+      };
+
+      try {
+        localStorage.setItem(`task-progress-${taskId}`, JSON.stringify(progressData));
+      } catch (error) {
+        console.error('Failed to save to localStorage:', error);
+      }
+    };
+
+    const interval = setInterval(saveToLocalStorage, 10000); // Every 10 seconds
+
+    return () => clearInterval(interval);
+  }, [taskId, answers, timerSeconds, submitted, isSubmitting]);
+
+  // Auto-save to database every 60 seconds (for multi-device recovery)
+  useEffect(() => {
+    const saveToDatabase = async () => {
+      if (submitted || isSubmitting) return;
 
       try {
         await apiClient.post(`/api/completions/${taskId}/save-progress`, {
@@ -48,14 +71,21 @@ export default function TaskExecutor({
           saved_at: new Date().toISOString()
         });
       } catch (error) {
-        console.error('Failed to save progress:', error);
+        console.error('Failed to save progress to database:', error);
       }
     };
 
-    const interval = setInterval(saveProgress, 30000); // Every 30 seconds
+    const interval = setInterval(saveToDatabase, 60000); // Every 60 seconds
 
     return () => clearInterval(interval);
   }, [taskId, answers, timerSeconds, submitted, isSubmitting]);
+
+  // Clean up localStorage on successful submission
+  useEffect(() => {
+    if (submitted) {
+      localStorage.removeItem(`task-progress-${taskId}`);
+    }
+  }, [submitted, taskId]);
 
   const handleAnswerChange = (questionId: string, value: string) => {
     const numValue = value ? parseInt(value, 10) : NaN;
@@ -84,6 +114,31 @@ export default function TaskExecutor({
       alert(t('tasks:submission_error'));
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleSaveAndExit = async () => {
+    pauseTimer();
+
+    // Save progress to both localStorage and database
+    const progressData = {
+      answers,
+      total_time_seconds: timerSeconds,
+      saved_at: new Date().toISOString()
+    };
+
+    try {
+      localStorage.setItem(`task-progress-${taskId}`, JSON.stringify(progressData));
+      await apiClient.post(`/api/completions/${taskId}/save-progress`, progressData);
+    } catch (error) {
+      console.error('Failed to save progress:', error);
+    }
+
+    // Navigate back
+    if (onCancel) {
+      onCancel();
+    } else {
+      window.history.back();
     }
   };
 
@@ -180,31 +235,37 @@ export default function TaskExecutor({
         </div>
 
         {/* Action Buttons */}
-        <div className="mt-6 flex gap-3 sticky bottom-4">
+        <div className="mt-6 flex flex-col sm:flex-row gap-3 sticky bottom-4">
           {!submitted ? (
-            <button
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-              className="flex-1 bg-blue-600 text-white py-3 md:py-4 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg text-base md:text-lg"
-            >
-              {isSubmitting ? t('tasks:submitting') : t('tasks:submit_answers')}
-            </button>
+            <>
+              <button
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+                className="flex-1 bg-blue-600 text-white py-3 md:py-4 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg text-base md:text-lg"
+              >
+                {isSubmitting ? t('tasks:submitting') : t('tasks:submit_answers')}
+              </button>
+              <button
+                onClick={handleSaveAndExit}
+                disabled={isSubmitting}
+                className="sm:flex-1 px-6 py-3 md:py-4 bg-gray-600 text-white rounded-lg font-semibold hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg text-base md:text-lg"
+              >
+                {t('tasks:save_and_exit')}
+              </button>
+              <button
+                onClick={onCancel}
+                disabled={isSubmitting}
+                className="px-6 py-3 md:py-4 border-2 border-gray-300 rounded-lg font-semibold hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg text-base md:text-lg"
+              >
+                {t('common:cancel')}
+              </button>
+            </>
           ) : (
             <button
               onClick={() => window.history.back()}
               className="flex-1 bg-green-600 text-white py-3 md:py-4 rounded-lg font-semibold hover:bg-green-700 shadow-lg text-base md:text-lg"
             >
               {t('tasks:finish')}
-            </button>
-          )}
-
-          {!submitted && (
-            <button
-              onClick={onCancel}
-              disabled={isSubmitting}
-              className="px-6 py-3 md:py-4 border-2 border-gray-300 rounded-lg font-semibold hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg text-base md:text-lg"
-            >
-              {t('common:cancel')}
             </button>
           )}
         </div>
