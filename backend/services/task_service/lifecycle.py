@@ -4,7 +4,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from bson import ObjectId
 from datetime import datetime, timedelta, timezone
 
-from backend.models.task import Task, TaskStatus, TaskPauseRecord
+from backend.models.task import Task, TaskStatus
 from backend.utils.datetime_utils import utcnow
 from backend.utils.validators import validate_object_id
 
@@ -238,136 +238,6 @@ class TaskLifecycle:
         await get_event_bus().publish(event)
 
         return {"task": Task(**result), "concurrent_tasks": concurrent_warnings}
-
-    async def pause_task(
-        self, task_id: str, paused_by: str, reason: Optional[str] = None
-    ) -> Optional[Task]:
-        """Pause a task (IN_PROGRESS -> PAUSED).
-
-        Args:
-            task_id: Task's ObjectId as string
-            paused_by: "PARENT" or "CHILD"
-            reason: Optional pause reason
-
-        Returns:
-            Updated task or None if not found or invalid state
-        """
-        task_id_obj = validate_object_id(task_id, "task_id", raise_http_exception=False)
-
-        existing = await self.tasks_collection.find_one({"_id": task_id_obj})
-        if not existing:
-            return None
-
-        # Validate state transition using state machine
-        from backend.models.task_state_machine import TaskStateMachine
-        current_status = TaskStatus(existing.get("status"))
-        TaskStateMachine.validate_transition(
-            current_status,
-            TaskStatus.PAUSED,
-            reason=reason or "pausing task"
-        )
-
-        pause_record = TaskPauseRecord(
-            paused_at=utcnow(), resumed_at=None, paused_by=paused_by, reason=reason
-        )
-
-        result = await self.tasks_collection.find_one_and_update(
-            {"_id": task_id_obj},
-            {
-                "$set": {
-                    "status": TaskStatus.PAUSED.value,
-                    "current_pause": pause_record.model_dump(),
-                    "updated_at": utcnow(),
-                },
-                "$push": {"pause_history": pause_record.model_dump()},
-            },
-            return_document=True,
-        )
-
-        if not result:
-            return None
-
-        # Publish TaskPaused event (handlers will remove session)
-        from backend.services.event_bus import get_event_bus
-        from backend.services.event_bus.events import TaskPaused
-        from datetime import datetime
-
-        event = TaskPaused(
-            task_id=task_id,
-            child_id=result.get("child_id"),
-            timestamp=datetime.now(),
-            task=Task(**result),
-            paused_by=paused_by,
-            reason=reason
-        )
-        await get_event_bus().publish(event)
-
-        return Task(**result)
-
-    async def resume_task(self, task_id: str) -> Optional[Task]:
-        """Resume a paused task (PAUSED -> IN_PROGRESS).
-
-        Args:
-            task_id: Task's ObjectId as string
-
-        Returns:
-            Updated task or None if not found or invalid state
-        """
-        task_id_obj = validate_object_id(task_id, "task_id", raise_http_exception=False)
-
-        existing = await self.tasks_collection.find_one({"_id": task_id_obj})
-        if not existing:
-            return None
-
-        # Validate state transition using state machine
-        from backend.models.task_state_machine import TaskStateMachine
-        current_status = TaskStatus(existing.get("status"))
-        TaskStateMachine.validate_transition(
-            current_status,
-            TaskStatus.IN_PROGRESS,
-            reason="resuming task"
-        )
-
-        # Update current pause record with resume time
-        pause_history = existing.get("pause_history", [])
-        current_pause = existing.get("current_pause")
-        if current_pause:
-            current_pause["resumed_at"] = utcnow().isoformat()
-
-            # Update last pause in history
-            if pause_history:
-                pause_history[-1]["resumed_at"] = utcnow().isoformat()
-
-        result = await self.tasks_collection.find_one_and_update(
-            {"_id": task_id_obj},
-            {
-                "$set": {
-                    "status": TaskStatus.IN_PROGRESS.value,
-                    "current_pause": None,
-                    "pause_history": pause_history,
-                    "updated_at": utcnow(),
-                }
-            },
-            return_document=True,
-        )
-
-        # Publish event to recreate active session
-        from backend.services.event_bus import get_event_bus
-        from backend.services.event_bus.events import TaskResumed
-        child_id = str(existing["child_id"])
-        event = TaskResumed(
-            task_id=task_id,
-            child_id=child_id,
-            timestamp=datetime.now(),
-            task=Task(**result),
-            previous_status=current_status.value
-        )
-        await get_event_bus().publish(event)
-
-        if not result:
-            return None
-
-        return Task(**result)
 
     async def complete_task(self, task_id: str, child_id: str) -> Optional[Task]:
         """Complete a task (IN_PROGRESS -> COMPLETED).

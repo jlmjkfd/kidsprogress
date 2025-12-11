@@ -296,32 +296,6 @@ class TaskService:
         """
         return await self.lifecycle.start_task(task_id, child_id)
 
-    async def pause_task(
-        self, task_id: str, paused_by: str, reason: Optional[str] = None
-    ) -> Optional[Task]:
-        """Pause a task (IN_PROGRESS -> PAUSED).
-
-        Args:
-            task_id: Task's ObjectId as string
-            paused_by: "PARENT" or "CHILD"
-            reason: Optional pause reason
-
-        Returns:
-            Updated task or None if not found or invalid state
-        """
-        return await self.lifecycle.pause_task(task_id, paused_by, reason)
-
-    async def resume_task(self, task_id: str) -> Optional[Task]:
-        """Resume a paused task (PAUSED -> IN_PROGRESS).
-
-        Args:
-            task_id: Task's ObjectId as string
-
-        Returns:
-            Updated task or None if not found or invalid state
-        """
-        return await self.lifecycle.resume_task(task_id)
-
     async def complete_task(self, task_id: str, child_id: str) -> Optional[Task]:
         """Complete a task (IN_PROGRESS -> COMPLETED).
 
