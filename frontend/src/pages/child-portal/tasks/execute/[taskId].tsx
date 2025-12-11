@@ -73,9 +73,11 @@ export default function TaskExecutePage() {
 
   const handleCompleteTask = async (taskId: string) => {
     try {
-      await apiClient.post(`/api/tasks/${taskId}/complete`, {
-        child_id: task?.child_id,
-      });
+      await apiClient.post(
+        `/api/tasks/${taskId}/complete`,
+        null,
+        { params: { child_id: task?.child_id } }
+      );
       handleBackToTasks();
     } catch (error) {
       console.error("Failed to complete task:", error);
