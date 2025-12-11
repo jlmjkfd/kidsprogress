@@ -24,6 +24,10 @@ class AdditionSubtractionHandler(TemplateHandler):
         if parsed.num_questions < 1:
             raise ValueError("num_questions must be at least 1")
 
+        # Note: We cannot validate required_attempts against max_completions_per_period here
+        # because max_completions_per_period is a task-level setting, not template config.
+        # The warning in the UI alerts users to this requirement.
+
     async def prepare_execution(self, task_id: str) -> Dict[str, Any]:
         """Generate questions and return configuration for frontend."""
         questions = self._generate_questions()
