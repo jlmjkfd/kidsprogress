@@ -325,6 +325,7 @@ class Task(BaseModel):
         populate_by_name = True
         arbitrary_types_allowed = True
         json_encoders = {ObjectId: str}
+        extra = "ignore"  # Ignore extra fields from database (e.g., removed pause fields)
 
 
 class TaskCreate(BaseModel):
