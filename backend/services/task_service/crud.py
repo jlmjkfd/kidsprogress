@@ -7,6 +7,10 @@ from datetime import datetime, date, timedelta
 from backend.models.task import Task, TaskCreate, TaskUpdate, TaskStatus
 from backend.utils.datetime_utils import utcnow
 from backend.utils.validators import validate_object_id
+from backend.services.task_service.operations.helpers import (
+    is_task_complete_by_attempts,
+    parse_date
+)
 
 
 class TaskCRUD:
@@ -32,71 +36,6 @@ class TaskCRUD:
             "completions": db.task_completions,
         }
         self.strategy_factory = TaskStrategyFactory(db, collections)
-
-    def _is_task_complete_by_attempts(
-        self,
-        completion_count: int,
-        template_id: Optional[str] = None,
-        execution_config: Optional[dict] = None,
-        max_completions: int = 0
-    ) -> bool:
-        """
-        Check if task is complete based on completion count.
-
-        Delegates to template handler's is_complete_by_attempt_count() method
-        to keep completion logic in template code, not in crud.py.
-
-        Args:
-            completion_count: Number of completions for this task
-            template_id: Template ID (if template-based task)
-            execution_config: Template configuration
-            max_completions: Hard limit from max_completions_per_period
-
-        Returns:
-            True if task should be marked as complete
-        """
-        # Hard limit takes priority (prevents more attempts)
-        if max_completions > 0 and completion_count >= max_completions:
-            return True
-
-        # Delegate to template handler (soft requirement)
-        if template_id and execution_config:
-            try:
-                from backend.templates.registry import create_handler
-                handler = create_handler(plugin_id=template_id, config=execution_config)
-                if hasattr(handler, 'is_complete_by_attempt_count'):
-                    return handler.is_complete_by_attempt_count(completion_count)
-            except:
-                pass
-
-        # Fallback: default behavior (complete after any completion)
-        return completion_count > 0
-
-    @staticmethod
-    def _parse_date(date_obj) -> Optional[date]:
-        """Parse a date from various formats (datetime, date, string).
-
-        Args:
-            date_obj: Can be datetime, date, or ISO string
-
-        Returns:
-            date object or None if invalid
-        """
-        if not date_obj:
-            return None
-        if isinstance(date_obj, datetime):
-            return date_obj.date()
-        elif isinstance(date_obj, date):
-            return date_obj
-        elif isinstance(date_obj, str):
-            try:
-                if "T" in date_obj:
-                    return datetime.fromisoformat(date_obj.replace("Z", "+00:00")).date()
-                else:
-                    return datetime.fromisoformat(date_obj).date()
-            except (ValueError, AttributeError):
-                return None
-        return None
 
     async def create_task(self, parent_id: str, task_data: TaskCreate) -> Task:
         """Create a new task (status: DRAFT).
@@ -477,7 +416,7 @@ class TaskCRUD:
 
                     # Check if task is complete (delegates to template handler)
                     max_completions = template.max_completions_per_period or 0
-                    should_mark_complete = self._is_task_complete_by_attempts(
+                    should_mark_complete = is_task_complete_by_attempts(
                         completion_count=completion_count,
                         template_id=template.template_id,
                         execution_config=template.execution_config,
@@ -577,7 +516,7 @@ class TaskCRUD:
             if task_dict.get("is_informational"):
                 continue
             # Must be scheduled before today
-            scheduled_date = self._parse_date(task_dict.get("scheduled_date"))
+            scheduled_date = parse_date(task_dict.get("scheduled_date"))
             if scheduled_date and scheduled_date < today:
                 overdue_tasks.append(task_dict)
 
@@ -655,13 +594,13 @@ class TaskCRUD:
                 # Delegates to template handler via helper method
                 incomplete_instances = []
                 for instance in instances:
-                    instance_date = self._parse_date(instance.get("scheduled_date"))
+                    instance_date = parse_date(instance.get("scheduled_date"))
                     if instance_date:
                         date_str = str(instance_date)
                         completion_count = completion_counts_by_date.get(date_str, 0)
 
                         # Check if this date is complete (delegates to template handler)
-                        is_complete = self._is_task_complete_by_attempts(
+                        is_complete = is_task_complete_by_attempts(
                             completion_count=completion_count,
                             template_id=template_id,
                             execution_config=execution_config,
@@ -696,7 +635,7 @@ class TaskCRUD:
             # Get all missed dates (not just last 6)
             all_missed_dates = []
             for t in instances:
-                date_obj = self._parse_date(t.get("scheduled_date"))
+                date_obj = parse_date(t.get("scheduled_date"))
                 if date_obj:
                     all_missed_dates.append(str(date_obj))
 
@@ -708,8 +647,8 @@ class TaskCRUD:
             all_dates = all_missed_dates
 
             # Get date range
-            first_date = self._parse_date(instances[0].get("scheduled_date"))
-            last_date = self._parse_date(instances[-1].get("scheduled_date"))
+            first_date = parse_date(instances[0].get("scheduled_date"))
+            last_date = parse_date(instances[-1].get("scheduled_date"))
 
             if not first_date or not last_date:
                 continue  # Skip if dates are invalid
@@ -763,7 +702,7 @@ class TaskCRUD:
             )
 
             # Parse scheduled date
-            scheduled_date = self._parse_date(task_dict.get("scheduled_date"))
+            scheduled_date = parse_date(task_dict.get("scheduled_date"))
             if not scheduled_date:
                 continue  # Skip if date is invalid
 
