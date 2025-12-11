@@ -61,6 +61,8 @@ async def get_tasks_by_child(
     try:
         return await service.get_tasks_by_child(child_id, str(current_user.id), status)
     except ValueError as e:
+        if "not found" in str(e).lower():
+            raise not_found(str(e))
         raise bad_request(str(e))
     except Exception as e:
         print(f"ERROR in get_tasks_by_child: {type(e).__name__}: {e}")
@@ -83,6 +85,8 @@ async def get_overdue_tasks(
     try:
         return await service.get_overdue_tasks(child_id, str(current_user.id), must_do_only)
     except ValueError as e:
+        if "not found" in str(e).lower():
+            raise not_found(str(e))
         raise bad_request(str(e))
 
 
