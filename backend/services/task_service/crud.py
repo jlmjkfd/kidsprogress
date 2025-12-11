@@ -37,6 +37,10 @@ class TaskCRUD:
         }
         self.strategy_factory = TaskStrategyFactory(db, collections)
 
+    # ============================================================================
+    # TASK CREATION
+    # ============================================================================
+
     async def create_task(self, parent_id: str, task_data: TaskCreate) -> Task:
         """Create a new task (status: DRAFT).
 
@@ -252,6 +256,10 @@ class TaskCRUD:
 
         return Task(**task_doc)
 
+    # ============================================================================
+    # TASK QUERYING
+    # ============================================================================
+
     async def get_tasks_by_collection(
         self, collection_id: str, parent_id: str, status: Optional[TaskStatus] = None
     ) -> List[Task]:
@@ -466,6 +474,10 @@ class TaskCRUD:
         strategy = self.strategy_factory.get_strategy(identifier)
 
         return await strategy.get_task(identifier, parent_id)
+
+    # ============================================================================
+    # OVERDUE TASKS
+    # ============================================================================
 
     async def get_overdue_tasks(
         self,
@@ -782,6 +794,10 @@ class TaskCRUD:
             "must_do_overdue": must_do_count,
             "by_date": dict(by_date)
         }
+
+    # ============================================================================
+    # TASK UPDATES & DELETION
+    # ============================================================================
 
     async def update_task(
         self, task_id: str, parent_id: str, task_data: TaskUpdate
