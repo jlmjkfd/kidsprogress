@@ -65,7 +65,11 @@ export default function AttemptDetailPage() {
     // Check if we came from parent portal by checking the document.referrer or history
     // For now, use navigate(-1) which goes to the previous page
     // This works correctly whether coming from child portal or parent portal
-    window.history.length > 1 ? navigate(-1) : navigate(`/child-portal/${childId}/tasks`);
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate(`/child-portal/${childId}/tasks`);
+    }
   };
 
   if (taskLoading || completionsLoading) {

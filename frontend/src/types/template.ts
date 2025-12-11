@@ -116,6 +116,8 @@ export interface TaskCompletion {
 
   started_at: string;
   completed_at: string;
+  scheduled_date?: string; // Date this task was scheduled for (YYYY-MM-DD)
+  session_number?: number; // Attempt number (1, 2, 3, etc.)
 
   measured_data: Record<string, any>;
   detailed_data: Record<string, any>;
