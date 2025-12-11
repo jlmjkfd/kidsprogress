@@ -16,11 +16,14 @@ import { getPlugin } from "@/templates/registry";
 import { formatLocalDate, formatLocalTime } from "@/utils/timezone";
 
 export default function AttemptDetailPage() {
-  const { t } = useTranslation(["tasks", "common"]);
+  const { t, i18n } = useTranslation(["tasks", "common"]);
   const { taskId, childId } = useParams<{ taskId: string; childId: string }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const selectedChildId = useAppSelector((state) => state.child.selectedChildId);
+
+  // Get current locale for date/time formatting
+  const locale = i18n.language === 'zh' ? 'zh-CN' : 'en-US';
 
   // Get completion ID from URL query param (optional - defaults to latest)
   const urlCompletionId = searchParams.get("completionId");
@@ -156,7 +159,7 @@ export default function AttemptDetailPage() {
                     {t("tasks:attempt_number", { number: selectedCompletion.session_number })}
                   </h2>
                   <p className="text-sm text-gray-600">
-                    {formatLocalDate(selectedCompletion.completed_at)} • {formatLocalTime(selectedCompletion.completed_at)}
+                    {formatLocalDate(selectedCompletion.completed_at, locale)} • {formatLocalTime(selectedCompletion.completed_at, locale)}
                   </p>
                 </div>
               </div>
@@ -178,7 +181,7 @@ export default function AttemptDetailPage() {
               {selectedCompletion.scheduled_date && (
                 <div className="flex items-center gap-2">
                   <IconCalendar size={18} />
-                  <span>{t("tasks:scheduled")}: {formatLocalDate(selectedCompletion.scheduled_date)}</span>
+                  <span>{t("tasks:scheduled")}: {formatLocalDate(selectedCompletion.scheduled_date, locale)}</span>
                 </div>
               )}
             </div>

@@ -95,9 +95,9 @@ export function getTimezoneOffsetString(): string {
  * @example
  * formatLocalDate("2025-12-11T14:30:00Z") // "Dec 11, 2025" (in user's locale)
  */
-export function formatLocalDate(dateString: string | Date): string {
+export function formatLocalDate(dateString: string | Date, locale: string = 'en-US'): string {
   const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
-  return date.toLocaleDateString(undefined, {
+  return date.toLocaleDateString(locale, {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -108,16 +108,28 @@ export function formatLocalDate(dateString: string | Date): string {
  * Format time to locale-aware time string in 12-hour format
  *
  * @param dateString - ISO date string or Date object
+ * @param locale - Locale string (e.g., 'en-US', 'zh-CN'). Defaults to 'en-US'
  * @returns Formatted time string (e.g., "2:30 PM")
  * @example
  * formatLocalTime("2025-12-11T14:30:00Z") // "2:30 PM" (converted to user's local timezone)
  * formatLocalTime("2025-12-11T02:30:00Z") // "10:30 AM" (in UTC+8 timezone)
  */
-export function formatLocalTime(dateString: string | Date): string {
-  const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+export function formatLocalTime(dateString: string | Date, locale: string = 'en-US'): string {
+  // Ensure the string is treated as UTC if it doesn't have timezone info
+  let date: Date;
+  if (typeof dateString === 'string') {
+    // If string doesn't end with Z or timezone offset, assume it's UTC
+    if (!dateString.endsWith('Z') && !dateString.match(/[+-]\d{2}:\d{2}$/)) {
+      date = new Date(dateString + 'Z');
+    } else {
+      date = new Date(dateString);
+    }
+  } else {
+    date = dateString;
+  }
 
-  // toLocaleTimeString automatically converts UTC to local timezone
-  return date.toLocaleTimeString(undefined, {
+  // toLocaleTimeString automatically converts to local timezone
+  return date.toLocaleTimeString(locale, {
     hour: "numeric",
     minute: "2-digit",
     hour12: true, // Force 12-hour format with AM/PM
@@ -128,10 +140,11 @@ export function formatLocalTime(dateString: string | Date): string {
  * Format date and time together
  *
  * @param dateString - ISO date string or Date object
+ * @param locale - Locale string (e.g., 'en-US', 'zh-CN'). Defaults to 'en-US'
  * @returns Formatted datetime string (e.g., "Dec 11, 2025 • 2:30 PM")
  * @example
  * formatLocalDateTime("2025-12-11T14:30:00Z") // "Dec 11, 2025 • 2:30 PM"
  */
-export function formatLocalDateTime(dateString: string | Date): string {
-  return `${formatLocalDate(dateString)} • ${formatLocalTime(dateString)}`;
+export function formatLocalDateTime(dateString: string | Date, locale: string = 'en-US'): string {
+  return `${formatLocalDate(dateString, locale)} • ${formatLocalTime(dateString, locale)}`;
 }

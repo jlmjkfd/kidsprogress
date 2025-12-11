@@ -3,6 +3,7 @@
  * Custom analysis page for math practice progress
  */
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { AnalysisViewProps } from '../../_shared/types/plugin-interface';
 import type { AdditionSubtractionDetailedData, AdditionSubtractionMeasuredData } from '../types';
 import { formatLocalDate } from '@/utils/timezone';
@@ -10,6 +11,8 @@ import { formatLocalDate } from '@/utils/timezone';
 export default function AnalysisView({
   completions,
 }: AnalysisViewProps<AdditionSubtractionDetailedData, AdditionSubtractionMeasuredData>) {
+  const { i18n } = useTranslation();
+  const locale = i18n.language === 'zh' ? 'zh-CN' : 'en-US';
   const stats = useMemo(() => {
     if (!completions || completions.length === 0) {
       return null;
@@ -92,7 +95,7 @@ export default function AnalysisView({
                   Session {completions.length - index}
                 </div>
                 <div className="text-xs text-gray-500">
-                  {formatLocalDate(completion.completed_at)}
+                  {formatLocalDate(completion.completed_at, locale)}
                 </div>
               </div>
               <div className="flex gap-4">
