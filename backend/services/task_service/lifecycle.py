@@ -227,7 +227,6 @@ class TaskLifecycle:
         # Publish TaskStarted event (handlers will create session)
         from backend.services.event_bus import get_event_bus
         from backend.services.event_bus.events import TaskStarted
-        from datetime import datetime
 
         event = TaskStarted(
             task_id=task_id,
