@@ -33,6 +33,45 @@ class TaskCRUD:
         }
         self.strategy_factory = TaskStrategyFactory(db, collections)
 
+    def _is_task_complete_by_attempts(
+        self,
+        completion_count: int,
+        template_id: Optional[str] = None,
+        execution_config: Optional[dict] = None,
+        max_completions: int = 0
+    ) -> bool:
+        """
+        Check if task is complete based on completion count.
+
+        Delegates to template handler's is_complete_by_attempt_count() method
+        to keep completion logic in template code, not in crud.py.
+
+        Args:
+            completion_count: Number of completions for this task
+            template_id: Template ID (if template-based task)
+            execution_config: Template configuration
+            max_completions: Hard limit from max_completions_per_period
+
+        Returns:
+            True if task should be marked as complete
+        """
+        # Hard limit takes priority (prevents more attempts)
+        if max_completions > 0 and completion_count >= max_completions:
+            return True
+
+        # Delegate to template handler (soft requirement)
+        if template_id and execution_config:
+            try:
+                from backend.templates.registry import create_handler
+                handler = create_handler(plugin_id=template_id, config=execution_config)
+                if hasattr(handler, 'is_complete_by_attempt_count'):
+                    return handler.is_complete_by_attempt_count(completion_count)
+            except:
+                pass
+
+        # Fallback: default behavior (complete after any completion)
+        return completion_count > 0
+
     @staticmethod
     def _parse_date(date_obj) -> Optional[date]:
         """Parse a date from various formats (datetime, date, string).
@@ -436,28 +475,14 @@ class TaskCRUD:
                     # Update the virtual instance data
                     instance_data["completion_count"] = completion_count
 
-                    # Check completion status using two methods:
-                    # 1) Hard limit: max_completions_per_period (prevents more attempts)
-                    # 2) Soft requirement: template handler's is_complete_by_attempt_count()
+                    # Check if task is complete (delegates to template handler)
                     max_completions = template.max_completions_per_period or 0
-                    should_mark_complete = False
-
-                    # Hard limit takes priority
-                    if max_completions > 0 and completion_count >= max_completions:
-                        should_mark_complete = True
-                    elif template.template_id and template.execution_config:
-                        # Ask template handler if task is complete
-                        try:
-                            from backend.templates.registry import create_handler
-                            handler = create_handler(
-                                plugin_id=template.template_id,
-                                config=template.execution_config or {}
-                            )
-                            if hasattr(handler, 'is_complete_by_attempt_count'):
-                                should_mark_complete = handler.is_complete_by_attempt_count(completion_count)
-                        except:
-                            # Fallback: if no handler or error, use default (complete after 1)
-                            should_mark_complete = completion_count > 0
+                    should_mark_complete = self._is_task_complete_by_attempts(
+                        completion_count=completion_count,
+                        template_id=template.template_id,
+                        execution_config=template.execution_config,
+                        max_completions=max_completions
+                    )
 
                     if should_mark_complete:
                         instance_data["status"] = "completed"
@@ -621,15 +646,13 @@ class TaskCRUD:
                     if scheduled_date:
                         completion_counts_by_date[scheduled_date] = completion_counts_by_date.get(scheduled_date, 0) + 1
 
-                # Get the first instance to access execution_config
+                # Get template info for completion logic
                 first_instance = instances[0] if instances else None
+                template_id = first_instance.get("template_id") if first_instance else None
                 execution_config = first_instance.get("execution_config") if first_instance else {}
-                required_attempts = execution_config.get("required_attempts") if execution_config else None
 
                 # Filter instances based on completion status
-                # A date is complete if:
-                # 1) It has completions AND required_attempts is met, OR
-                # 2) It has any completion and no required_attempts is set (legacy behavior)
+                # Delegates to template handler via helper method
                 incomplete_instances = []
                 for instance in instances:
                     instance_date = self._parse_date(instance.get("scheduled_date"))
@@ -637,14 +660,13 @@ class TaskCRUD:
                         date_str = str(instance_date)
                         completion_count = completion_counts_by_date.get(date_str, 0)
 
-                        # Determine if this date should be filtered out
-                        is_complete = False
-                        if required_attempts and required_attempts > 0:
-                            # Has required_attempts: only complete if count >= required
-                            is_complete = completion_count >= required_attempts
-                        else:
-                            # No required_attempts: legacy behavior (complete after any completion)
-                            is_complete = completion_count > 0
+                        # Check if this date is complete (delegates to template handler)
+                        is_complete = self._is_task_complete_by_attempts(
+                            completion_count=completion_count,
+                            template_id=template_id,
+                            execution_config=execution_config,
+                            max_completions=0  # No hard limit for overdue filtering
+                        )
 
                         if not is_complete:
                             incomplete_instances.append(instance)
