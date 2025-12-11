@@ -208,13 +208,6 @@ export interface RecurrenceException {
   overrides?: Record<string, any>; // Fields to override
 }
 
-export interface TaskPauseRecord {
-  paused_at: string;
-  resumed_at?: string;
-  paused_by: "PARENT" | "CHILD";
-  reason?: string;
-}
-
 export interface QuantifiableMetric {
   metric_type_code: string;
   target_value?: number;
@@ -346,10 +339,6 @@ export interface Task {
   status: TaskStatus;
   activation_rule?: ActivationRule;
   constraints?: TaskConstraints;
-
-  // Pause/Resume
-  pause_history: TaskPauseRecord[];
-  current_pause?: TaskPauseRecord;
 
   // Evaluation
   metrics: QuantifiableMetric[];
