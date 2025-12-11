@@ -86,3 +86,48 @@ export function getTimezoneOffsetString(): string {
 
   return `${sign}${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
 }
+
+/**
+ * Format date to locale-aware date string
+ *
+ * @param dateString - ISO date string or Date object
+ * @returns Formatted date string (e.g., "Dec 11, 2025")
+ * @example
+ * formatLocalDate("2025-12-11T14:30:00Z") // "Dec 11, 2025" (in user's locale)
+ */
+export function formatLocalDate(dateString: string | Date): string {
+  const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+  return date.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+/**
+ * Format time to locale-aware time string
+ *
+ * @param dateString - ISO date string or Date object
+ * @returns Formatted time string (e.g., "2:30 PM")
+ * @example
+ * formatLocalTime("2025-12-11T14:30:00Z") // "2:30 PM" (in user's timezone)
+ */
+export function formatLocalTime(dateString: string | Date): string {
+  const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+  return date.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+/**
+ * Format date and time together
+ *
+ * @param dateString - ISO date string or Date object
+ * @returns Formatted datetime string (e.g., "Dec 11, 2025 • 2:30 PM")
+ * @example
+ * formatLocalDateTime("2025-12-11T14:30:00Z") // "Dec 11, 2025 • 2:30 PM"
+ */
+export function formatLocalDateTime(dateString: string | Date): string {
+  return `${formatLocalDate(dateString)} • ${formatLocalTime(dateString)}`;
+}

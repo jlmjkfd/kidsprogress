@@ -13,6 +13,7 @@ import LoadingSpinner from "@/components/LoadingSpinner";
 import { TaskCompletion } from "@/types/template";
 import { AttemptSidebar } from "./components/AttemptSidebar";
 import { getPlugin } from "@/templates/registry";
+import { formatLocalDate, formatLocalTime } from "@/utils/timezone";
 
 export default function AttemptDetailPage() {
   const { t } = useTranslation(["tasks", "common"]);
@@ -50,23 +51,6 @@ export default function AttemptDetailPage() {
       setSelectedCompletionId(completions[0].completion_id);
     }
   }, [completions, selectedCompletionId]);
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString(undefined, {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-  };
-
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString(undefined, {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
 
   const getDuration = (completion: TaskCompletion) => {
     const start = new Date(completion.started_at);
@@ -168,7 +152,7 @@ export default function AttemptDetailPage() {
                     {t("tasks:attempt_number", { number: selectedCompletion.session_number })}
                   </h2>
                   <p className="text-sm text-gray-600">
-                    {formatDate(selectedCompletion.completed_at)} • {formatTime(selectedCompletion.completed_at)}
+                    {formatLocalDate(selectedCompletion.completed_at)} • {formatLocalTime(selectedCompletion.completed_at)}
                   </p>
                 </div>
               </div>
@@ -187,10 +171,12 @@ export default function AttemptDetailPage() {
                 <IconClock size={18} />
                 <span>{t("tasks:duration")}: {getDuration(selectedCompletion)}</span>
               </div>
-              <div className="flex items-center gap-2">
-                <IconCalendar size={18} />
-                <span>{formatDate(selectedCompletion.completed_at)}</span>
-              </div>
+              {selectedCompletion.scheduled_date && (
+                <div className="flex items-center gap-2">
+                  <IconCalendar size={18} />
+                  <span>{t("tasks:scheduled")}: {formatLocalDate(selectedCompletion.scheduled_date)}</span>
+                </div>
+              )}
             </div>
           </div>
 

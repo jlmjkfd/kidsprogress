@@ -5,6 +5,7 @@
 import { useMemo } from 'react';
 import type { AnalysisViewProps } from '../../_shared/types/plugin-interface';
 import type { AdditionSubtractionDetailedData, AdditionSubtractionMeasuredData } from '../types';
+import { formatLocalDate } from '@/utils/timezone';
 
 export default function AnalysisView({
   completions,
@@ -91,7 +92,7 @@ export default function AnalysisView({
                   Session {completions.length - index}
                 </div>
                 <div className="text-xs text-gray-500">
-                  {new Date(completion.completed_at).toLocaleDateString()}
+                  {formatLocalDate(completion.completed_at)}
                 </div>
               </div>
               <div className="flex gap-4">
