@@ -148,6 +148,34 @@ export function UnifiedTaskModal({
     e.preventDefault();
     if (!formData.title.trim() || (!task && !formData.collection_id)) return;
 
+    // Validate required_attempts configuration
+    if (formData.template_id && formData.execution_config) {
+      const requiredAttempts = formData.execution_config.required_attempts;
+      const maxCompletions = formData.max_completions_per_period;
+
+      if (requiredAttempts && requiredAttempts > 1) {
+        // required_attempts > 1 requires max_completions_per_period to be set
+        if (maxCompletions === undefined || maxCompletions === null) {
+          alert(
+            `Error: This task requires ${requiredAttempts} attempts to complete.\n\n` +
+            `You must enable "Allow multiple attempts per day" and set it to "Unlimited" or at least ${requiredAttempts}.`
+          );
+          setIsSubmitting(false);
+          return;
+        }
+
+        // If max_completions is set but less than required_attempts, that's also invalid
+        if (maxCompletions > 0 && maxCompletions < requiredAttempts) {
+          alert(
+            `Error: Maximum attempts per day (${maxCompletions}) is less than required attempts (${requiredAttempts}).\n\n` +
+            `Set maximum attempts to at least ${requiredAttempts}, or use "Unlimited".`
+          );
+          setIsSubmitting(false);
+          return;
+        }
+      }
+    }
+
     setIsSubmitting(true);
     try {
       const baseData: Partial<TaskCreate & TaskUpdate> = {

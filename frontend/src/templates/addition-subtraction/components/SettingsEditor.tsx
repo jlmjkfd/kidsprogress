@@ -115,10 +115,13 @@ export default function SettingsEditor({
           Task shows as incomplete/overdue until this many attempts are completed. Kids can still do more attempts after reaching this number.
         </p>
         {requiredAttempts && requiredAttempts > 1 && (
-          <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-xs text-yellow-800 font-medium">
-              ⚠️ Important: You must enable "Allow multiple attempts per day" in the main task settings
-              (set to "Unlimited" or at least {requiredAttempts}) for this requirement to work.
+          <div className="mt-2 p-3 bg-red-50 border border-red-300 rounded-lg">
+            <p className="text-xs text-red-800 font-semibold">
+              ⚠️ REQUIRED: You MUST enable "Allow multiple attempts per day" in the main task settings
+              and set it to "Unlimited" or at least {requiredAttempts}.
+            </p>
+            <p className="text-xs text-red-700 mt-1">
+              Without this, the task cannot be created (validation error will block submission).
             </p>
           </div>
         )}
