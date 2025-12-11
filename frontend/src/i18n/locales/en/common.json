@@ -222,5 +222,7 @@
   "pause": "Pause",
   "reset": "Reset",
   "write_notes_here": "Write your notes here...",
-  "last_saved": "Last saved"
+  "last_saved": "Last saved",
+  "yes": "Yes",
+  "no": "No"
 }

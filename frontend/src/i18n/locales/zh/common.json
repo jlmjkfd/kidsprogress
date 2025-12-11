@@ -219,5 +219,7 @@
   "pause": "暂停",
   "reset": "重置",
   "write_notes_here": "在这里写笔记...",
-  "last_saved": "上次保存"
+  "last_saved": "上次保存",
+  "yes": "是",
+  "no": "否"
 }
