@@ -102,6 +102,18 @@ export default function TaskExecutePage() {
     navigate(-1);
   };
 
+  const handleCompleteTask = async (taskId: string) => {
+    try {
+      await apiClient.put(`/api/tasks/${taskId}/complete`, {
+        child_id: task?.child_id,
+      });
+      handleBackToTasks();
+    } catch (error) {
+      console.error("Failed to complete task:", error);
+      alert(t("errors:completion_failed"));
+    }
+  };
+
   // Loading state
   if (taskLoading || executionLoading) {
     return <LoadingSpinner fullScreen size="lg" />;
@@ -129,23 +141,62 @@ export default function TaskExecutePage() {
     );
   }
 
-  if (!task.template_id || !executionData) {
+  // For standard tasks (no template_id), show simple completion page
+  if (!task.template_id) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        {/* Header */}
+        <div className="bg-white border-b sticky top-0 z-10">
+          <div className="max-w-4xl mx-auto px-4 py-4">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={handleCancel}
+                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+              >
+                <IconArrowLeft size={20} />
+              </button>
+              <div className="flex-1">
+                <h1 className="text-lg md:text-xl font-semibold text-gray-900">
+                  {task.title}
+                </h1>
+                {task.description && (
+                  <p className="text-sm text-gray-600 mt-1">{task.description}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Standard Task Executor */}
+        <div className="max-w-4xl mx-auto p-4 md:p-6">
+          <div className="bg-white rounded-xl shadow-sm border p-6 space-y-6">
+            <p className="text-gray-700 text-lg">
+              {t("tasks:standard_task_instruction")}
+            </p>
+
+            <button
+              onClick={() => handleCompleteTask(taskId!)}
+              className="w-full py-4 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-3"
+            >
+              <IconCheck size={24} />
+              {t("tasks:mark_as_complete")}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Template task - check for executionData
+  if (!executionData) {
     return (
       <div className="min-h-screen bg-gray-50 p-4">
         <div className="max-w-2xl mx-auto">
           <div className="bg-white rounded-xl shadow-sm border p-8 text-center">
             <h2 className="text-xl font-semibold text-gray-900 mb-2">
-              {t("tasks:no_template")}
+              {t("tasks:loading_execution")}
             </h2>
-            <p className="text-gray-600 mb-6">
-              {t("tasks:no_template_desc")}
-            </p>
-            <button
-              onClick={() => navigate("/child-portal/tasks")}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              {t("tasks:back_to_tasks")}
-            </button>
+            <p className="text-gray-600">{t("common:please_wait")}</p>
           </div>
         </div>
       </div>

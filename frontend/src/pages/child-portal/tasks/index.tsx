@@ -96,7 +96,7 @@ export default function ChildTasksPage() {
       return taskDate === selectedDate;
     }) || [];
 
-  const handleStartTask = async (taskId: string, task: Task) => {
+  const handleStartTask = async (taskId: string) => {
     try {
       // Start the task - this may materialize a virtual task into a real one
       const result = await startTaskMutation.mutateAsync({
@@ -104,12 +104,10 @@ export default function ChildTasksPage() {
         childId: selectedChildId || "",
       });
 
-      // If task has a template, navigate to the executor page
+      // Navigate to the executor page for all tasks (template and standard)
       // Use the returned task's ID (may be different if virtual task was materialized)
-      if (task.template_id) {
-        const realTaskId = result?.task?._id || taskId;
-        navigate(`/child-portal/${childId}/tasks/execute/${realTaskId}`);
-      }
+      const realTaskId = result?.task?._id || taskId;
+      navigate(`/child-portal/${childId}/tasks/execute/${realTaskId}`);
     } catch (error) {
       console.error("Failed to start task:", error);
     }
@@ -299,7 +297,7 @@ export default function ChildTasksPage() {
                         task={task}
                         onStart={
                           canStart
-                            ? () => handleStartTask(task._id, task)
+                            ? () => handleStartTask(task._id)
                             : undefined
                         }
                         onPause={
@@ -408,7 +406,7 @@ export default function ChildTasksPage() {
                     task={task}
                     onStart={
                       !isInformationalTask(task)
-                        ? () => handleStartTask(task._id, task)
+                        ? () => handleStartTask(task._id)
                         : undefined
                     }
                     onViewAttempts={() => handleViewAttempts(task._id)}
