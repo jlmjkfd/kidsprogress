@@ -614,18 +614,40 @@ class TaskCRUD:
                 })
                 completions = await completions_cursor.to_list(length=None)
 
-                # Build set of completed dates
-                completed_dates = set()
+                # Count completions per date
+                completion_counts_by_date = {}
                 for comp in completions:
-                    if comp.get("scheduled_date"):
-                        completed_dates.add(comp["scheduled_date"])
+                    scheduled_date = comp.get("scheduled_date")
+                    if scheduled_date:
+                        completion_counts_by_date[scheduled_date] = completion_counts_by_date.get(scheduled_date, 0) + 1
 
-                # Filter instances to only include dates WITHOUT completions
+                # Get the first instance to access execution_config
+                first_instance = instances[0] if instances else None
+                execution_config = first_instance.get("execution_config") if first_instance else {}
+                required_attempts = execution_config.get("required_attempts") if execution_config else None
+
+                # Filter instances based on completion status
+                # A date is complete if:
+                # 1) It has completions AND required_attempts is met, OR
+                # 2) It has any completion and no required_attempts is set (legacy behavior)
                 incomplete_instances = []
                 for instance in instances:
                     instance_date = self._parse_date(instance.get("scheduled_date"))
-                    if instance_date and str(instance_date) not in completed_dates:
-                        incomplete_instances.append(instance)
+                    if instance_date:
+                        date_str = str(instance_date)
+                        completion_count = completion_counts_by_date.get(date_str, 0)
+
+                        # Determine if this date should be filtered out
+                        is_complete = False
+                        if required_attempts and required_attempts > 0:
+                            # Has required_attempts: only complete if count >= required
+                            is_complete = completion_count >= required_attempts
+                        else:
+                            # No required_attempts: legacy behavior (complete after any completion)
+                            is_complete = completion_count > 0
+
+                        if not is_complete:
+                            incomplete_instances.append(instance)
 
                 # If all dates are completed, skip this task entirely
                 if not incomplete_instances:
