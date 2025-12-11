@@ -15,6 +15,8 @@ export interface AdditionSubtractionConfig {
   only_carry: boolean;
   /** Enable timer during practice */
   has_timer: boolean;
+  /** Number of attempts required to mark task as complete (optional, soft requirement) */
+  required_attempts?: number | null;
 }
 
 /**

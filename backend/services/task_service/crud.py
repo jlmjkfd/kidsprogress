@@ -436,15 +436,31 @@ class TaskCRUD:
                     # Update the virtual instance data
                     instance_data["completion_count"] = completion_count
 
-                    # If there are completions, check if task should be marked as completed
-                    # (This depends on max_completions_per_period setting)
+                    # Check completion status using two methods:
+                    # 1) Hard limit: max_completions_per_period (prevents more attempts)
+                    # 2) Soft requirement: template handler's is_complete_by_attempt_count()
                     max_completions = template.max_completions_per_period or 0
+                    should_mark_complete = False
+
+                    # Hard limit takes priority
                     if max_completions > 0 and completion_count >= max_completions:
+                        should_mark_complete = True
+                    elif template.template_id and template.execution_config:
+                        # Ask template handler if task is complete
+                        try:
+                            from backend.templates.registry import create_handler
+                            handler = create_handler(
+                                plugin_id=template.template_id,
+                                config=template.execution_config or {}
+                            )
+                            if hasattr(handler, 'is_complete_by_attempt_count'):
+                                should_mark_complete = handler.is_complete_by_attempt_count(completion_count)
+                        except:
+                            # Fallback: if no handler or error, use default (complete after 1)
+                            should_mark_complete = completion_count > 0
+
+                    if should_mark_complete:
                         instance_data["status"] = "completed"
-                    elif completion_count > 0 and max_completions == 0:
-                        # For unlimited attempts, don't auto-complete
-                        # Keep as pending so user can do more attempts
-                        pass
 
                     tasks.append(instance_data)
 

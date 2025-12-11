@@ -29,6 +29,12 @@ class AdditionSubtractionConfig(BaseModel):
         default=True,
         description="Enable timer during practice session"
     )
+    required_attempts: Optional[int] = Field(
+        default=None,
+        ge=1,
+        le=20,
+        description="Number of attempts required to mark task as complete (soft requirement - kids can do more)"
+    )
 
     class Config:
         json_schema_extra = {

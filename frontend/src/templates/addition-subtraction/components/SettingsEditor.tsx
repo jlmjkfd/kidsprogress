@@ -17,6 +17,7 @@ export default function SettingsEditor({
   const numQuestions = config.num_questions ?? 10;
   const onlyCarry = config.only_carry ?? false;
   const hasTimer = config.has_timer ?? true;
+  const requiredAttempts = config.required_attempts ?? null;
 
   return (
     <div className="space-y-4 border border-gray-200 rounded-lg p-4 bg-gray-50">
@@ -91,6 +92,28 @@ export default function SettingsEditor({
             Track how long it takes to complete all questions
           </p>
         </div>
+      </div>
+
+      {/* Required Attempts */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Required Attempts (Optional)
+        </label>
+        <input
+          type="number"
+          min={0}
+          max={20}
+          value={requiredAttempts ?? ''}
+          placeholder="Leave empty for no requirement"
+          onChange={(e) => {
+            const value = e.target.value === '' ? null : parseInt(e.target.value);
+            handleChange('required_attempts', value as any);
+          }}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        />
+        <p className="text-xs text-gray-500 mt-1">
+          Task shows as incomplete/overdue until this many attempts are completed. Kids can still do more attempts after reaching this number.
+        </p>
       </div>
     </div>
   );

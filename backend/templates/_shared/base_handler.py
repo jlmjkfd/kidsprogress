@@ -89,3 +89,19 @@ class TemplateHandler(ABC):
             True if task should auto-complete, False otherwise
         """
         return False
+
+    def is_complete_by_attempt_count(self, completion_count: int) -> bool:
+        """
+        Check if task should be marked as complete based on completion count.
+
+        This is called when displaying tasks in the task list to determine status.
+        Override this method to implement template-specific completion requirements.
+
+        Args:
+            completion_count: Number of completions for this task instance
+
+        Returns:
+            True if task should be shown as completed, False otherwise
+        """
+        # Default: task is complete after first completion
+        return completion_count > 0

@@ -236,5 +236,33 @@ class AdditionSubtractionHandler(TemplateHandler):
         return completion.measured_data or {}
 
     async def should_auto_complete(self, completion: TaskCompletion) -> bool:
-        """Auto-complete after submission (math practice is one-shot)."""
-        return True
+        """Check if task should auto-complete based on required_attempts setting.
+
+        If required_attempts is set in config, task completes when that many attempts are done.
+        Otherwise, defaults to single-attempt completion (legacy behavior).
+        """
+        # Check if required_attempts is configured
+        required = self.config.required_attempts
+
+        if required is not None and required > 0:
+            # Multi-attempt requirement: complete when session_number >= required_attempts
+            session_number = completion.session_number or 1
+            return session_number >= required
+        else:
+            # No requirement or 0: legacy one-shot completion
+            return True
+
+    def is_complete_by_attempt_count(self, completion_count: int) -> bool:
+        """Check if task should show as complete based on completion count.
+
+        Uses required_attempts config to determine completion.
+        If not set, uses default behavior (complete after 1 attempt).
+        """
+        required = self.config.required_attempts
+
+        if required is not None and required > 0:
+            # Task is complete when completion_count >= required_attempts
+            return completion_count >= required
+        else:
+            # Default: complete after first attempt
+            return completion_count > 0
