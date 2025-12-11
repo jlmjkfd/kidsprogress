@@ -421,6 +421,31 @@ class TaskCRUD:
                         break
 
                 if not materialized_exists:
+                    # Update completion_count based on actual completions for this date
+                    # Query completions for this template + scheduled_date combination
+                    completions_cursor = self.db.task_completions.find({
+                        "$or": [
+                            {"task_id": template.id},
+                            {"task_id": str(template.id)}
+                        ],
+                        "scheduled_date": virtual_date_str
+                    })
+                    completions = await completions_cursor.to_list(length=None)
+                    completion_count = len(completions)
+
+                    # Update the virtual instance data
+                    instance_data["completion_count"] = completion_count
+
+                    # If there are completions, check if task should be marked as completed
+                    # (This depends on max_completions_per_period setting)
+                    max_completions = template.max_completions_per_period or 0
+                    if max_completions > 0 and completion_count >= max_completions:
+                        instance_data["status"] = "completed"
+                    elif completion_count > 0 and max_completions == 0:
+                        # For unlimited attempts, don't auto-complete
+                        # Keep as pending so user can do more attempts
+                        pass
+
                     tasks.append(instance_data)
 
         # Note: We do NOT add recurring templates to the list anymore.
