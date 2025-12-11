@@ -93,6 +93,7 @@
   "start": "Start",
   "start_again": "Start Again",
   "continue": "Continue",
+  "resume": "Resume",
   "complete": "Complete",
   "view_result": "View Result",
   "view_attempts": "View Previous Attempts",

@@ -9,7 +9,6 @@ import { useAppSelector } from "@/store/hooks";
 import {
   IconChecklist,
   IconPlayerPlay,
-  IconCheck,
   IconClock,
   IconStar,
   IconTrophy,
@@ -23,7 +22,6 @@ import {
 import { useTasksByChild, useOverdueStats } from "@/api/queries/useTasks";
 import {
   useStartTask,
-  useCompleteTask,
 } from "@/api/mutations/useTaskMutations";
 import { Task } from "@/types/task";
 import { AIRecommendationButton } from "@/components/AIRecommendationButton";
@@ -58,8 +56,6 @@ export default function ChildTasksPage() {
   const { data: allTasks, isLoading } = useTasksByChild(selectedChildId || "");
   const { data: overdueStats } = useOverdueStats(selectedChildId || "");
   const startTaskMutation = useStartTask();
-  const completeTaskMutation = useCompleteTask();
-
   // Filter tasks for today only
   const tasks =
     allTasks?.filter((task) => {
@@ -104,17 +100,6 @@ export default function ChildTasksPage() {
       navigate(`/child-portal/${childId}/tasks/execute/${realTaskId}`);
     } catch (error) {
       console.error("Failed to start task:", error);
-    }
-  };
-
-  const handleCompleteTask = async (taskId: string) => {
-    try {
-      await completeTaskMutation.mutateAsync({
-        taskId,
-        childId: selectedChildId || "",
-      });
-    } catch (error) {
-      console.error("Failed to complete task:", error);
     }
   };
 
@@ -278,10 +263,10 @@ export default function ChildTasksPage() {
                             ? () => handleStartTask(task._id)
                             : undefined
                         }
-                        onComplete={
+                        onResume={
                           task.status === "in_progress" &&
                           !isInformationalTask(task)
-                            ? () => handleCompleteTask(task._id)
+                            ? () => navigate(`/child-portal/${childId}/tasks/execute/${task._id}`)
                             : undefined
                         }
                         onViewResult={
@@ -310,15 +295,9 @@ export default function ChildTasksPage() {
                   <TaskCard
                     key={task._id}
                     task={task}
-                    // Template tasks show "Continue" button, regular tasks show "Pause"
-                    onContinue={
-                      task.template_id && !isInformationalTask(task)
-                        ? () => navigate(`/child-portal/${childId}/tasks/execute/${task._id}`)
-                        : undefined
-                    }
-                    onComplete={
+                    onResume={
                       !isInformationalTask(task)
-                        ? () => handleCompleteTask(task._id)
+                        ? () => navigate(`/child-portal/${childId}/tasks/execute/${task._id}`)
                         : undefined
                     }
                     onViewAttempts={() => handleViewAttempts(task._id)}
@@ -410,19 +389,17 @@ export default function ChildTasksPage() {
 interface TaskCardProps {
   task: Task;
   onStart?: () => void;
-  onComplete?: () => void;
+  onResume?: () => void; // Resume task execution
   onViewResult?: () => void;
   onViewAttempts?: () => void;
-  onContinue?: () => void; // For template tasks in IN_PROGRESS state
 }
 
 function TaskCard({
   task,
   onStart,
-  onComplete,
+  onResume,
   onViewResult,
   onViewAttempts,
-  onContinue,
 }: TaskCardProps) {
   const { t } = useTranslation(["tasks"]);
 
@@ -498,24 +475,14 @@ function TaskCard({
             </button>
           )}
 
-          {/* Continue button for template tasks (instead of pause) */}
-          {onContinue && (
+          {/* Resume button for in-progress tasks */}
+          {onResume && (
             <button
-              onClick={onContinue}
+              onClick={onResume}
               className="flex min-h-[64px] items-center justify-center gap-3 rounded-2xl bg-blue-600 px-8 py-4 text-xl font-bold text-white shadow-lg transition-all hover:scale-105 hover:bg-blue-700"
             >
               <IconPlayerPlay size={28} />
-              {t("tasks:continue")}
-            </button>
-          )}
-
-          {onComplete && (
-            <button
-              onClick={onComplete}
-              className="flex min-h-[64px] items-center justify-center gap-3 rounded-2xl bg-blue-600 px-8 py-4 text-xl font-bold text-white shadow-lg transition-all hover:scale-105 hover:bg-blue-700"
-            >
-              <IconCheck size={28} />
-              {t("tasks:complete")}
+              {t("tasks:resume")}
             </button>
           )}
 
