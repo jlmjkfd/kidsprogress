@@ -526,6 +526,12 @@ class TaskCRUD:
             is_recurring = task_dict.get("is_recurring", False)
             task_source = task_dict.get("task_source", "one_time")  # Default to one_time
 
+            # For manually created recurring tasks (where task IS the source),
+            # use the task's own ID as the source_id
+            if not source_id and is_recurring and not is_virtual:
+                task_id = task_dict.get("_id")
+                source_id = str(task_id) if task_id else None
+
             # Group recurring tasks by their source template ID
             # Group if has source_id AND (is_virtual OR is_recurring)
             # This includes routine/activity tasks AND manually created recurring tasks
@@ -558,8 +564,12 @@ class TaskCRUD:
 
             if source_id_obj:
                 # Query for completions of this recurring task
+                # Note: task_id might be stored as string or ObjectId depending on how it was saved
                 completions_cursor = self.db.task_completions.find({
-                    "task_id": source_id_obj
+                    "$or": [
+                        {"task_id": source_id_obj},
+                        {"task_id": str(source_id_obj)}
+                    ]
                 })
                 completions = await completions_cursor.to_list(length=None)
 
