@@ -9,7 +9,6 @@ import { useAppSelector } from "@/store/hooks";
 import {
   IconChecklist,
   IconPlayerPlay,
-  IconPlayerPause,
   IconCheck,
   IconClock,
   IconStar,
@@ -24,9 +23,7 @@ import {
 import { useTasksByChild, useOverdueStats } from "@/api/queries/useTasks";
 import {
   useStartTask,
-  usePauseTask,
   useCompleteTask,
-  useResumeTask,
 } from "@/api/mutations/useTaskMutations";
 import { Task } from "@/types/task";
 import { AIRecommendationButton } from "@/components/AIRecommendationButton";
@@ -61,8 +58,6 @@ export default function ChildTasksPage() {
   const { data: allTasks, isLoading } = useTasksByChild(selectedChildId || "");
   const { data: overdueStats } = useOverdueStats(selectedChildId || "");
   const startTaskMutation = useStartTask();
-  const pauseTaskMutation = usePauseTask();
-  const resumeTaskMutation = useResumeTask();
   const completeTaskMutation = useCompleteTask();
 
   // Filter tasks for today only
@@ -80,7 +75,6 @@ export default function ChildTasksPage() {
   // Separate tasks by status for better organization
   // Use string comparison to ensure matching works regardless of enum typing
   const inProgressTasks = tasks.filter((t) => t.status === "in_progress");
-  const pausedTasks = tasks.filter((t) => t.status === "paused");
   const todoTasks = tasks.filter((t) => t.status === "pending");
   const completedToday =
     allTasks?.filter((t) => {
@@ -110,22 +104,6 @@ export default function ChildTasksPage() {
       navigate(`/child-portal/${childId}/tasks/execute/${realTaskId}`);
     } catch (error) {
       console.error("Failed to start task:", error);
-    }
-  };
-
-  const handlePauseTask = async (taskId: string) => {
-    try {
-      await pauseTaskMutation.mutateAsync({ taskId, pausedBy: "CHILD" });
-    } catch (error) {
-      console.error("Failed to pause task:", error);
-    }
-  };
-
-  const handleResumeTask = async (taskId: string) => {
-    try {
-      await resumeTaskMutation.mutateAsync(taskId);
-    } catch (error) {
-      console.error("Failed to resume task:", error);
     }
   };
 
@@ -300,20 +278,8 @@ export default function ChildTasksPage() {
                             ? () => handleStartTask(task._id)
                             : undefined
                         }
-                        onPause={
-                          task.status === "in_progress" &&
-                          !isInformationalTask(task)
-                            ? () => handlePauseTask(task._id)
-                            : undefined
-                        }
-                        onResume={
-                          task.status === "paused" && !isInformationalTask(task)
-                            ? () => handleResumeTask(task._id)
-                            : undefined
-                        }
                         onComplete={
-                          (task.status === "in_progress" ||
-                            task.status === "paused") &&
+                          task.status === "in_progress" &&
                           !isInformationalTask(task)
                             ? () => handleCompleteTask(task._id)
                             : undefined
@@ -348,38 +314,6 @@ export default function ChildTasksPage() {
                     onContinue={
                       task.template_id && !isInformationalTask(task)
                         ? () => navigate(`/child-portal/${childId}/tasks/execute/${task._id}`)
-                        : undefined
-                    }
-                    onPause={
-                      !task.template_id && !isInformationalTask(task)
-                        ? () => handlePauseTask(task._id)
-                        : undefined
-                    }
-                    onComplete={
-                      !isInformationalTask(task)
-                        ? () => handleCompleteTask(task._id)
-                        : undefined
-                    }
-                    onViewAttempts={() => handleViewAttempts(task._id)}
-                  />
-                ))}
-              </div>
-            )}
-
-            {/* Paused Tasks */}
-            {pausedTasks.length > 0 && (
-              <div className="space-y-3">
-                <h2 className="flex items-center gap-2 text-2xl font-bold text-gray-900">
-                  <IconPlayerPause className="text-yellow-600" size={28} />
-                  {t("tasks:child_portal.paused")}
-                </h2>
-                {pausedTasks.map((task) => (
-                  <TaskCard
-                    key={task._id}
-                    task={task}
-                    onResume={
-                      !isInformationalTask(task)
-                        ? () => handleResumeTask(task._id)
                         : undefined
                     }
                     onComplete={
@@ -476,8 +410,6 @@ export default function ChildTasksPage() {
 interface TaskCardProps {
   task: Task;
   onStart?: () => void;
-  onPause?: () => void;
-  onResume?: () => void;
   onComplete?: () => void;
   onViewResult?: () => void;
   onViewAttempts?: () => void;
@@ -487,8 +419,6 @@ interface TaskCardProps {
 function TaskCard({
   task,
   onStart,
-  onPause,
-  onResume,
   onComplete,
   onViewResult,
   onViewAttempts,
@@ -497,17 +427,11 @@ function TaskCard({
   const { t } = useTranslation(["tasks"]);
 
   const isInProgress = task.status === "in_progress";
-  const isPaused = task.status === "paused";
-  const isTemplateTask = !!task.template_id;
 
   return (
     <div
       className={`rounded-3xl bg-white p-6 shadow-xl transition-all hover:scale-102 ${
-        isInProgress
-          ? "ring-4 ring-green-400"
-          : isPaused
-            ? "ring-4 ring-yellow-400"
-            : ""
+        isInProgress ? "ring-4 ring-green-400" : ""
       }`}
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
@@ -582,27 +506,6 @@ function TaskCard({
             >
               <IconPlayerPlay size={28} />
               {t("tasks:continue")}
-            </button>
-          )}
-
-          {/* Pause button for regular tasks only */}
-          {onPause && !isTemplateTask && (
-            <button
-              onClick={onPause}
-              className="flex min-h-[64px] items-center justify-center gap-3 rounded-2xl bg-yellow-600 px-8 py-4 text-xl font-bold text-white shadow-lg transition-all hover:scale-105 hover:bg-yellow-700"
-            >
-              <IconPlayerPause size={28} />
-              {t("tasks:pause")}
-            </button>
-          )}
-
-          {onResume && (
-            <button
-              onClick={onResume}
-              className="flex min-h-[64px] items-center justify-center gap-3 rounded-2xl bg-green-600 px-8 py-4 text-xl font-bold text-white shadow-lg transition-all hover:scale-105 hover:bg-green-700"
-            >
-              <IconPlayerPlay size={28} />
-              {t("tasks:resume")}
             </button>
           )}
 
