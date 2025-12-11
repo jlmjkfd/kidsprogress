@@ -73,7 +73,7 @@ export default function TaskExecutePage() {
 
   const handleCompleteTask = async (taskId: string) => {
     try {
-      await apiClient.put(`/api/tasks/${taskId}/complete`, {
+      await apiClient.post(`/api/tasks/${taskId}/complete`, {
         child_id: task?.child_id,
       });
       handleBackToTasks();
