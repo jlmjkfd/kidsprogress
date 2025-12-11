@@ -259,38 +259,6 @@ async def start_task(
         raise bad_request(str(e))
 
 
-@router.post("/{task_id}/pause", response_model=Task)
-async def pause_task(
-    task_id: str,
-    paused_by: str = Query(..., description="PARENT or CHILD"),
-    reason: Optional[str] = Query(None, description="Optional pause reason"),
-    service: TaskService = Depends(get_task_service),
-):
-    """Pause a task (IN_PROGRESS -> PAUSED)."""
-    try:
-        task = await service.pause_task(task_id, paused_by, reason)
-        if not task:
-            raise not_found("Task")
-        return task
-    except ValueError as e:
-        raise bad_request(str(e))
-
-
-@router.post("/{task_id}/resume", response_model=Task)
-async def resume_task(
-    task_id: str,
-    service: TaskService = Depends(get_task_service),
-):
-    """Resume a paused task (PAUSED -> IN_PROGRESS)."""
-    try:
-        task = await service.resume_task(task_id)
-        if not task:
-            raise not_found("Task")
-        return task
-    except ValueError as e:
-        raise bad_request(str(e))
-
-
 @router.post("/{task_id}/complete", response_model=Task)
 async def complete_task(
     task_id: str,

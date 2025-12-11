@@ -13,7 +13,6 @@ class TaskStatus(str, Enum):
     """Task lifecycle status."""
     PENDING = "pending"  # Task waiting to be done (replaces DRAFT + SCHEDULED)
     IN_PROGRESS = "in_progress"  # Child clicked start
-    PAUSED = "paused"  # Child paused
     COMPLETED = "completed"  # Task finished
     SKIPPED = "skipped"  # Task was not done (overdue or manually skipped)
     ARCHIVED = "archived"  # Completed and archived
@@ -120,14 +119,6 @@ class TaskConstraints(BaseModel):
     is_recurring: bool = False
     recurrence_pattern: Optional[str] = None  # e.g., "daily", "weekly"
     prerequisite_tasks: List[str] = []  # Task IDs that must complete first
-
-
-class TaskPauseRecord(BaseModel):
-    """Record of pause/resume events."""
-    paused_at: datetime
-    resumed_at: Optional[datetime] = None
-    paused_by: str  # "PARENT" or "CHILD"
-    reason: Optional[str] = None
 
 
 class RecurrenceException(BaseModel):
@@ -274,10 +265,6 @@ class Task(BaseModel):
     status: TaskStatus = TaskStatus.PENDING
     activation_rule: Optional[ActivationRule] = None
     constraints: Optional[TaskConstraints] = None
-
-    # Pause/Resume
-    pause_history: List[TaskPauseRecord] = []
-    current_pause: Optional[TaskPauseRecord] = None
 
     # Evaluation
     metrics: List[QuantifiableMetric] = []

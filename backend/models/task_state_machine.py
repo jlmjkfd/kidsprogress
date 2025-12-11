@@ -38,12 +38,7 @@ class TaskStateMachine:
             TaskStatus.ARCHIVED,      # Archive directly
         },
         TaskStatus.IN_PROGRESS: {
-            TaskStatus.PAUSED,       # Pause task
             TaskStatus.COMPLETED,    # Complete task
-        },
-        TaskStatus.PAUSED: {
-            TaskStatus.IN_PROGRESS,  # Resume
-            TaskStatus.COMPLETED,    # Direct completion without resume
         },
         TaskStatus.COMPLETED: {
             TaskStatus.PENDING,      # Uncomplete
@@ -148,10 +143,7 @@ class TaskStateMachine:
             (TaskStatus.PENDING, TaskStatus.COMPLETED): "Mark done",
             (TaskStatus.PENDING, TaskStatus.SKIPPED): "Skip task",
             (TaskStatus.PENDING, TaskStatus.ARCHIVED): "Archive task",
-            (TaskStatus.IN_PROGRESS, TaskStatus.PAUSED): "Pause task",
             (TaskStatus.IN_PROGRESS, TaskStatus.COMPLETED): "Complete task",
-            (TaskStatus.PAUSED, TaskStatus.IN_PROGRESS): "Resume task",
-            (TaskStatus.PAUSED, TaskStatus.COMPLETED): "Complete task (from paused)",
             (TaskStatus.COMPLETED, TaskStatus.PENDING): "Uncomplete task",
             (TaskStatus.COMPLETED, TaskStatus.ARCHIVED): "Archive completed task",
             (TaskStatus.SKIPPED, TaskStatus.PENDING): "Restore skipped task",
