@@ -217,5 +217,10 @@
   "filters": "Filters",
   "clear_filters": "Clear all filters",
   "view": "View",
-  "confirm_delete": "Are you sure you want to delete this item?"
+  "confirm_delete": "Are you sure you want to delete this item?",
+  "start": "Start",
+  "pause": "Pause",
+  "reset": "Reset",
+  "write_notes_here": "Write your notes here...",
+  "last_saved": "Last saved"
 }
