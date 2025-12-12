@@ -91,14 +91,39 @@ export default function ChildTasksPage() {
   };
 
   // Categorize informational tasks by time
+  // Returns null if the date is not today (no time-based categorization for past/future dates)
   const categorizeInformationalTask = (
-    task: Task
-  ): "upcoming" | "current" | "past" => {
-    if (!task.fixed_time_slot) return "upcoming";
+    task: Task,
+    forDate?: string
+  ): "upcoming" | "current" | "past" | null => {
+    if (!task.fixed_time_slot) return null;
 
-    const currentTime = getCurrentTime();
     const { start, end } = task.fixed_time_slot;
+    const today = getLocalDateString();
 
+    // If viewing a specific date (calendar view)
+    if (forDate) {
+      const taskDate = task.scheduled_date?.split("T")[0];
+
+      // If task is not on the selected date, shouldn't happen but return null
+      if (taskDate !== forDate) {
+        return null;
+      }
+
+      // Only categorize by time if selected date is today
+      if (forDate !== today) {
+        return null;
+      }
+
+      // Selected date is today - use current time to categorize
+      const currentTime = getCurrentTime();
+      if (currentTime < start) return "upcoming";
+      if (currentTime >= start && currentTime <= end) return "current";
+      return "past";
+    }
+
+    // For list view (no specific date), use current time
+    const currentTime = getCurrentTime();
     if (currentTime < start) return "upcoming";
     if (currentTime >= start && currentTime <= end) return "current";
     return "past";
@@ -377,6 +402,145 @@ export default function ChildTasksPage() {
               ) : (
                 <div className="space-y-2">
                   {selectedDateTasks.map((task) => {
+                    // Check if task is informational
+                    if (isInformationalTask(task)) {
+                      const timeCategory = categorizeInformationalTask(task, selectedDate);
+
+                      // Current/happening now
+                      if (timeCategory === "current") {
+                        return (
+                          <div
+                            key={task._id}
+                            className="rounded-xl bg-gradient-to-r from-green-50 to-emerald-50 p-4 shadow-sm ring-2 ring-green-400"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-green-500">
+                                <IconClock className="text-white" size={20} />
+                              </div>
+                              <div className="flex-1">
+                                <h3 className="text-base font-bold text-gray-900">
+                                  {task.title}
+                                </h3>
+                                {task.description && (
+                                  <p className="mt-1 text-sm text-gray-600">
+                                    {task.description}
+                                  </p>
+                                )}
+                                {task.fixed_time_slot && (
+                                  <div className="mt-1.5">
+                                    <span className="rounded-full bg-green-500 px-3 py-1 text-xs font-medium text-white">
+                                      {t("tasks:child_portal.happening_now")} •{" "}
+                                      {task.fixed_time_slot.start} - {task.fixed_time_slot.end}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      // Upcoming
+                      if (timeCategory === "upcoming") {
+                        return (
+                          <div
+                            key={task._id}
+                            className="rounded-xl bg-gradient-to-r from-blue-50 to-cyan-50 p-4 shadow-sm"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-blue-500">
+                                <IconClock className="text-white" size={20} />
+                              </div>
+                              <div className="flex-1">
+                                <h3 className="text-base font-bold text-gray-900">
+                                  {task.title}
+                                </h3>
+                                {task.description && (
+                                  <p className="mt-1 text-sm text-gray-600">
+                                    {task.description}
+                                  </p>
+                                )}
+                                {task.fixed_time_slot && (
+                                  <div className="mt-1.5">
+                                    <span className="rounded-full bg-blue-500 px-3 py-1 text-xs font-medium text-white">
+                                      {t("tasks:child_portal.upcoming")} •{" "}
+                                      {task.fixed_time_slot.start} - {task.fixed_time_slot.end}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      // Past (time has passed today)
+                      if (timeCategory === "past") {
+                        return (
+                          <div
+                            key={task._id}
+                            className="rounded-xl bg-gradient-to-r from-gray-50 to-slate-50 p-4 opacity-60 shadow-sm"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-gray-400">
+                                <IconClock className="text-white" size={20} />
+                              </div>
+                              <div className="flex-1">
+                                <h3 className="text-base font-bold text-gray-600 line-through">
+                                  {task.title}
+                                </h3>
+                                {task.description && (
+                                  <p className="mt-1 text-sm text-gray-500">
+                                    {task.description}
+                                  </p>
+                                )}
+                                {task.fixed_time_slot && (
+                                  <div className="mt-1.5">
+                                    <span className="rounded-full bg-gray-400 px-3 py-1 text-xs font-medium text-white">
+                                      {t("tasks:child_portal.finished")} •{" "}
+                                      {task.fixed_time_slot.start} - {task.fixed_time_slot.end}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      // Neutral style for past/future dates (timeCategory === null)
+                      return (
+                        <div
+                          key={task._id}
+                          className="rounded-xl bg-gradient-to-r from-purple-50 to-indigo-50 p-4 shadow-sm"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-purple-500">
+                              <IconClock className="text-white" size={20} />
+                            </div>
+                            <div className="flex-1">
+                              <h3 className="text-base font-bold text-gray-900">
+                                {task.title}
+                              </h3>
+                              {task.description && (
+                                <p className="mt-1 text-sm text-gray-600">
+                                  {task.description}
+                                </p>
+                              )}
+                              {task.fixed_time_slot && (
+                                <div className="mt-1.5">
+                                  <span className="rounded-full bg-purple-500 px-3 py-1 text-xs font-medium text-white">
+                                    {task.fixed_time_slot.start} - {task.fixed_time_slot.end}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    // Regular task - use TaskCard
                     const canStart =
                       task.status === "pending" && !isInformationalTask(task);
                     return (
