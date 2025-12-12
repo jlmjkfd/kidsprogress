@@ -2,7 +2,7 @@
  * TaskCalendar - Multi-view calendar for tasks
  * Supports Month, Week, and Day views with task scheduling
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import {
   IconChevronLeft,
@@ -42,7 +42,6 @@ export function TaskCalendar({
   const currentLocale = i18n.language || "en";
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<CalendarView>(defaultView);
-  const [hideInformational, setHideInformational] = useState(false);
 
   // Selected date state (shared across all views)
   const today = new Date();
@@ -74,8 +73,35 @@ export function TaskCalendar({
     dayTypeMap.set(dt.date, dt.day_type);
   });
 
+  // Initialize selected date data on mount
+  useEffect(() => {
+    if (onDayClick && tasks && dayTypes) {
+      const tasksForDate = tasks.filter(task => {
+        if (!task.scheduled_date) return false;
+        return task.scheduled_date.startsWith(selectedDate);
+      });
+      const dayType = dayTypeMap.get(selectedDate);
+      onDayClick(selectedDate, tasksForDate, dayType);
+    }
+    // Only run when tasks and dayTypes are loaded
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tasks?.length, dayTypes?.length]);
+
   const goToToday = () => {
-    setCurrentDate(new Date());
+    const today = new Date();
+    setCurrentDate(today);
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    setSelectedDate(todayStr);
+
+    // Trigger onDayClick to update the task list
+    if (onDayClick) {
+      const todayTasks = tasks.filter(task => {
+        if (!task.scheduled_date) return false;
+        return task.scheduled_date.startsWith(todayStr);
+      });
+      const dayType = dayTypeMap.get(todayStr);
+      onDayClick(todayStr, todayTasks, dayType);
+    }
   };
 
 
@@ -223,6 +249,16 @@ export function TaskCalendar({
     const newDateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     setSelectedDate(newDateStr);
     setCurrentDate(date);
+
+    // Trigger onDayClick to update the task list
+    if (onDayClick) {
+      const dateTasks = tasks.filter(task => {
+        if (!task.scheduled_date) return false;
+        return task.scheduled_date.startsWith(newDateStr);
+      });
+      const dayType = dayTypeMap.get(newDateStr);
+      onDayClick(newDateStr, dateTasks, dayType);
+    }
   };
 
   const handleNextWeek = () => {
@@ -232,25 +268,47 @@ export function TaskCalendar({
     const newDateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     setSelectedDate(newDateStr);
     setCurrentDate(date);
+
+    // Trigger onDayClick to update the task list
+    if (onDayClick) {
+      const dateTasks = tasks.filter(task => {
+        if (!task.scheduled_date) return false;
+        return task.scheduled_date.startsWith(newDateStr);
+      });
+      const dayType = dayTypeMap.get(newDateStr);
+      onDayClick(newDateStr, dateTasks, dayType);
+    }
   };
 
   const handleDateSelect = (date: string) => {
     const [y, m, d] = date.split("-").map(Number);
     setSelectedDate(date);
     setCurrentDate(new Date(y, m - 1, d));
+
+    // Trigger onDayClick to update the task list
+    if (onDayClick) {
+      const dateTasks = tasks.filter(task => {
+        if (!task.scheduled_date) return false;
+        return task.scheduled_date.startsWith(date);
+      });
+      const dayType = dayTypeMap.get(date);
+      onDayClick(date, dateTasks, dayType);
+    }
   };
 
-  // Get week start date (Sunday, using local dates to avoid timezone issues)
+  // Get week start date (Sunday) based on selectedDate, not currentDate
   const getWeekStartDate = (): string => {
-    const date = new Date(currentDate);
+    // Parse selectedDate
+    const [y, m, d] = selectedDate.split("-").map(Number);
+    const date = new Date(y, m - 1, d);
     const day = date.getDay();
     const diff = date.getDate() - day; // Adjust to Sunday
-    const weekStart = new Date(date.setDate(diff));
+    date.setDate(diff);
 
     // Format as YYYY-MM-DD using local date components
-    const year = weekStart.getFullYear();
-    const month = String(weekStart.getMonth() + 1).padStart(2, '0');
-    const dayOfMonth = String(weekStart.getDate()).padStart(2, '0');
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const dayOfMonth = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${dayOfMonth}`;
   };
 
@@ -276,96 +334,66 @@ export function TaskCalendar({
     <div className="rounded-lg bg-white shadow">
       {/* Calendar Header */}
       <div className="border-b p-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          {/* Title */}
+        {/* Row 1: Month/Year Title */}
+        <div className="mb-3">
           <h2 className="text-lg font-bold text-gray-900">
             {monthName} {year}
           </h2>
-
-          {/* View Switcher - Icon only on mobile, with text on desktop */}
-          <div className="flex items-center gap-2">
-            <div className="flex rounded-lg border bg-gray-50 p-1">
-              <button
-                onClick={() => setView("month")}
-                className={`rounded px-2 md:px-3 py-1.5 text-xs font-medium transition-colors min-w-[40px] md:min-w-0 ${
-                  view === "month"
-                    ? "bg-white text-blue-600 shadow"
-                    : "text-gray-600 hover:text-gray-900"
-                }`}
-                title={t("tasks:view_month")}
-              >
-                <div className="flex items-center justify-center gap-1">
-                  <IconCalendar size={16} />
-                  <span className="hidden md:inline">{t("tasks:view_month")}</span>
-                </div>
-              </button>
-              <button
-                onClick={() => setView("week")}
-                className={`rounded px-2 md:px-3 py-1.5 text-xs font-medium transition-colors min-w-[40px] md:min-w-0 ${
-                  view === "week"
-                    ? "bg-white text-blue-600 shadow"
-                    : "text-gray-600 hover:text-gray-900"
-                }`}
-                title={t("tasks:view_week")}
-              >
-                <div className="flex items-center justify-center gap-1">
-                  <IconCalendarWeek size={16} />
-                  <span className="hidden md:inline">{t("tasks:view_week")}</span>
-                </div>
-              </button>
-              <button
-                onClick={() => setView("day")}
-                className={`rounded px-2 md:px-3 py-1.5 text-xs font-medium transition-colors min-w-[40px] md:min-w-0 ${
-                  view === "day"
-                    ? "bg-white text-blue-600 shadow"
-                    : "text-gray-600 hover:text-gray-900"
-                }`}
-                title={t("tasks:view_day")}
-              >
-                <div className="flex items-center justify-center gap-1">
-                  <IconCalendarEvent size={16} />
-                  <span className="hidden md:inline">{t("tasks:view_day")}</span>
-                </div>
-              </button>
-            </div>
-          </div>
-
-          {/* Navigation */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={goToToday}
-              className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm transition-colors hover:bg-gray-50"
-            >
-              {t("common:today")}
-            </button>
-            <button
-              onClick={goToPrevious}
-              className="rounded-lg p-2 transition-colors hover:bg-gray-100"
-              aria-label={`Previous ${view}`}
-            >
-              <IconChevronLeft size={20} />
-            </button>
-            <button
-              onClick={goToNext}
-              className="rounded-lg p-2 transition-colors hover:bg-gray-100"
-              aria-label={`Next ${view}`}
-            >
-              <IconChevronRight size={20} />
-            </button>
-          </div>
         </div>
 
-        {/* Hide Informational Toggle */}
-        <div className="mt-3 flex items-center gap-2">
-          <label className="flex items-center gap-2 text-sm text-gray-700">
-            <input
-              type="checkbox"
-              checked={hideInformational}
-              onChange={(e) => setHideInformational(e.target.checked)}
-              className="rounded"
-            />
-            {t("tasks:hide_informational")} ({tasks.filter(t => t.is_informational).length})
-          </label>
+        {/* Row 2: View Switcher (left) and Today Button (right) */}
+        <div className="flex items-center justify-between">
+          <div className="flex rounded-lg border bg-gray-50 p-1">
+            <button
+              onClick={() => setView("month")}
+              className={`rounded px-2 md:px-3 py-1.5 text-xs font-medium transition-colors min-w-[40px] md:min-w-0 ${
+                view === "month"
+                  ? "bg-white text-blue-600 shadow"
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
+              title={t("tasks:view_month")}
+            >
+              <div className="flex items-center justify-center gap-1">
+                <IconCalendar size={16} />
+                <span className="hidden md:inline">{t("tasks:view_month")}</span>
+              </div>
+            </button>
+            <button
+              onClick={() => setView("week")}
+              className={`rounded px-2 md:px-3 py-1.5 text-xs font-medium transition-colors min-w-[40px] md:min-w-0 ${
+                view === "week"
+                  ? "bg-white text-blue-600 shadow"
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
+              title={t("tasks:view_week")}
+            >
+              <div className="flex items-center justify-center gap-1">
+                <IconCalendarWeek size={16} />
+                <span className="hidden md:inline">{t("tasks:view_week")}</span>
+              </div>
+            </button>
+            <button
+              onClick={() => setView("day")}
+              className={`rounded px-2 md:px-3 py-1.5 text-xs font-medium transition-colors min-w-[40px] md:min-w-0 ${
+                view === "day"
+                  ? "bg-white text-blue-600 shadow"
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
+              title={t("tasks:view_day")}
+            >
+              <div className="flex items-center justify-center gap-1">
+                <IconCalendarEvent size={16} />
+                <span className="hidden md:inline">{t("tasks:view_day")}</span>
+              </div>
+            </button>
+          </div>
+
+          <button
+            onClick={goToToday}
+            className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm transition-colors hover:bg-gray-50"
+          >
+            {t("common:today")}
+          </button>
         </div>
       </div>
 
@@ -373,8 +401,17 @@ export function TaskCalendar({
       <div className="p-2 sm:p-4">
         {view === "month" && (
           <>
-            {/* Day headers with collapse/expand button */}
-            <div className="mb-2 relative">
+            {/* Day headers with navigation buttons */}
+            <div className="mb-1 relative">
+              {/* Previous Month Button - Left */}
+              <button
+                onClick={goToPrevious}
+                className="absolute left-0 top-1/2 -translate-y-1/2 rounded-lg p-1.5 transition-colors hover:bg-gray-100 z-20"
+                aria-label={`Previous ${view}`}
+              >
+                <IconChevronLeft size={20} />
+              </button>
+
               <div className="grid grid-cols-7 gap-1 px-8">
                 {Array.from({ length: 7 }, (_, i) => {
                   const date = new Date(2024, 0, i); // Jan 2024 starts on Monday, so day 0 is Sunday
@@ -389,18 +426,29 @@ export function TaskCalendar({
                   );
                 })}
               </div>
-              {/* Collapse/expand button overlaid in the right padding area */}
+
+              {/* Next Month Button - Right */}
+              <button
+                onClick={goToNext}
+                className="absolute right-0 top-1/2 -translate-y-1/2 rounded-lg p-1.5 transition-colors hover:bg-gray-100 z-20"
+                aria-label={`Next ${view}`}
+              >
+                <IconChevronRight size={20} />
+              </button>
+            </div>
+
+            {/* Calendar days - Wrapper with collapse button */}
+            <div className="relative px-8">
+              {/* Collapse/expand button - Right side aligned with first row */}
               <button
                 onClick={() => setMonthCollapsed(!monthCollapsed)}
-                className="absolute right-0 top-1/2 -translate-y-1/2 rounded-lg p-1.5 transition-colors hover:bg-gray-100"
+                className="absolute top-3 -right-2 rounded-lg p-1.5 transition-colors hover:bg-gray-100 bg-white shadow-sm z-10"
                 title={monthCollapsed ? t("common:expand") : t("common:collapse")}
               >
                 {monthCollapsed ? <IconChevronDown size={18} /> : <IconChevronUp size={18} />}
               </button>
-            </div>
 
-            {/* Calendar days */}
-            <div className="grid grid-cols-7 gap-1 px-8">
+              <div className="grid grid-cols-7 gap-1">
               {calendarDays
                 .slice(0, monthCollapsed ? 7 : calendarDays.length)
                 .map((calDay, index) => {
@@ -492,12 +540,14 @@ export function TaskCalendar({
                   </div>
                 );
               })}
+              </div>
             </div>
           </>
         )}
 
         {view === "week" && (
           <WeekView
+            key={`week-${getWeekStartDate()}`}
             startDate={getWeekStartDate()}
             tasks={tasks.filter(t => {
               // Filter out deleted tasks
@@ -508,7 +558,6 @@ export function TaskCalendar({
             })}
             dayTypes={dayTypeMap}
             onTaskClick={onTaskClick}
-            hideInformational={hideInformational}
             selectedDate={selectedDate}
             onDateSelect={handleDateSelect}
             onPrevWeek={handlePrevWeek}
@@ -529,7 +578,6 @@ export function TaskCalendar({
             })}
             dayType={dayTypeMap.get(getCurrentDayString())}
             onTaskClick={onTaskClick}
-            hideInformational={hideInformational}
             selectedDate={selectedDate}
             onDateSelect={handleDateSelect}
             onPrevWeek={handlePrevWeek}

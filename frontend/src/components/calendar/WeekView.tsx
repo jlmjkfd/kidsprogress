@@ -2,19 +2,18 @@
  * WeekView - 7-day week view with time grid
  * Shows tasks across the week with hourly timeline
  */
-import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { IconCircle, IconCheck, IconChevronRight, IconCalendarTime, IconPlayerPlay } from "@tabler/icons-react";
+import { IconCircle, IconCheck, IconChevronRight } from "@tabler/icons-react";
 import { Task, TaskStatus, ObligationLevel } from "@/types/task";
 import { DayType } from "@/types/schoolCalendar";
 import { WeekSelector } from "./WeekSelector";
+import { getLocalTimeInMinutes } from "@/utils/timezone";
 
 interface WeekViewProps {
   startDate: string; // YYYY-MM-DD of week start (Sunday or Monday)
   tasks: Task[]; // All tasks for the week
   dayTypes?: Map<string, DayType>; // Map of date -> dayType
   onTaskClick?: (task: Task) => void;
-  hideInformational?: boolean;
   selectedDate: string; // YYYY-MM-DD of selected day
   onDateSelect: (date: string) => void;
   onPrevWeek: () => void;
@@ -26,28 +25,21 @@ export function WeekView({
   tasks,
   dayTypes,
   onTaskClick,
-  hideInformational = false,
   selectedDate,
   onDateSelect,
   onPrevWeek,
   onNextWeek,
 }: WeekViewProps) {
-  const { t, i18n } = useTranslation(["tasks", "common"]);
+  const { i18n } = useTranslation(["tasks", "common"]);
   const currentLocale = i18n.language || "en";
 
-  // Toggle between showing planned time vs actual execution time
-  const [showPlannedTime, setShowPlannedTime] = useState(true);
+  // Use all tasks (no filtering)
+  const visibleTasks = tasks;
 
   // Check if task is informational
   const isInformationalTask = (task: Task): boolean => {
     return task.is_informational;
   };
-
-  // Filter tasks
-  const visibleTasks = tasks.filter((task) => {
-    if (hideInformational && isInformationalTask(task)) return false;
-    return true;
-  });
 
   // Generate 7 days of the week (using local dates to avoid timezone issues)
   const weekDays = Array.from({ length: 7 }, (_, i) => {
@@ -99,19 +91,16 @@ export function WeekView({
   // Get actual execution time (in minutes from midnight, local time)
   const getActualTime = (task: Task): number | null => {
     if (task.started_at) {
-      const date = new Date(task.started_at);
-      return date.getHours() * 60 + date.getMinutes();
+      // Use timezone utility to properly convert UTC to local time
+      return getLocalTimeInMinutes(task.started_at);
     }
     return null;
   };
 
-  // Get time for display based on toggle
+  // Get time for display based on task status (not used in week view, kept for mobile list view)
   const getTaskTime = (task: Task): number | null => {
-    if (showPlannedTime) {
-      return getPlannedTime(task) ?? getActualTime(task);
-    } else {
-      return getActualTime(task) ?? getPlannedTime(task);
-    }
+    // For mobile list view: show planned time first, fall back to actual
+    return getPlannedTime(task) ?? getActualTime(task);
   };
 
   // Get duration in minutes - prioritize planned duration
@@ -181,42 +170,64 @@ export function WeekView({
     }
   };
 
+  // Get display time: completed tasks show actual time, others show planned time
+  const getDisplayTime = (task: Task): number | null => {
+    if (task.status === TaskStatus.COMPLETED) {
+      // For completed tasks, prefer actual time
+      const actualTime = getActualTime(task);
+      if (actualTime !== null) return actualTime;
+    }
+    // For pending/in-progress, use planned time
+    return getPlannedTime(task);
+  };
+
+  // Check if actual time differs significantly from planned time (>30 min difference)
+  const hasTimeDifference = (task: Task): boolean => {
+    if (task.status !== TaskStatus.COMPLETED) return false;
+    const planned = getPlannedTime(task);
+    const actual = getActualTime(task);
+    if (planned === null || actual === null) return false;
+    return Math.abs(actual - planned) > 30; // 30 minutes threshold
+  };
+
   const renderTaskBlock = (task: Task) => {
     const isInfo = isInformationalTask(task);
-    const taskTime = getTaskTime(task);
-    if (taskTime === null) return null;
+    const displayTime = getDisplayTime(task);
+    if (displayTime === null) return null;
 
     const duration = getTaskDuration(task);
-    const topOffset = (taskTime / 60) * 48; // 48px per hour in week view
-    const height = Math.max((duration / 60) * 48, 24); // Min 24px height
+    const topOffset = (displayTime / 60) * 32; // 32px per hour in week view
+    const height = Math.max((duration / 60) * 32, 4); // Min 4px height - thin bar for week view
+
+    const showTimeBadge = hasTimeDifference(task);
 
     return (
       <div
         key={task._id}
         onClick={() => onTaskClick?.(task)}
-        className={`absolute right-0 left-0 mx-0.5 overflow-hidden rounded p-1 text-xs transition-all ${
-          onTaskClick ? "cursor-pointer hover:z-20 hover:shadow-md" : ""
+        className={`absolute right-0 left-0 overflow-hidden rounded-sm transition-all ${
+          onTaskClick ? "cursor-pointer hover:z-20 hover:shadow-lg hover:scale-105" : ""
         } ${getObligationColor(task.obligation_level, isInfo)} ${
-          task.status === TaskStatus.COMPLETED ? "opacity-50" : ""
-        }`}
+          task.status === TaskStatus.PENDING ? "opacity-70" : ""
+        } ${task.status === TaskStatus.IN_PROGRESS ? "ring-1 ring-blue-500 animate-pulse" : ""}`}
         style={{
           top: `${topOffset}px`,
           height: `${height}px`,
           zIndex: task.status === TaskStatus.IN_PROGRESS ? 15 : 10,
         }}
-        title={`${task.title} - ${task.estimated_duration_minutes || 0} min`}
+        title={`${task.title}${showTimeBadge ? ' (time adjusted)' : ''} - ${duration} min`}
       >
-        <div className="flex items-center gap-0.5 truncate">
-          {task.status === TaskStatus.COMPLETED ? (
-            <IconCheck size={10} className="flex-shrink-0 text-green-600" />
-          ) : task.status === TaskStatus.IN_PROGRESS ? (
-            <IconCircle
-              size={8}
-              className="flex-shrink-0 animate-pulse text-blue-500"
-            />
-          ) : null}
-          <span className="truncate font-medium">{task.title}</span>
-        </div>
+        {/* Status indicator - minimal icons only */}
+        {task.status === TaskStatus.COMPLETED && height >= 12 && (
+          <div className="absolute top-0 right-0 p-0.5">
+            <IconCheck size={8} className="text-green-600" />
+          </div>
+        )}
+        {showTimeBadge && height >= 12 && (
+          <div className="absolute top-0 left-0 p-0.5">
+            <div className="w-1 h-1 rounded-full bg-yellow-500"></div>
+          </div>
+        )}
       </div>
     );
   };
@@ -231,57 +242,31 @@ export function WeekView({
         onNextWeek={onNextWeek}
       />
 
-      {/* Planned vs Actual Time Toggle */}
-      <div className="flex justify-end px-2">
-        <div className="inline-flex rounded-lg border bg-white p-1 shadow-sm">
-          <button
-            onClick={() => setShowPlannedTime(true)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-              showPlannedTime
-                ? "bg-blue-100 text-blue-700"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            <IconCalendarTime size={16} />
-            {t("tasks:planned_time")}
-          </button>
-          <button
-            onClick={() => setShowPlannedTime(false)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-              !showPlannedTime
-                ? "bg-green-100 text-green-700"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            <IconPlayerPlay size={16} />
-            {t("tasks:actual_time")}
-          </button>
-        </div>
-      </div>
-
       {/* Desktop Week Grid - Timeline View */}
-      <div className="hidden md:block overflow-x-auto">
-        <div className="min-w-[800px] rounded-xl bg-white shadow-sm">
+      <div className="hidden md:block">
+        <div className="rounded-xl bg-white shadow-sm">
           {/* Time Grid with Tasks */}
-          <div className="flex gap-2 p-3" style={{ minHeight: "1152px" }}>
-            {/* 48px per hour × 24 hours = 1152px */}
-            {/* Hour Labels Column - same width as left button (44px) */}
-            <div className="flex-shrink-0" style={{ width: "44px" }}>
-              {hours.map((hour, idx) => (
-                <div
-                  key={hour}
-                  className={`py-1 pr-2 text-right text-xs text-gray-400 ${
-                    idx % 2 === 0 ? "" : "opacity-60"
-                  }`}
-                  style={{ height: "48px" }}
-                >
-                  {hour.toString().padStart(2, "0")}:00
-                </div>
-              ))}
-            </div>
+          <div style={{ minHeight: "768px" }}>
+            {/* 32px per hour × 24 hours = 768px */}
+            {/* Grid Layout: time column (32px) + 7 day columns (flex-1 each) + right spacer (32px) */}
+            <div className="flex items-start gap-0.5 md:gap-1 p-2">
+              {/* Hour Labels Column */}
+              <div className="flex-shrink-0" style={{ width: "32px" }}>
+                {hours.map((hour, idx) => (
+                  <div
+                    key={hour}
+                    className={`py-0.5 pr-1 text-right text-xs text-gray-400 ${
+                      idx % 2 === 0 ? "" : "opacity-60"
+                    }`}
+                    style={{ height: "32px" }}
+                  >
+                    {hour.toString().padStart(2, "0")}
+                  </div>
+                ))}
+              </div>
 
-            {/* Day Columns - table content */}
-            <div className="flex min-w-0 flex-1 gap-1 overflow-hidden rounded-lg bg-white">
+              {/* Day Columns - grid with flex-1 to fill available space, matching WeekSelector */}
+              <div className="grid grid-cols-7 flex-1 gap-0.5 rounded-lg bg-white">
               {weekDays.map((day) => {
                 const dayType = dayTypes?.get(day.date);
                 const dayTasks = tasksByDate.get(day.date) || [];
@@ -292,14 +277,14 @@ export function WeekView({
                 return (
                   <div
                     key={day.date}
-                    className={`relative flex-1 ${getDayTypeBgClass(dayType)}`}
+                    className={`relative ${getDayTypeBgClass(dayType)}`}
                   >
                     {/* Hour Grid Lines - subtle dotted lines */}
                     {hours.map((hour, idx) => (
                       <div
                         key={hour}
                         className={`${idx === 0 ? "" : "border-t border-dashed border-gray-200"}`}
-                        style={{ height: "48px" }}
+                        style={{ height: "32px" }}
                       />
                     ))}
 
@@ -310,10 +295,11 @@ export function WeekView({
                   </div>
                 );
               })}
-            </div>
+              </div>
 
-            {/* Right spacer - same width as right button (44px) */}
-            <div className="flex-shrink-0" style={{ width: "44px" }}></div>
+              {/* Right spacer to align with WeekSelector next button */}
+              <div className="flex-shrink-0" style={{ width: "32px" }}></div>
+            </div>
           </div>
         </div>
       </div>

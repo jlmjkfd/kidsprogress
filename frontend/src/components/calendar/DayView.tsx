@@ -2,19 +2,19 @@
  * DayView - 24-hour timeline view for a single day
  * Shows tasks positioned at their scheduled times with hourly grid
  */
-import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { IconClock, IconCircle, IconCheck, IconCalendarTime, IconPlayerPlay } from "@tabler/icons-react";
+import { IconClock, IconCircle, IconCheck } from "@tabler/icons-react";
 import { Task, TaskStatus, ObligationLevel, SchedulingType } from "@/types/task";
 import { DayType } from "@/types/schoolCalendar";
 import { WeekSelector } from "./WeekSelector";
+import { formatDuration } from "@/utils/dateUtils";
+import { getLocalTimeInMinutes } from "@/utils/timezone";
 
 interface DayViewProps {
   date: string; // YYYY-MM-DD
   tasks: Task[];
   dayType?: DayType;
   onTaskClick?: (task: Task) => void;
-  hideInformational?: boolean; // Hide informational/blocking tasks (like school time, sleep)
   selectedDate: string; // YYYY-MM-DD of selected day
   onDateSelect: (date: string) => void;
   onPrevWeek: () => void;
@@ -24,30 +24,21 @@ interface DayViewProps {
 export function DayView({
   date,
   tasks,
-  dayType,
   onTaskClick,
-  hideInformational = false,
   selectedDate,
   onDateSelect,
   onPrevWeek,
   onNextWeek,
 }: DayViewProps) {
-  const { t, i18n } = useTranslation(["tasks", "common"]);
-  const currentLocale = i18n.language || "en";
-
-  // Toggle between showing planned time vs actual execution time
-  const [showPlannedTime, setShowPlannedTime] = useState(true);
+  const { t } = useTranslation(["tasks", "common"]);
 
   // Check if task is informational (blocks other tasks, not actionable)
   const isInformationalTask = (task: Task): boolean => {
     return task.is_informational;
   };
 
-  // Filter tasks based on settings
-  const visibleTasks = tasks.filter(task => {
-    if (hideInformational && isInformationalTask(task)) return false;
-    return true;
-  });
+  // Use all tasks (no filtering)
+  const visibleTasks = tasks;
 
   // Get planned time for a task (in minutes from midnight)
   const getPlannedTime = (task: Task): number | null => {
@@ -72,22 +63,21 @@ export function DayView({
   // Get actual execution time (in minutes from midnight, local time)
   const getActualTime = (task: Task): number | null => {
     if (task.started_at) {
-      const date = new Date(task.started_at);
-      // Use local time (getHours returns local time)
-      return date.getHours() * 60 + date.getMinutes();
+      // Use timezone utility to properly convert UTC to local time
+      return getLocalTimeInMinutes(task.started_at);
     }
     return null;
   };
 
-  // Get time for display based on toggle
+  // Get time for display - use hybrid approach: completed tasks at actual time, others at planned time
   const getTaskTime = (task: Task): number | null => {
-    if (showPlannedTime) {
-      // Show planned time first, fall back to actual if no plan
-      return getPlannedTime(task) ?? getActualTime(task);
-    } else {
-      // Show actual time first, fall back to planned if not started
-      return getActualTime(task) ?? getPlannedTime(task);
+    if (task.status === TaskStatus.COMPLETED) {
+      // For completed tasks, prefer actual time
+      const actualTime = getActualTime(task);
+      if (actualTime !== null) return actualTime;
     }
+    // For pending/in-progress, use planned time
+    return getPlannedTime(task);
   };
 
   // Get duration in minutes
@@ -121,11 +111,25 @@ export function DayView({
   };
 
   // Separate scheduled and unscheduled tasks
+  // Completed flexible tasks should show in timeline (at actual time), not in unscheduled list
   const scheduledTasks = visibleTasks
-    .filter(task => getTaskTime(task) !== null)
+    .filter(task => {
+      const taskTime = getTaskTime(task);
+      // Include if has time, OR if completed (even without planned time, it has actual time)
+      if (taskTime !== null) return true;
+      if (task.status === TaskStatus.COMPLETED && getActualTime(task) !== null) return true;
+      return false;
+    })
     .sort((a, b) => (getTaskTime(a) || 0) - (getTaskTime(b) || 0));
 
-  const unscheduledTasks = visibleTasks.filter(task => getTaskTime(task) === null);
+  // Unscheduled list: pending/in-progress tasks without time (flexible tasks)
+  const unscheduledTasks = visibleTasks.filter(task => {
+    const taskTime = getTaskTime(task);
+    // Exclude completed tasks - they appear in timeline
+    if (task.status === TaskStatus.COMPLETED) return false;
+    // Include only if no time
+    return taskTime === null;
+  });
 
   // Calculate column layout for overlapping tasks
   const calculateTaskColumns = () => {
@@ -214,27 +218,6 @@ export function DayView({
     return `${hours.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}`;
   };
 
-  const getDayTypeBadge = (type?: DayType): React.ReactElement | null => {
-    if (!type) return null;
-    const classes = {
-      school_day: "bg-blue-100 text-blue-800",
-      holiday: "bg-green-100 text-green-800",
-      special_school_day: "bg-purple-100 text-purple-800",
-      weekend: "bg-gray-100 text-gray-800",
-    };
-    const labels = {
-      school_day: t("tasks:school_calendar.school_day"),
-      holiday: t("tasks:school_calendar.holiday"),
-      special_school_day: t("tasks:school_calendar.special_school_day"),
-      weekend: t("tasks:school_calendar.weekend"),
-    };
-    return (
-      <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${classes[type]}`}>
-        {labels[type]}
-      </span>
-    );
-  };
-
   const renderTaskCard = (task: Task, index: number, column: number = 0, totalColumns: number = 1) => {
     const isInfo = isInformationalTask(task);
     const taskTime = getTaskTime(task);
@@ -247,7 +230,7 @@ export function DayView({
 
     // Calculate position (top offset from hour grid) - Responsive pixels per hour
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-    const pixelsPerHour = isMobile ? 50 : 80; // Mobile: 50px/hour, Desktop: 80px/hour
+    const pixelsPerHour = isMobile ? 40 : 60; // Mobile: 40px/hour, Desktop: 60px/hour
     const topOffset = taskTime !== null ? (taskTime / 60) * pixelsPerHour : 0;
     const height = (duration / 60) * pixelsPerHour;
 
@@ -265,12 +248,16 @@ export function DayView({
 
       // Only show completion block if completed on the displayed day
       if (completedDate.toDateString() === taskDate.toDateString()) {
-        const actualStartTime = new Date(task.started_at!).getHours() * 60 + new Date(task.started_at!).getMinutes();
-        const actualEndTime = completedDate.getHours() * 60 + completedDate.getMinutes();
-        const actualDuration = actualEndTime - actualStartTime;
+        const startDate = new Date(task.started_at!);
+        const actualStartTime = getLocalTimeInMinutes(task.started_at!);
+        const actualEndTime = getLocalTimeInMinutes(task.completed_at!);
+
+        // Calculate actual duration precisely
+        const actualDurationMs = completedDate.getTime() - startDate.getTime();
+        const actualDurationMinutes = actualDurationMs / 60000;
 
         const completionTopOffset = (actualStartTime / 60) * pixelsPerHour;
-        const completionHeight = (actualDuration / 60) * pixelsPerHour;
+        const completionHeight = (actualDurationMinutes / 60) * pixelsPerHour;
 
         completionBlock = (
           <div
@@ -289,7 +276,7 @@ export function DayView({
               <span>{formatTime(actualStartTime)} - {formatTime(actualEndTime)}</span>
             </div>
             <div className="text-xs text-green-600 mt-1">
-              {t("tasks:actual_completion")}: {actualDuration} {t("common:minutes")}
+              {t("tasks:actual_completion")}: {formatDuration(actualDurationMinutes, t)}
             </div>
           </div>
         );
@@ -305,7 +292,7 @@ export function DayView({
           className={`absolute mx-1 overflow-hidden rounded-lg p-2 transition-all ${
             onTaskClick ? "cursor-pointer hover:shadow-md" : ""
           } ${getTaskStyling(task, isInfo)} ${
-            task.status === TaskStatus.COMPLETED ? "opacity-60" : ""
+            task.status === TaskStatus.PENDING ? "opacity-70" : ""
           }`}
           style={{
             top: `${topOffset}px`,
@@ -339,8 +326,8 @@ export function DayView({
                     {task.preferred_time_window!.start}-{task.preferred_time_window!.end}
                   </>
                 ) : (
-                  // Show just duration
-                  <>{duration} {t("common:minutes")}</>
+                  // Show formatted duration
+                  <>{formatDuration(duration, t)}</>
                 )}
               </div>
             </div>
@@ -365,13 +352,6 @@ export function DayView({
     );
   };
 
-  const formattedDate = new Date(date + "T00:00:00").toLocaleDateString(currentLocale, {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-
   return (
     <div className="space-y-4">
       {/* Week Selector Header */}
@@ -382,81 +362,50 @@ export function DayView({
         onNextWeek={onNextWeek}
       />
 
-      {/* Header */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h3 className="text-lg font-bold text-gray-900">{formattedDate}</h3>
-          {dayType && <div className="mt-1">{getDayTypeBadge(dayType)}</div>}
-        </div>
-        <div className="flex items-center gap-4">
-          {/* Time Display Toggle */}
-          <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
-            <button
-              onClick={() => setShowPlannedTime(true)}
-              className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
-                showPlannedTime
-                  ? "bg-white text-blue-600 shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-              title={t("tasks:timeline.planned_time")}
-            >
-              <IconCalendarTime size={14} />
-              <span className="hidden sm:inline">{t("tasks:timeline.planned")}</span>
-            </button>
-            <button
-              onClick={() => setShowPlannedTime(false)}
-              className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
-                !showPlannedTime
-                  ? "bg-white text-green-600 shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-              title={t("tasks:timeline.actual_time")}
-            >
-              <IconPlayerPlay size={14} />
-              <span className="hidden sm:inline">{t("tasks:timeline.actual")}</span>
-            </button>
-          </div>
-          <div className="text-sm text-gray-600">
-            {scheduledTasks.length} {t("tasks:scheduled_tasks").toLowerCase()}
-          </div>
-        </div>
-      </div>
-
       {/* Timeline - Responsive height */}
       <div className="relative rounded-lg border bg-white overflow-x-auto max-h-[70vh] md:max-h-none overflow-y-auto md:overflow-y-visible">
-        {/* Hour Grid - Smaller on mobile */}
-        <div className="relative md:min-h-[1920px]" style={{ minHeight: "1200px" }}>
-          {/* Mobile: 50px per hour × 24 = 1200px, Desktop: 80px per hour × 24 = 1920px */}
-          {hours.map((hour) => (
-            <div
-              key={hour}
-              className="border-b border-gray-200 last:border-b-0 h-[50px] md:h-[80px]"
-              style={{ position: "relative" }}
-            >
-              <div className="absolute left-0 top-0 w-12 md:w-16 px-1 md:px-2 py-1 text-xs font-medium text-gray-500">
-                {hour.toString().padStart(2, "0")}:00
+        {/* Hour Grid - Smaller height with external time labels */}
+        <div className="flex">
+          {/* Time Labels Column - Outside the timeline */}
+          <div className="flex-shrink-0 w-8 md:w-10 bg-gray-50 border-r">
+            {hours.map((hour) => (
+              <div
+                key={hour}
+                className="h-[40px] md:h-[60px] px-0.5 md:px-1 py-1 text-xs font-medium text-gray-500 text-right"
+              >
+                {hour.toString().padStart(2, "0")}
               </div>
-            </div>
-          ))}
-
-          {/* Scheduled Tasks Overlay - Responsive padding */}
-          <div className="absolute inset-0 pl-12 md:pl-16">
-            {taskColumns.map((pos, idx) =>
-              renderTaskCard(pos.task, idx, pos.column, pos.totalColumns)
-            )}
+            ))}
           </div>
 
-          {/* Deadline Lines - Responsive */}
-          <div className="absolute inset-0 pl-12 md:pl-16 pointer-events-none">
+          {/* Timeline Grid with Tasks */}
+          <div className="relative flex-1 md:min-h-[1440px]" style={{ minHeight: "960px" }}>
+            {/* Mobile: 40px per hour × 24 = 960px, Desktop: 60px per hour × 24 = 1440px */}
+            {hours.map((hour) => (
+              <div
+                key={hour}
+                className="border-b border-gray-200 last:border-b-0 h-[40px] md:h-[60px]"
+              />
+            ))}
+
+            {/* Scheduled Tasks Overlay */}
+            <div className="absolute inset-0">
+              {taskColumns.map((pos, idx) =>
+                renderTaskCard(pos.task, idx, pos.column, pos.totalColumns)
+              )}
+            </div>
+
+            {/* Deadline Lines - Responsive */}
+            <div className="absolute inset-0 pointer-events-none">
             {tasks
               .filter(task => task.scheduling_type === SchedulingType.DEADLINE && task.deadline)
               .map((task, idx) => {
                 // Parse deadline time (format: HH:MM)
                 const [hours, minutes] = task.deadline!.split(":").map(Number);
                 const deadlineMinutes = hours * 60 + minutes;
-                // Responsive: 50px/hour on mobile, 80px/hour on desktop
+                // Responsive: 40px/hour on mobile, 60px/hour on desktop
                 const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-                const pixelsPerHour = isMobile ? 50 : 80;
+                const pixelsPerHour = isMobile ? 40 : 60;
                 const topOffset = (deadlineMinutes / 60) * pixelsPerHour;
 
                 return (
@@ -471,6 +420,7 @@ export function DayView({
                   </div>
                 );
               })}
+            </div>
           </div>
         </div>
       </div>
@@ -502,7 +452,7 @@ export function DayView({
                       {task.estimated_duration_minutes && (
                         <div className="mt-1 flex items-center gap-1 text-xs text-gray-500">
                           <IconClock size={12} />
-                          <span>{task.estimated_duration_minutes} {t("common:minutes")}</span>
+                          <span>{formatDuration(task.estimated_duration_minutes, t)}</span>
                         </div>
                       )}
                     </div>

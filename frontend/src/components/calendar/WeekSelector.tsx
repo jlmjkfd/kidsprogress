@@ -45,18 +45,18 @@ export function WeekSelector({
 
   return (
     <div className="rounded-xl bg-white shadow-sm">
-      <div className="flex items-center gap-1 md:gap-2 border-b bg-gradient-to-r from-gray-50 to-blue-50 p-2 md:p-3">
-        {/* Previous Week Button */}
+      <div className="flex items-center gap-0.5 md:gap-1 border-b bg-gradient-to-r from-gray-50 to-blue-50 p-2">
+        {/* Previous Week Button - Narrower */}
         <button
           onClick={onPrevWeek}
-          className="flex-shrink-0 rounded-lg p-2 transition-colors hover:bg-white/80 min-w-[40px] md:min-w-[44px]"
+          className="flex-shrink-0 rounded-lg p-1.5 transition-colors hover:bg-white/80 min-w-[32px]"
           aria-label="Previous week"
         >
-          <IconChevronLeft size={20} className="mx-auto" />
+          <IconChevronLeft size={18} className="mx-auto" />
         </button>
 
-        {/* Week day buttons - Responsive grid */}
-        <div className="flex min-w-0 flex-1 gap-1">
+        {/* Week day buttons - Equal width grid aligned with time grid */}
+        <div className="grid grid-cols-7 flex-1 gap-0.5">
           {weekDays.map(({ date, dateStr }) => {
             const isSelected = dateStr === selectedDate;
             const isToday = dateStr === todayStr;
@@ -69,7 +69,7 @@ export function WeekSelector({
               <button
                 key={dateStr}
                 onClick={() => onDateSelect(dateStr)}
-                className={`flex min-w-0 flex-1 flex-col items-center justify-center rounded-lg p-1.5 md:p-2 transition-all min-h-[56px] md:min-h-[64px] ${
+                className={`flex flex-col items-center justify-center rounded-lg p-1.5 md:p-2 transition-all min-h-[56px] md:min-h-[64px] ${
                   isSelected
                     ? "bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md scale-105"
                     : isToday
@@ -88,13 +88,13 @@ export function WeekSelector({
           })}
         </div>
 
-        {/* Next Week Button */}
+        {/* Next Week Button - Narrower */}
         <button
           onClick={onNextWeek}
-          className="flex-shrink-0 rounded-lg p-2 transition-colors hover:bg-white/80 min-w-[40px] md:min-w-[44px]"
+          className="flex-shrink-0 rounded-lg p-1.5 transition-colors hover:bg-white/80 min-w-[32px]"
           aria-label="Next week"
         >
-          <IconChevronRight size={20} className="mx-auto" />
+          <IconChevronRight size={18} className="mx-auto" />
         </button>
       </div>
     </div>

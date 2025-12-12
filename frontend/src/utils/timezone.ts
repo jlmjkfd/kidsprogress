@@ -148,3 +148,48 @@ export function formatLocalTime(dateString: string | Date, locale: string = 'en-
 export function formatLocalDateTime(dateString: string | Date, locale: string = 'en-US'): string {
   return `${formatLocalDate(dateString, locale)} • ${formatLocalTime(dateString, locale)}`;
 }
+
+/**
+ * Check if a date is today in local timezone
+ *
+ * @param dateString - ISO date string (YYYY-MM-DD format)
+ * @returns True if the date is today
+ * @example
+ * isToday("2025-12-11") // true (if today is Dec 11, 2025)
+ */
+export function isToday(dateString: string): boolean {
+  const today = formatDateForAPI(new Date());
+  return dateString === today;
+}
+
+/**
+ * Extract local time in minutes from midnight from an ISO datetime string
+ *
+ * @param isoString - ISO 8601 datetime string with timezone (e.g., "2025-12-11T14:30:00Z" or "2025-12-11T05:54:07.997+00:00")
+ * @returns Minutes from midnight in local timezone (e.g., 870 for 2:30 PM)
+ * @example
+ * getLocalTimeInMinutes("2025-12-11T14:30:00Z") // Returns local time in minutes
+ * // If user is in UTC+8, and input is "2025-12-11T14:30:00+00:00" (2:30 PM UTC)
+ * // This would return 1350 (22:30 local time = 22*60 + 30)
+ */
+export function getLocalTimeInMinutes(isoString: string): number {
+  // Ensure the timestamp is treated as UTC if no timezone info is present
+  // Backend stores "2025-12-11T05:54:07.997+00:00" but sometimes the +00:00 gets stripped
+  let dateString = isoString;
+
+  // If the string doesn't have timezone info (no Z, no +/-XX:XX), append Z to treat as UTC
+  if (!dateString.endsWith('Z') && !dateString.match(/[+-]\d{2}:\d{2}$/)) {
+    dateString = dateString + 'Z';
+  }
+
+  // Parse the UTC timestamp and convert to local time
+  const date = new Date(dateString);
+
+  // getHours() and getMinutes() automatically return local timezone values
+  // For example: "2025-12-11T05:54:07.997Z" (5:54 AM UTC)
+  // In UTC+8 timezone becomes 1:54 PM local = 13:54 = 13*60 + 54 = 834 minutes
+  const localHours = date.getHours();
+  const localMinutes = date.getMinutes();
+
+  return localHours * 60 + localMinutes;
+}

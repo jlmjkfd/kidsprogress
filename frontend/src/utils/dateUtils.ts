@@ -161,3 +161,36 @@ export function getWeekEnd(date: Date): Date {
   result.setDate(result.getDate() + diff);
   return result;
 }
+
+/**
+ * Format duration in minutes to human-readable format
+ *
+ * @param durationInMinutes - Duration in minutes (can be fractional)
+ * @param t - Translation function from react-i18next
+ * @returns Formatted duration string (e.g., "1 hour 23 min 45 sec")
+ *
+ * @example
+ * formatDuration(90.5, t) // "1 hour 30 min 30 sec"
+ * formatDuration(0.5, t) // "30 sec"
+ * formatDuration(166.80166666666668, t) // "2 hours 46 min 48 sec"
+ */
+export function formatDuration(durationInMinutes: number, t: (key: string) => string): string {
+  const totalSeconds = Math.round(durationInMinutes * 60);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  const parts: string[] = [];
+  if (hours > 0) {
+    // Abbreviated format: "h" (no space for compact display)
+    parts.push(`${hours}${t("common:hours")}`);
+  }
+  if (minutes > 0) {
+    parts.push(`${minutes}${t("common:minutes")}`);
+  }
+  if (seconds > 0 || parts.length === 0) {
+    parts.push(`${seconds}${t("common:seconds")}`);
+  }
+
+  return parts.join(" ");
+}
