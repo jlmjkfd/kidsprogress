@@ -23,8 +23,13 @@ async def save_task_progress(
     task_id: str,
     progress_data: Dict[str, Any] = Body(...),
     current_user: User = Depends(get_current_user),
+    service: TaskService = Depends(get_task_service),
 ):
-    """Save in-progress task state for resume functionality."""
+    """Save in-progress task state for resume functionality.
+
+    Handles both real task IDs and virtual task IDs. For virtual tasks,
+    looks for the materialized instance created when the task was started.
+    """
     database = db.get_database()
     tasks_collection = database["tasks"]
 
@@ -35,10 +40,37 @@ async def save_task_progress(
     print(f"  answers: {len(progress_data.get('answers', {}))} answers")
     print(f"  total_time_seconds: {progress_data.get('total_time_seconds')}")
 
-    # Get task to verify ownership
-    task = await tasks_collection.find_one({"_id": ObjectId(task_id)})
-    if not task:
-        raise not_found("Task")
+    # Use TaskIdentifier to handle virtual vs real task IDs
+    from backend.models.task_identifier import TaskIdentifier
+    from datetime import datetime, timedelta
+    identifier = TaskIdentifier(raw_id=task_id)
+
+    # Get actual task ID for database operations
+    if identifier.is_virtual:
+        # For virtual tasks, find the materialized instance
+        template_id = identifier.template_id
+        occurrence_date = identifier.occurrence_date.isoformat()
+
+        # Look for materialized task created when virtual task was started
+        materialized_task = await tasks_collection.find_one({
+            "source_recurring_task_id": template_id,
+            "is_virtual": False,
+            "scheduled_date": {
+                "$gte": datetime.fromisoformat(occurrence_date),
+                "$lt": datetime.fromisoformat(occurrence_date) + timedelta(days=1)
+            }
+        })
+
+        if not materialized_task:
+            raise not_found("Materialized task not found. Please start the task first.")
+
+        actual_task_id = materialized_task["_id"]
+        task = materialized_task
+    else:
+        actual_task_id = ObjectId(task_id)
+        task = await tasks_collection.find_one({"_id": actual_task_id})
+        if not task:
+            raise not_found("Task")
 
     task_obj = Task(**task)
 
@@ -48,7 +80,7 @@ async def save_task_progress(
 
     # Store progress in task document (temporary storage)
     result = await tasks_collection.update_one(
-        {"_id": ObjectId(task_id)},
+        {"_id": actual_task_id},
         {
             "$set": {
                 "progress_state": progress_data,
