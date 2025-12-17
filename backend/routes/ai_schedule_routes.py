@@ -1,7 +1,8 @@
 """AI scheduling routes for intelligent task recommendations."""
-from fastapi import APIRouter, Depends, Query, Body
+from fastapi import APIRouter, Depends, Query, Body, Request
 from typing import Optional
 from datetime import datetime
+from pydantic import BaseModel
 
 from backend.models.user import User
 from backend.models.ai_recommendation import (
@@ -57,14 +58,15 @@ async def get_day_tasks(
 
 @router.post("/recommend", response_model=TaskRecommendation)
 async def get_task_recommendation(
+    request: Request,
     child_id: str = Query(..., description="Child ID"),
-    current_time: Optional[datetime] = Body(None, description="Current time (for testing, defaults to now)"),
-    child_state: Optional[ChildState] = Body(None, description="Optional child state (energy, focus, last task)"),
     current_user: User = Depends(get_current_user),
     service: AIScheduleService = Depends(get_ai_schedule_service)
 ):
     """
     Get AI recommendation for what task to do now.
+
+    DEBUG logging enabled to diagnose 422 errors.
 
     The AI analyzes:
     - Current time and available tasks
@@ -96,6 +98,26 @@ async def get_task_recommendation(
     - Alternative task options
     - Schedule conflicts (if any)
     """
+    # Parse request body manually
+    body = {}
+    try:
+        body = await request.json()
+    except:
+        body = {}
+
+    current_time_str = body.get("current_time")
+    child_state_data = body.get("child_state")
+
+    # Parse current_time from ISO string if provided
+    current_time = None
+    if current_time_str:
+        from datetime import datetime
+        current_time = datetime.fromisoformat(current_time_str.replace('Z', '+00:00'))
+
+    child_state = None
+    if child_state_data:
+        child_state = ChildState(**child_state_data)
+
     return await service.get_recommendation(
         child_id=child_id,
         parent_id=str(current_user.id),

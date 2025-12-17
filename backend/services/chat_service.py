@@ -1,14 +1,15 @@
-"""Chat service with memory and auto-summarization."""
-import os
-import time
+"""Chat service with memory and auto-summarization.
+
+Migrated to use unified LLM interface (backend/services/llm_interface.py).
+Provider selection is handled by the unified interface based on configuration.
+"""
 from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 from bson import ObjectId
 
 from backend.db.connection import db
 from backend.models.chat import ChatSession, ChatMessage
-from backend.services.llm_service import USE_MOCK_AI
-from backend.services.llm_logger import llm_logger
+from backend.services.llm_interface import call_llm
 
 # Max messages before triggering summarization
 MAX_MESSAGES_BEFORE_SUMMARY = 20
@@ -122,48 +123,55 @@ Your role:
 Remember: You're talking directly to {name}. Be warm and friendly!"""
 
     async def summarize_messages(self, messages: List[ChatMessage]) -> str:
-        """Summarize older messages to save context."""
-        if USE_MOCK_AI:
-            # Mock summary for development
-            return f"Previous conversation summary: The child asked {len(messages)} questions about various topics. Key points discussed included learning activities and general questions."
+        """Summarize older messages to save context using LLM."""
+        # Build prompt for summarization
+        conversation_text = "\n".join([
+            f"{m.role}: {m.content}" for m in messages
+        ])
 
-        # TODO: Implement real summarization with LLM
-        # For now, just create a simple summary
-        user_messages = [m for m in messages if m.role == "user"]
-        return f"Previous conversation: {len(user_messages)} questions were asked about various topics."
+        prompt = f"""Summarize the following conversation between a child and an AI assistant.
+Focus on key topics discussed and important information. Keep it concise (2-3 sentences).
 
-    async def get_ai_response(self, child_info: Dict[str, Any], messages: List[Dict], summary: Optional[str]) -> str:
-        """Get AI response (mock for now)."""
-        if USE_MOCK_AI:
-            # Mock responses for development
-            last_message = messages[-1]["content"] if messages else ""
-            name = child_info.get("name", "there")
+Conversation:
+{conversation_text}"""
 
-            mock_responses = [
-                f"That's a great question, {name}! Let me help you with that.",
-                f"I'm happy to help you learn, {name}! Here's what I think...",
-                f"Wow, {name}, you're really curious! That's wonderful!",
-                f"Great thinking, {name}! Let me explain that in a simple way.",
-                f"I love that you're asking questions, {name}! Here's my answer...",
-            ]
+        summary = await call_llm(
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant that summarizes conversations."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.5,
+            max_tokens=200,
+            service="chat",
+            feature="summarization",
+            return_json=False
+        )
 
-            import random
-            base_response = random.choice(mock_responses)
+        if summary is None:
+            # Fallback if LLM fails
+            user_messages = [m for m in messages if m.role == "user"]
+            return f"Previous conversation: {len(user_messages)} questions were asked about various topics."
 
-            # Add context-aware mock response
-            if "math" in last_message.lower():
-                return f"{base_response} Math can be fun! What specific problem are you working on?"
-            elif "read" in last_message.lower():
-                return f"{base_response} Reading is wonderful! What book are you reading?"
-            elif "help" in last_message.lower():
-                return f"{base_response} I'm here to help you! What do you need assistance with?"
-            elif "task" in last_message.lower():
-                return f"{base_response} Tasks help us learn and grow! Would you like me to explain anything about your tasks?"
-            else:
-                return f"{base_response} Is there anything specific you'd like to know more about?"
+        return summary
 
-        # TODO: Implement real LLM call
-        return "I'm here to help! What would you like to learn about today?"
+    async def get_ai_response(self, child_info: Dict[str, Any], messages: List[Dict], summary: Optional[str], child_id: str) -> str:
+        """Get AI response using unified LLM interface."""
+        # Call LLM
+        response = await call_llm(
+            messages=messages,
+            temperature=0.7,
+            max_tokens=500,
+            service="chat",
+            feature="conversation",
+            child_id=child_id,
+            return_json=False
+        )
+
+        if response is None:
+            # Fallback if LLM fails
+            return "I'm having trouble responding right now. Please try again in a moment!"
+
+        return response
 
     async def send_message(self, child_id: str, user_message: str, language: str = "en") -> tuple[str, str]:
         """Send a message and get AI response. Returns (response, session_id)."""
@@ -213,7 +221,7 @@ Remember: You're talking directly to {name}. Be warm and friendly!"""
             })
 
         # Get AI response
-        ai_response = await self.get_ai_response(child_info, ai_messages, session.summary)
+        ai_response = await self.get_ai_response(child_info, ai_messages, session.summary, child_id)
 
         # Add AI response to session
         session.messages.append(ChatMessage(

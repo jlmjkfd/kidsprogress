@@ -1,39 +1,53 @@
-"""AI-powered task recommendation system using Gemini."""
-import os
+"""AI-powered task recommendation system.
+
+Migrated to use unified LLM interface (backend/services/llm_interface.py).
+Provider selection is handled by the unified interface based on configuration.
+"""
 from datetime import datetime, date
 from typing import Dict, Any, Optional
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
-from backend.ai.gemini_client import GeminiClient
+from backend.services.llm_interface import call_llm
 from backend.ai.context_builder import ContextBuilder
 from backend.ai import prompts
-from backend.ai.mock_responses import get_mock_recommendation, get_mock_daily_plan
-
-# Set to True to use mock responses instead of real LLM calls (for development)
-USE_MOCK_RESPONSES = os.getenv("USE_MOCK_AI", "false").lower() == "true"
 
 
 class TaskRecommendation:
-    """Data class for task recommendation response."""
+    """Data class for task recommendation response from AI."""
 
-    def __init__(self, data: Dict[str, Any]):
-        """Initialize from AI response data."""
-        self.recommended_task_id: Optional[str] = data.get("recommended_task_id")
-        self.task_title: str = data.get("task_title", "")
-        self.reasoning: str = data.get("reasoning", "")
-        self.estimated_duration: str = data.get("estimated_duration", "")
-        self.alternative_tasks: list = data.get("alternative_tasks", [])
+    def __init__(self, data: Dict[str, Any], used_llm: bool = True):
+        """Initialize from AI response data.
+
+        Args:
+            data: Response data from AI or mock
+            used_llm: Whether actual LLM was called (False if using mock/fallback)
+        """
+        # New format: List of recommended tasks (0-3)
+        self.recommended_tasks: list = data.get("recommended_tasks", [])
+        # Overall reasoning that combines activity + time + action context
+        self.overall_reasoning: str = data.get("overall_reasoning", "")
         self.suggestion_type: str = data.get("suggestion_type", "none")
+        self.cache_minutes: int = data.get("cache_minutes", 5)
+        self.used_llm: bool = used_llm  # Track if LLM was actually used
+
+        # Backward compatibility: If old format is used, convert it
+        if "recommended_task_id" in data and not self.recommended_tasks:
+            self.recommended_tasks = [{
+                "task_id": data.get("recommended_task_id"),
+                "reasoning": data.get("reasoning", ""),
+                "priority_score": 75.0,
+                "estimated_minutes": int(data.get("estimated_duration", "30").split()[0]) if data.get("estimated_duration") else 30
+            }] if data.get("recommended_task_id") else []
+            if not self.overall_reasoning:
+                self.overall_reasoning = data.get("reasoning", "")
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for API response."""
         return {
-            "recommended_task_id": self.recommended_task_id,
-            "task_title": self.task_title,
-            "reasoning": self.reasoning,
-            "estimated_duration": self.estimated_duration,
-            "alternative_tasks": self.alternative_tasks,
+            "recommended_tasks": self.recommended_tasks,
+            "overall_reasoning": self.overall_reasoning,
             "suggestion_type": self.suggestion_type,
+            "cache_minutes": self.cache_minutes,
         }
 
 
@@ -58,7 +72,10 @@ class DailyPlan:
 
 
 class TaskRecommender:
-    """AI-powered task recommendation engine."""
+    """AI-powered task recommendation engine.
+
+    Uses unified LLM interface for provider-agnostic AI calls.
+    """
 
     def __init__(self, db: AsyncIOMotorDatabase):
         """Initialize with database connection.
@@ -67,7 +84,6 @@ class TaskRecommender:
             db: MongoDB database instance
         """
         self.db = db
-        self.gemini = GeminiClient()
         self.context_builder = ContextBuilder(db)
 
     async def recommend_now(
@@ -85,11 +101,6 @@ class TaskRecommender:
         if current_time is None:
             current_time = datetime.now()
 
-        # Use mock response if enabled (for development)
-        if USE_MOCK_RESPONSES:
-            mock_data = get_mock_recommendation("auto")
-            return TaskRecommendation(mock_data)
-
         # Build context from backend data
         context = await self.context_builder.build_recommendation_context(
             child_id, current_time
@@ -98,14 +109,30 @@ class TaskRecommender:
         # Format prompt with context
         prompt = prompts.RECOMMENDATION_PROMPT.format(**context)
 
-        # Get AI recommendation
-        response = await self.gemini.generate_structured(
-            prompt=prompt,
+        # Call LLM via unified interface
+        response = await call_llm(
+            messages=[
+                {"role": "system", "content": prompts.SYSTEM_INSTRUCTION},
+                {"role": "user", "content": prompt}
+            ],
             temperature=0.3,
-            system_instruction=prompts.SYSTEM_INSTRUCTION
+            service="ai_schedule",
+            feature="recommendation",
+            child_id=child_id,
+            return_json=True
         )
 
-        return TaskRecommendation(response)
+        # If LLM call failed (quota exceeded, API error, etc.), return empty response
+        # The service layer will fall back to the fallback logic
+        if response is None:
+            return TaskRecommendation({
+                "recommended_tasks": [],
+                "overall_reasoning": "",
+                "suggestion_type": "none",
+                "cache_minutes": 0
+            }, used_llm=False)
+
+        return TaskRecommendation(response, used_llm=True)  # Real LLM call
 
     async def plan_day(
         self, child_id: str, target_date: Optional[date] = None
@@ -122,11 +149,6 @@ class TaskRecommender:
         if target_date is None:
             target_date = date.today()
 
-        # Use mock response if enabled (for development)
-        if USE_MOCK_RESPONSES:
-            mock_data = get_mock_daily_plan()
-            return DailyPlan(mock_data)
-
         # Build context
         context = await self.context_builder.build_daily_plan_context(
             child_id, target_date
@@ -135,12 +157,27 @@ class TaskRecommender:
         # Format prompt
         prompt = prompts.DAILY_PLAN_PROMPT.format(**context)
 
-        # Get AI plan
-        response = await self.gemini.generate_structured(
-            prompt=prompt,
+        # Call LLM via unified interface
+        response = await call_llm(
+            messages=[
+                {"role": "system", "content": prompts.SYSTEM_INSTRUCTION},
+                {"role": "user", "content": prompt}
+            ],
             temperature=0.4,
-            system_instruction=prompts.SYSTEM_INSTRUCTION
+            service="ai_schedule",
+            feature="daily_plan",
+            child_id=child_id,
+            return_json=True
         )
+
+        # If LLM call failed, return empty plan
+        if response is None:
+            return DailyPlan({
+                "schedule": [],
+                "summary": "Unable to generate daily plan at this time.",
+                "warnings": ["LLM service unavailable"],
+                "unscheduled_tasks": []
+            })
 
         return DailyPlan(response)
 
@@ -190,11 +227,26 @@ class TaskRecommender:
             available_slots="Based on current time and time blocks"
         )
 
-        # Get AI replan
-        response = await self.gemini.generate_structured(
-            prompt=prompt,
+        # Call LLM via unified interface
+        response = await call_llm(
+            messages=[
+                {"role": "system", "content": prompts.SYSTEM_INSTRUCTION},
+                {"role": "user", "content": prompt}
+            ],
             temperature=0.4,
-            system_instruction=prompts.SYSTEM_INSTRUCTION
+            service="ai_schedule",
+            feature="replan",
+            child_id=child_id,
+            return_json=True
         )
+
+        # If LLM call failed, return empty plan
+        if response is None:
+            return DailyPlan({
+                "schedule": [],
+                "summary": "Unable to replan at this time.",
+                "warnings": ["LLM service unavailable"],
+                "unscheduled_tasks": []
+            })
 
         return DailyPlan(response)

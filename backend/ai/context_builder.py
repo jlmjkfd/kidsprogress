@@ -152,8 +152,11 @@ class ContextBuilder:
             obligation = task.obligation_level.value.upper()
             status = task.status.value
 
+            # Mark informational tasks (not actionable)
+            info_flag = " [INFORMATIONAL - NOT ACTIONABLE]" if task.is_informational else ""
+
             formatted.append(
-                f"  - [{obligation}] {task.title} ({duration}, {status}){time_info}"
+                f"  - [{obligation}] {task.title} ({duration}, {status}){time_info}{info_flag}"
             )
 
         return "\n".join(formatted)

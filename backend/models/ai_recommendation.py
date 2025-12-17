@@ -25,17 +25,45 @@ class ScheduleConflict(BaseModel):
     conflicting_item: Optional[Dict[str, Any]] = None
 
 
-class TaskRecommendation(BaseModel):
-    """AI recommendation for next task."""
-    suggested_task: Task
-    reasoning: str  # Natural language explanation
+class SingleTaskRecommendation(BaseModel):
+    """A single task recommendation."""
+    task: Task
+    reasoning: str  # Why this task is recommended
     priority_score: float = Field(ge=0, le=100)
     estimated_minutes: int
+
+
+class TaskRecommendation(BaseModel):
+    """AI recommendation for next task(s) - can recommend 0-3 tasks based on situation."""
+    tasks: List[SingleTaskRecommendation] = Field(default=[], max_items=3)
+    overall_reasoning: str  # Overall explanation for the recommendations
     break_suggested: bool = False
     break_duration_minutes: int = 0
-    alternatives: List[Task] = []
     conflicts: List[ScheduleConflict] = []
     confidence: float = Field(ge=0, le=1)  # How confident the AI is
+    valid_until: Optional[datetime] = None  # Cache validity timestamp
+
+    # Backward compatibility - return first task as suggested_task
+    @property
+    def suggested_task(self) -> Task:
+        return self.tasks[0].task if self.tasks else None
+
+    @property
+    def reasoning(self) -> str:
+        return self.overall_reasoning
+
+    @property
+    def priority_score(self) -> float:
+        return self.tasks[0].priority_score if self.tasks else 0
+
+    @property
+    def estimated_minutes(self) -> int:
+        return self.tasks[0].estimated_minutes if self.tasks else 0
+
+    @property
+    def alternatives(self) -> List[Task]:
+        # Return 2nd and 3rd tasks as alternatives for backward compatibility
+        return [rec.task for rec in self.tasks[1:]] if len(self.tasks) > 1 else []
 
 
 class ReplanChange(BaseModel):

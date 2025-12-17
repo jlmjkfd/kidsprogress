@@ -50,17 +50,69 @@ RECOMMENDATION_PROMPT = """Based on the current context, recommend what task the
 - During high energy periods, tackle more challenging or longer tasks
 - Tailor your language to the child's age
 
+**Important Rules**:
+- NEVER recommend informational tasks (tasks marked as informational are for awareness only, not actionable)
+- NEVER recommend tasks with fixed time slots that have already ended (check current time vs task end time)
+- During late hours (21:00-06:00), recommend rest/sleep unless there's an urgent must-do task
+- If it's late and no urgent work, use reasoning like "It's late. Time to rest and get ready for bed."
+
+**Contextual Reasoning Guidelines**:
+Your reasoning should feel natural and contextual by acknowledging what the child is currently experiencing. Consider combining these elements:
+
+1. **Activity Context**: If there's an informational task happening now (e.g., "School Time 08:30-15:00"), acknowledge it
+   - Example: "You're in School Time right now (08:30-15:00)."
+
+2. **Time-of-Day Context**: Reflect the child's likely energy/mood based on the hour
+   - Morning (6-9): High energy, fresh mind
+   - Late morning (9-12): Still energetic, good focus
+   - Lunch (12-13): Natural break time, recharge
+   - Afternoon (13-15): May be tired, gentler tasks
+   - Late afternoon (15-17): Finishing mode
+   - Evening (17-19): Winding down
+   - Night (19-21): Lighter activities
+   - Late night (21-6): Rest and sleep
+
+3. **Action Context**: What they can do based on the situation
+   - During activity: "If you have spare time, you could..."
+   - Between tasks: "Here are some tasks for you."
+   - No tasks: "Focus on what you're doing!" or "Great job finishing everything!"
+
+**Examples of Natural Reasoning**:
+- "You're in School Time (08:30-15:00). It's lunch time! If you have spare time, here are some quick tasks you can do."
+- "Good morning! You have lots of energy right now, which is perfect for challenging tasks like math."
+- "You might be feeling a bit tired after lunch. Reading is a great activity that's not too demanding."
+- "You're in School Time right now (08:30-15:00). Focus on what you're doing - you're doing great!"
+- "It's late. Time to rest and get ready for bed so you can recharge for tomorrow!"
+
+The tone and complexity should match the child's age. Younger children (5-8) need simpler, more encouraging language. Older children (9-12) can handle more detailed explanations.
+
 **Response Format** (JSON):
 {{
-  "recommended_task_id": "task_id or null if suggesting new activity",
-  "task_title": "title of recommended task",
-  "reasoning": "2-3 sentences explaining why this task now (age-appropriate language)",
-  "estimated_duration": "duration in minutes",
-  "alternative_tasks": ["task_id1", "task_id2"],
-  "suggestion_type": "scheduled_task" | "activity" | "break" | "none"
+  "recommended_tasks": [
+    {{
+      "task_id": "task_id",
+      "reasoning": "Why this specific task is good right now",
+      "priority_score": 75.0,
+      "estimated_minutes": 30
+    }}
+  ],
+  "overall_reasoning": "Natural, contextual explanation combining activity context + time context + action suggestions (2-3 sentences, age-appropriate)",
+  "suggestion_type": "scheduled_task" | "activity" | "break" | "none",
+  "cache_minutes": "how many minutes this recommendation stays valid (0-60)"
 }}
 
-If no suitable task exists, suggest "break" or "none" with appropriate reasoning."""
+**How Many Tasks to Recommend** (0-3):
+- 0 tasks: Late night (sleep time), all tasks done, or child is busy with current activity
+- 1 task: Single clear choice (fixed-time task happening now, one urgent task)
+- 2-3 tasks: Multiple good options (let child choose based on preference/energy)
+
+**Cache Duration Guidelines**:
+- If recommending a task: Use the task's estimated duration (5-60 minutes)
+- If suggesting break/rest: 5-10 minutes
+- If no tasks (all done): 15-30 minutes
+- If late night (suggesting sleep): 5 minutes
+
+**Important**: The overall_reasoning should follow the contextual reasoning guidelines above - acknowledge what's happening, reflect time/energy, and suggest actions naturally."""
 
 
 DAILY_PLAN_PROMPT = """Create a complete daily schedule for the child based on all available information.

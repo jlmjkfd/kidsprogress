@@ -1,7 +1,11 @@
-"""AI Writing Evaluation Service using LLM."""
+"""AI Writing Evaluation Service.
+
+Migrated to use unified LLM interface (backend/services/llm_interface.py).
+Provider selection is handled by the unified interface based on configuration.
+"""
 from typing import Dict, Any, List, Optional
 import json
-from backend.services.llm_service import call_llm
+from backend.services.llm_interface import call_llm
 
 
 async def evaluate_writing(
@@ -60,37 +64,23 @@ Content:
 Provide your evaluation in JSON format."""
 
     try:
-        response = await call_llm(
-            system_prompt=system_prompt,
-            user_prompt=user_prompt,
+        # Call unified LLM interface (returns parsed JSON)
+        evaluation = await call_llm(
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
             temperature=0.3,  # More consistent evaluations
             max_tokens=1000,
             service="content_creation",
             feature="writing_evaluation",
-            child_id=child_id
+            child_id=child_id,
+            return_json=True
         )
 
-        # Parse JSON response
-        # Try to extract JSON from response
-        response_text = response.strip()
-
-        # Handle case where response might be wrapped in markdown code blocks
-        if response_text.startswith("```"):
-            lines = response_text.split("\n")
-            json_lines = []
-            in_json = False
-            for line in lines:
-                if line.startswith("```json"):
-                    in_json = True
-                    continue
-                elif line.startswith("```"):
-                    in_json = False
-                    continue
-                elif in_json:
-                    json_lines.append(line)
-            response_text = "\n".join(json_lines)
-
-        evaluation = json.loads(response_text)
+        # If LLM failed, use fallback
+        if evaluation is None:
+            raise ValueError("LLM returned no response")
 
         # Validate and ensure all required fields exist
         evaluation.setdefault("overall_score", 5)

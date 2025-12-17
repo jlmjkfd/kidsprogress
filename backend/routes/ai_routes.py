@@ -31,40 +31,42 @@ class ReplanRequest(BaseModel):
     completed_task_ids: list[str] = Field(default_factory=list)
 
 
-@router.post("/schedule/recommend")
-async def recommend_now(
-    request: RecommendNowRequest,
-    current_user = Depends(get_current_user),
-    db = Depends(get_db)
-):
-    """Get AI recommendation for what task to do right now.
-
-    Returns personalized task recommendation based on:
-    - Current time and available time slots
-    - Scheduled tasks and their priorities
-    - Active routines and activities
-    - Time blocks and day type
-    """
-    # Verify child belongs to current user
-    from bson import ObjectId
-
-    child_doc = await db.children.find_one({
-        "_id": ObjectId(request.child_id),
-        "parent_id": ObjectId(str(current_user.id))
-    })
-
-    if not child_doc:
-        raise not_found("Child")
-
-    # Get AI recommendation
-    recommender = TaskRecommender(db)
-    recommendation = await recommender.recommend_now(request.child_id)
-
-    return {
-        "success": True,
-        "recommendation": recommendation.to_dict(),
-        "timestamp": datetime.now().isoformat()
-    }
+# DEPRECATED: This route conflicts with /api/ai/schedule/recommend in ai_schedule_routes.py
+# Use the new route instead which has better design and supports the unified task model
+# @router.post("/schedule/recommend")
+# async def recommend_now(
+#     request: RecommendNowRequest,
+#     current_user = Depends(get_current_user),
+#     db = Depends(get_db)
+# ):
+#     \"\"\"Get AI recommendation for what task to do right now (DEPRECATED).
+#
+#     Returns personalized task recommendation based on:
+#     - Current time and available time slots
+#     - Scheduled tasks and their priorities
+#     - Active routines and activities
+#     - Time blocks and day type
+#     \"\"\"
+#     # Verify child belongs to current user
+#     from bson import ObjectId
+#
+#     child_doc = await db.children.find_one({
+#         "_id": ObjectId(request.child_id),
+#         "parent_id": ObjectId(str(current_user.id))
+#     })
+#
+#     if not child_doc:
+#         raise not_found("Child")
+#
+#     # Get AI recommendation
+#     recommender = TaskRecommender(db)
+#     recommendation = await recommender.recommend_now(request.child_id)
+#
+#     return {
+#         "success": True,
+#         "recommendation": recommendation.to_dict(),
+#         "timestamp": datetime.now().isoformat()
+#     }
 
 
 @router.post("/schedule/plan-day")
