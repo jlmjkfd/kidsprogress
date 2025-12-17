@@ -300,6 +300,12 @@ class TaskLifecycle:
             reason="completing task"
         )
 
+        # Save completion record for standard tasks (non-template tasks)
+        # Template tasks handle completions via template plugin system
+        # Standard tasks preserve tool data (notes, timer, etc.) in completion records
+        if not existing.get("template_id"):
+            await self._save_standard_task_completion(existing, child_id)
+
         result = await self.tasks_collection.find_one_and_update(
             {"_id": task_id_obj, "child_id": child_id_obj},
             {
@@ -681,3 +687,76 @@ class TaskLifecycle:
             "failed_count": failed_count,
             "errors": errors
         }
+
+    async def _save_standard_task_completion(
+        self, task_data: dict, child_id: str
+    ) -> None:
+        """Save completion record for standard task.
+
+        Standard tasks (non-template tasks) preserve tool data from progress_state
+        in completion records, allowing parents to view what child wrote/did.
+
+        Args:
+            task_data: Task document from database
+            child_id: Child's ObjectId as string
+        """
+        import uuid
+        from backend.models.task_template import TaskCompletion
+
+        # Only save if task has progress_state or attachments
+        progress_state = task_data.get("progress_state")
+        attachments = task_data.get("attachments", [])
+
+        if not progress_state and not attachments:
+            # No data to preserve
+            return
+
+        completions_collection = self.db["task_completions"]
+
+        # Calculate session number
+        task_id = task_data["_id"]
+        existing_count = await completions_collection.count_documents({
+            "$or": [{"task_id": task_id}, {"task_id": str(task_id)}]
+        })
+
+        # Calculate duration
+        started_at = task_data.get("started_at")
+        completed_at = utcnow()
+        duration_minutes = 0
+        if started_at:
+            # Ensure started_at is timezone-aware (MongoDB stores naive UTC datetimes)
+            if started_at.tzinfo is None:
+                from datetime import timezone
+                started_at = started_at.replace(tzinfo=timezone.utc)
+            duration_seconds = (completed_at - started_at).total_seconds()
+            duration_minutes = int(duration_seconds / 60)
+
+        # Extract tool IDs that were used
+        tools_used = []
+        if progress_state and "tools" in progress_state:
+            tools_used = list(progress_state["tools"].keys())
+
+        # Create completion record
+        completion = TaskCompletion(
+            completion_id=f"comp_{uuid.uuid4().hex[:12]}",
+            task_id=task_id,
+            child_id=ObjectId(child_id),
+            template_id="",  # Empty string for standard tasks
+            session_number=existing_count + 1,
+            scheduled_date=task_data.get("scheduled_date").strftime("%Y-%m-%d") if task_data.get("scheduled_date") else None,
+            started_at=started_at or completed_at,
+            completed_at=completed_at,
+            detailed_data=progress_state or {},
+            measured_data={
+                "duration_minutes": duration_minutes,
+                "tools_used": tools_used
+            },
+            attachments=[att.get("file_url") for att in attachments if att.get("file_url")]
+        )
+
+        # Save to database
+        completion_dict = completion.model_dump(exclude={'id'})
+        if completion.id:
+            completion_dict['_id'] = completion.id
+
+        await completions_collection.insert_one(completion_dict)

@@ -28,6 +28,13 @@ async def save_task_progress(
     database = db.get_database()
     tasks_collection = database["tasks"]
 
+    print(f"\n=== SAVE PROGRESS for task {task_id} ===")
+    print(f"Received progress_data keys: {progress_data.keys()}")
+    print(f"  handler_type: {progress_data.get('handler_type')}")
+    print(f"  questions: {len(progress_data.get('questions', []))} questions")
+    print(f"  answers: {len(progress_data.get('answers', {}))} answers")
+    print(f"  total_time_seconds: {progress_data.get('total_time_seconds')}")
+
     # Get task to verify ownership
     task = await tasks_collection.find_one({"_id": ObjectId(task_id)})
     if not task:
@@ -40,7 +47,7 @@ async def save_task_progress(
         raise forbidden("Access denied")
 
     # Store progress in task document (temporary storage)
-    await tasks_collection.update_one(
+    result = await tasks_collection.update_one(
         {"_id": ObjectId(task_id)},
         {
             "$set": {
@@ -49,6 +56,8 @@ async def save_task_progress(
             }
         }
     )
+
+    print(f"Saved to database: matched={result.matched_count}, modified={result.modified_count}")
 
     return {"status": "saved", "saved_at": utcnow()}
 
@@ -83,18 +92,60 @@ async def prepare_task_execution(
 
     # Check if there's saved progress
     progress_state = getattr(task_obj, "progress_state", None)
-    is_resuming = bool(progress_state)
 
+    print(f"\n=== PREPARE EXECUTION for task {task_id} ===")
+    print(f"Task status: {task_obj.status}")
+    print(f"Has progress_state: {progress_state is not None}")
     if progress_state:
+        print(f"Progress state type: {type(progress_state)}")
+        if isinstance(progress_state, dict):
+            print(f"Progress state keys: {progress_state.keys()}")
+            print(f"  handler_type: {progress_state.get('handler_type')}")
+            print(f"  questions: {len(progress_state.get('questions', []))} questions")
+            print(f"  answers: {progress_state.get('answers')}")
+            print(f"  total_time_seconds: {progress_state.get('total_time_seconds')}")
+
+    # Check if this is actually a valid resume state or just leftover from previous attempt
+    # Valid resume state must have questions
+    is_resuming = False
+    if progress_state and isinstance(progress_state, dict):
+        # Check if this progress is from an in-progress session
+        has_questions = progress_state.get('questions') is not None
+        # Resume if there are questions - allow resume regardless of task status
+        # This allows users to save and resume at any time
+        is_resuming = has_questions
+
+    print(f"Is resuming: {is_resuming}")
+
+    # Create handler
+    handler = create_handler(
+        plugin_id=task_obj.template_id,
+        config=task_obj.execution_config or {}
+    )
+
+    if is_resuming:
         # Resume from saved progress
+        print(f"RESUMING - using saved progress_state")
+        # Ensure has_timer is set from config if not in progress_state
+        if 'has_timer' not in progress_state:
+            progress_state['has_timer'] = task_obj.execution_config.get('has_timer', False) if task_obj.execution_config else False
         execution_data = progress_state
     else:
         # Fresh start - generate new questions
-        handler = create_handler(
-            plugin_id=task_obj.template_id,
-            config=task_obj.execution_config or {}
-        )
+        print(f"FRESH START - generating new questions")
         execution_data = await handler.prepare_execution(task_id)
+
+        # Clear any stale progress_state to ensure clean slate
+        if progress_state:
+            # Use TaskIdentifier to get actual task ID
+            from backend.models.task_identifier import TaskIdentifier
+            identifier = TaskIdentifier(raw_id=task_id)
+            if not identifier.is_virtual:
+                await tasks_collection.update_one(
+                    {"_id": ObjectId(task_id)},
+                    {"$set": {"progress_state": None}}
+                )
+                print(f"Cleared stale progress_state")
 
     # Calculate session number for multi-completion tracking
     scheduled_date = task_obj.scheduled_date.strftime("%Y-%m-%d") if task_obj.scheduled_date else None
@@ -117,6 +168,15 @@ async def prepare_task_execution(
             "task_id": ObjectId(task_id),
             "scheduled_date": scheduled_date
         })
+
+    print(f"\nRETURNING execution_data:")
+    print(f"  Keys: {execution_data.keys() if isinstance(execution_data, dict) else 'NOT A DICT'}")
+    if isinstance(execution_data, dict):
+        print(f"  handler_type: {execution_data.get('handler_type')}")
+        print(f"  questions: {len(execution_data.get('questions', []))} questions")
+        print(f"  answers: {execution_data.get('answers')}")
+        print(f"  total_time_seconds: {execution_data.get('total_time_seconds')}")
+        print(f"  is_resuming flag: {is_resuming}")
 
     return {
         "task_id": task_id,
@@ -170,22 +230,26 @@ async def submit_task_completion(
         identifier = TaskIdentifier(raw_id=task_id)
 
         # Calculate session number for this completion
+        # Use atomic increment to avoid race conditions when multiple completions happen quickly
         scheduled_date = task_obj.scheduled_date.strftime("%Y-%m-%d") if task_obj.scheduled_date else None
 
-        # Query by template ID for virtual tasks, task ID for real tasks
+        # For multi-completion tasks, use atomic increment on the task's completion_count
+        # This ensures correct counting even with concurrent submissions
         if identifier.is_virtual:
             template_id_obj = ObjectId(identifier.template_id)
-            existing_completions = await completions_collection.count_documents({
-                "task_id": template_id_obj,
-                "scheduled_date": scheduled_date
-            })
+            actual_task_id = template_id_obj
         else:
-            # Real task
-            existing_completions = await completions_collection.count_documents({
-                "task_id": ObjectId(task_id),
-                "scheduled_date": scheduled_date
-            })
-        session_number = existing_completions + 1
+            actual_task_id = ObjectId(task_id)
+
+        # Atomically increment completion_count and get the NEW value
+        result = await tasks_collection.find_one_and_update(
+            {"_id": actual_task_id},
+            {"$inc": {"completion_count": 1}},
+            return_document=True  # Return updated document
+        )
+
+        session_number = result.get("completion_count", 1) if result else 1
+        print(f"DEBUG - Atomically incremented completion_count to: {session_number}")
 
         # Debug: Check incoming data types
         print("DEBUG - completion_routes.py:")
@@ -272,43 +336,44 @@ async def submit_task_completion(
         # Only update task status if NOT a virtual task (virtual tasks don't modify template status)
         if not identifier.is_virtual and actual_task_id and is_multi_completion:
             # Multi-completion task
-            if max_completions == 0:
-                # Unlimited attempts - always reset to pending
-                await tasks_collection.update_one(
-                    {"_id": actual_task_id},
-                    {
-                        "$set": {
-                            "status": "pending",
-                            "completion_count": session_number,
-                            "progress_state": None,
-                            "updated_at": utcnow()
-                        }
-                    }
-                )
-            elif session_number >= max_completions:
-                # Max completions reached, complete the task
+            # Check template's completion condition first (e.g., required_attempts reached)
+            if should_complete:
+                # Template says task is complete
                 await tasks_collection.update_one(
                     {"_id": actual_task_id},
                     {
                         "$set": {
                             "status": "completed",
                             "completed_at": utcnow(),
-                            "completion_count": session_number,
                             "progress_state": None,
                         }
+                        # completion_count already incremented atomically above
+                    }
+                )
+            elif max_completions > 0 and session_number >= max_completions:
+                # Max completions hard limit reached (overrides template logic)
+                await tasks_collection.update_one(
+                    {"_id": actual_task_id},
+                    {
+                        "$set": {
+                            "status": "completed",
+                            "completed_at": utcnow(),
+                            "progress_state": None,
+                        }
+                        # completion_count already incremented atomically above
                     }
                 )
             else:
-                # More attempts allowed, reset to pending
+                # More attempts needed or unlimited attempts without completion condition met
                 await tasks_collection.update_one(
                     {"_id": actual_task_id},
                     {
                         "$set": {
                             "status": "pending",
-                            "completion_count": session_number,
                             "progress_state": None,
                             "updated_at": utcnow()
                         }
+                        # completion_count already incremented atomically above
                     }
                 )
         elif not identifier.is_virtual and actual_task_id:

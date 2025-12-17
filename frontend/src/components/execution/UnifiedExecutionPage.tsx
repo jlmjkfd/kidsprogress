@@ -5,6 +5,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useQueryClient } from '@tanstack/react-query';
 import { IconArrowLeft, IconCheck, IconX } from '@tabler/icons-react';
 import { getSystemTools } from '@/tools';
 import type { ToolData, ExecutionSession } from '@/tools/types';
@@ -33,6 +34,7 @@ export default function UnifiedExecutionPage({
 }: UnifiedExecutionPageProps) {
   const { t } = useTranslation(['tasks', 'common']);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [activeToolId, setActiveToolId] = useState<string | null>(null);
   const [showConfirmComplete, setShowConfirmComplete] = useState(false);
 
@@ -59,8 +61,11 @@ export default function UnifiedExecutionPage({
 
   const systemTools = getSystemTools();
 
-  // Auto-save tool states to localStorage every 10 seconds
+  // Auto-save tool states to localStorage every 10 seconds (ONLY for standard tasks)
   useEffect(() => {
+    // Template tasks don't use the tool states system, so skip
+    if (isTemplateTask) return;
+
     const saveToLocalStorage = () => {
       try {
         const session: ExecutionSession = {
@@ -77,10 +82,13 @@ export default function UnifiedExecutionPage({
 
     const interval = setInterval(saveToLocalStorage, 10000);
     return () => clearInterval(interval);
-  }, [taskId, childId, task.started_at, toolStates]);
+  }, [taskId, childId, task.started_at, toolStates, isTemplateTask]);
 
-  // Auto-save to database every 60 seconds
+  // Auto-save to database every 60 seconds (ONLY for standard tasks)
   useEffect(() => {
+    // Template tasks handle their own auto-save with their own data format
+    if (isTemplateTask) return;
+
     const saveToDatabase = async () => {
       try {
         await apiClient.post(`/api/completions/${taskId}/save-progress`, {
@@ -94,7 +102,7 @@ export default function UnifiedExecutionPage({
 
     const interval = setInterval(saveToDatabase, 60000);
     return () => clearInterval(interval);
-  }, [taskId, toolStates]);
+  }, [taskId, toolStates, isTemplateTask]);
 
   const handleToolStateChange = (toolId: string, newState: any) => {
     setToolStates(prev => ({
@@ -125,6 +133,9 @@ export default function UnifiedExecutionPage({
       // Clean up localStorage
       localStorage.removeItem(`execution-${taskId}`);
 
+      // Invalidate all task-related queries to refresh the UI
+      await queryClient.invalidateQueries();
+
       onComplete();
     } catch (error) {
       console.error('Failed to complete task:', error);
@@ -133,7 +144,7 @@ export default function UnifiedExecutionPage({
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div className={`min-h-screen bg-gray-50 ${isTemplateTask ? '' : 'pb-24'}`}>
       {/* Header */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 py-4">
@@ -152,14 +163,12 @@ export default function UnifiedExecutionPage({
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className={`grid grid-cols-1 gap-6 ${isTemplateTask ? '' : 'lg:grid-cols-3'}`}>
           {/* Main Content Area */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className={isTemplateTask ? '' : 'lg:col-span-2 space-y-6'}>
             {isTemplateTask ? (
-              // Template task executor
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                {templateExecutor}
-              </div>
+              // Template task executor - full width, handles its own layout
+              templateExecutor
             ) : (
               // Standard task - show description and notes tool
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -191,7 +200,8 @@ export default function UnifiedExecutionPage({
             )}
           </div>
 
-          {/* Tools Sidebar */}
+          {/* Tools Sidebar - Only for standard tasks */}
+          {!isTemplateTask && (
           <div className="space-y-4">
             <h3 className="font-semibold text-gray-900">{t('tasks:tools')}</h3>
 
@@ -236,30 +246,33 @@ export default function UnifiedExecutionPage({
               return null;
             })}
           </div>
+          )}
         </div>
       </div>
 
-      {/* Floating Complete Button */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-lg">
-        <div className="max-w-7xl mx-auto flex gap-3">
-          <button
-            onClick={() => setShowConfirmComplete(true)}
-            className="flex-1 flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white py-4 rounded-xl font-semibold text-lg transition-colors"
-          >
-            <IconCheck size={24} />
-            {t('tasks:complete_task')}
-          </button>
-          <button
-            onClick={onCancel}
-            className="px-6 py-4 border-2 border-gray-300 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
-          >
-            {t('common:cancel')}
-          </button>
-        </div>
-      </div>
+      {/* Floating Complete Button - Only for standard tasks */}
+      {!isTemplateTask && (
+        <>
+          <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-lg md:left-64">
+            <div className="max-w-7xl mx-auto flex gap-3">
+              <button
+                onClick={() => setShowConfirmComplete(true)}
+                className="flex-1 flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white py-4 rounded-xl font-semibold text-lg transition-colors"
+              >
+                <IconCheck size={24} />
+                {t('tasks:complete_task')}
+              </button>
+              <button
+                onClick={onCancel}
+                className="px-6 py-4 border-2 border-gray-300 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
+              >
+                {t('common:cancel')}
+              </button>
+            </div>
+          </div>
 
-      {/* Confirmation Modal */}
-      {showConfirmComplete && (
+          {/* Confirmation Modal */}
+          {showConfirmComplete && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
             <h3 className="text-xl font-bold text-gray-900 mb-4">
@@ -286,6 +299,8 @@ export default function UnifiedExecutionPage({
             </div>
           </div>
         </div>
+          )}
+        </>
       )}
     </div>
   );
