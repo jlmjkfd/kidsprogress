@@ -7,7 +7,6 @@ to specialized components:
 - VirtualTaskMaterializer: Virtual task materialization
 - TaskRecurrence: Recurrence patterns and exceptions
 - TaskRollover: Rollover and backlog management
-- TaskSession: Active session tracking
 """
 from typing import List, Optional, Dict, Any
 from motor.motor_asyncio import AsyncIOMotorDatabase
@@ -21,7 +20,6 @@ from .lifecycle import TaskLifecycle
 from .virtual_materialization import VirtualTaskMaterializer
 from .recurrence import TaskRecurrence
 from .rollover import TaskRollover
-from .session import TaskSession
 
 
 class TaskService:
@@ -40,7 +38,6 @@ class TaskService:
         """
         self.db = db
         self.tasks_collection = db.tasks
-        self.sessions_collection = db.active_task_sessions
         self.collections_collection = db.task_collections
         self.school_calendar_service = school_calendar_service
 
@@ -50,10 +47,9 @@ class TaskService:
         self.virtualizer = VirtualTaskMaterializer(db)
         self.recurrence = TaskRecurrence(db, school_calendar_service)
         self.rollover = TaskRollover(db)
-        self.session = TaskSession(db)
 
         # Inject cross-component dependencies
-        self.lifecycle.set_dependencies(self.virtualizer, self.session, self.crud)
+        self.lifecycle.set_dependencies(self.virtualizer, None, self.crud)
 
     # ==================== CRUD Operations ====================
 
@@ -438,30 +434,6 @@ class TaskService:
         """
         return await self.rollover.move_to_backlog(task_id)
 
-    # ==================== Active Session Management ====================
-
-    async def _create_active_session(self, task_id: str, child_id: str) -> None:
-        """Create an active task session."""
-        return await self.session.create_session(task_id, child_id)
-
-    async def _remove_active_session(self, task_id: str) -> None:
-        """Remove an active task session."""
-        return await self.session.remove_session(task_id)
-
-    async def _get_active_sessions(self, child_id: str) -> List[dict]:
-        """Get all active sessions for a child."""
-        return await self.session.get_sessions(child_id)
-
-    async def get_active_tasks(self, child_id: str) -> List[dict]:
-        """Get all active tasks for a child (for concurrent task warning).
-
-        Args:
-            child_id: Child's ObjectId as string
-
-        Returns:
-            List of dicts with task info and session info
-        """
-        return await self.session.get_active_tasks(child_id)
 
 
 # Export the main service class

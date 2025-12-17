@@ -32,7 +32,6 @@ class TaskCRUD:
         from backend.services.task_service.strategies.factory import TaskStrategyFactory
         collections = {
             "tasks": db.tasks,
-            "sessions": db.active_task_sessions,
             "completions": db.task_completions,
         }
         self.strategy_factory = TaskStrategyFactory(db, collections)

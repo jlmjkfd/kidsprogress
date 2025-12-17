@@ -30,7 +30,15 @@ class AdditionSubtractionHandler(TemplateHandler):
 
     async def prepare_execution(self, task_id: str) -> Dict[str, Any]:
         """Generate questions and return configuration for frontend."""
+        # Seed random with current timestamp and task_id to ensure different questions each time
+        import time
+        seed_value = int(time.time() * 1000) + hash(task_id)
+        random.seed(seed_value)
+
         questions = self._generate_questions()
+
+        # Reset random to use system time again
+        random.seed()
 
         return {
             "handler_type": "interactive_math_quiz",
