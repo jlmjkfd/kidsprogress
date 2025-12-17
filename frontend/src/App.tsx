@@ -133,6 +133,7 @@ function AppRoutes() {
           {/* <Route path="routines" element={<ChildRoutinesPage />} /> */}
           {/* <Route path="activities" element={<ChildActivitiesPage />} /> */}
           {/* <Route path="time-blocks" element={<ChildTimeBlocksPage />} /> */}
+          <Route path="attempts/:taskId" element={<AttemptDetailPage />} />
           <Route path="analysis" element={<ChildAnalysisPage />} />
           <Route path="analysis/:templateId" element={<AnalysisReportPage />} />
         </Route>

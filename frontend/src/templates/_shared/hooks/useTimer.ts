@@ -6,12 +6,13 @@ import { useState, useEffect, useRef } from 'react';
 
 interface UseTimerOptions {
   autoStart?: boolean;
+  initialSeconds?: number;
   onTick?: (seconds: number) => void;
 }
 
 export function useTimer(options: UseTimerOptions = {}) {
-  const { autoStart = false, onTick } = options;
-  const [seconds, setSeconds] = useState(0);
+  const { autoStart = false, initialSeconds = 0, onTick } = options;
+  const [seconds, setSeconds] = useState(initialSeconds);
   const [isRunning, setIsRunning] = useState(autoStart);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -40,9 +41,9 @@ export function useTimer(options: UseTimerOptions = {}) {
 
   const start = () => setIsRunning(true);
   const pause = () => setIsRunning(false);
-  const reset = () => {
-    setSeconds(0);
-    setIsRunning(false);
+  const reset = (value: number = 0) => {
+    setSeconds(value);
+    setIsRunning(autoStart); // If autoStart was true, keep it running
   };
 
   return {

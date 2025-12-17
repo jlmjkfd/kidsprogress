@@ -2,8 +2,9 @@
  * Addition & Subtraction Task Executor
  * Interactive math practice execution page
  */
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useQueryClient } from '@tanstack/react-query';
 import { IconCheck, IconX } from '@tabler/icons-react';
 import type { TaskExecutorProps } from '../../_shared/types/plugin-interface';
 import type { AdditionSubtractionExecution, AdditionSubtractionCompletion, Question } from '../types';
@@ -19,6 +20,15 @@ export default function TaskExecutor({
   setIsComplete,
 }: TaskExecutorProps<AdditionSubtractionExecution, AdditionSubtractionCompletion>) {
   const { t } = useTranslation(['tasks', 'common']);
+  const queryClient = useQueryClient();
+
+  console.log('\n=== FRONTEND TaskExecutor ===');
+  console.log('Received executionData:', executionData);
+  console.log('  handler_type:', executionData.handler_type);
+  console.log('  questions:', executionData.questions?.length);
+  console.log('  answers:', executionData.answers);
+  console.log('  total_time_seconds:', executionData.total_time_seconds);
+  console.log('  has_timer:', executionData.has_timer);
 
   const questions = useMemo(() => executionData.questions || [], [executionData.questions]);
   const hasTimer = executionData.has_timer ?? false;
@@ -29,12 +39,61 @@ export default function TaskExecutor({
   );
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [startTime] = useState(new Date());
+  const [isSaving, setIsSaving] = useState(false);
+  const [startTime, setStartTime] = useState(new Date());
 
-  // Use shared timer hook
-  const { seconds: timerSeconds, pause: pauseTimer } = useTimer({
+  // Use shared timer hook with saved time if resuming
+  const { seconds: timerSeconds, pause: pauseTimer, reset: resetTimer } = useTimer({
     autoStart: hasTimer,
+    initialSeconds: executionData.total_time_seconds || 0,
   });
+
+  // IMPORTANT: Reset state when questions change (new attempt starts)
+  // This handles the case where user submits attempt 1, then immediately starts attempt 2
+  // without the component unmounting
+  // Create a unique key based on the actual question content (answers), not just IDs
+  // Since question IDs are always q1, q2, q3... we need to use the actual numbers
+  const questionsKey = useMemo(() => {
+    if (questions.length === 0) return '';
+    // Use first question's numbers as identifier - if these change, we have new questions
+    const firstQ = questions[0];
+    return `${firstQ.num1}_${firstQ.operator}_${firstQ.num2}_${firstQ.answer}`;
+  }, [questions]);
+
+  // Store the saved answers and timer separately to avoid triggering on object reference changes
+  const savedAnswers = useMemo(() => executionData.answers || {}, [executionData.answers]);
+  const savedTimer = useMemo(() => executionData.total_time_seconds || 0, [executionData.total_time_seconds]);
+
+  // Track previous questions key to detect when it actually changes
+  const prevQuestionsKeyRef = useRef<string>('');
+
+  useEffect(() => {
+    // Only reset if questionsKey actually changed (new questions)
+    if (questionsKey && questionsKey !== prevQuestionsKeyRef.current) {
+      console.log('New questions detected (key changed) - resetting component state');
+      console.log('  Previous key:', prevQuestionsKeyRef.current);
+      console.log('  New key:', questionsKey);
+      console.log('  New answers:', savedAnswers);
+      console.log('  New timer:', savedTimer);
+
+      // Update the ref for next comparison
+      prevQuestionsKeyRef.current = questionsKey;
+
+      // Reset answers to new execution data
+      setAnswers(savedAnswers);
+
+      // Reset submitted/saving states
+      setSubmitted(false);
+      setIsSubmitting(false);
+      setIsSaving(false);
+
+      // Reset start time
+      setStartTime(new Date());
+
+      // Reset timer to new value (or 0 for fresh attempt)
+      resetTimer(savedTimer);
+    }
+  }, [questionsKey, savedAnswers, savedTimer, resetTimer]);
 
   // Auto-save to localStorage every 10 seconds (for browser crash recovery)
   useEffect(() => {
@@ -42,7 +101,10 @@ export default function TaskExecutor({
       if (submitted || isSubmitting) return;
 
       const progressData = {
+        handler_type: 'interactive_math_quiz',  // Required for backend to recognize format
+        questions,
         answers,
+        has_timer: hasTimer,
         total_time_seconds: timerSeconds,
         saved_at: new Date().toISOString()
       };
@@ -57,28 +119,36 @@ export default function TaskExecutor({
     const interval = setInterval(saveToLocalStorage, 10000); // Every 10 seconds
 
     return () => clearInterval(interval);
-  }, [taskId, answers, timerSeconds, submitted, isSubmitting]);
+  }, [taskId, questions, answers, hasTimer, timerSeconds, submitted, isSubmitting]);
 
   // Auto-save to database every 60 seconds (for multi-device recovery)
   useEffect(() => {
     const saveToDatabase = async () => {
       if (submitted || isSubmitting) return;
 
+      const progressData = {
+        handler_type: 'interactive_math_quiz',  // Required for backend to recognize format
+        questions,
+        answers,
+        has_timer: hasTimer,
+        total_time_seconds: timerSeconds,
+        saved_at: new Date().toISOString()
+      };
+
+      console.log('TaskExecutor auto-saving to database:', progressData);
+
       try {
-        await apiClient.post(`/api/completions/${taskId}/save-progress`, {
-          answers,
-          total_time_seconds: timerSeconds,
-          saved_at: new Date().toISOString()
-        });
+        await apiClient.post(`/api/completions/${taskId}/save-progress`, progressData);
+        console.log('TaskExecutor auto-save successful');
       } catch (error) {
-        console.error('Failed to save progress to database:', error);
+        console.error('TaskExecutor auto-save failed:', error);
       }
     };
 
     const interval = setInterval(saveToDatabase, 60000); // Every 60 seconds
 
     return () => clearInterval(interval);
-  }, [taskId, answers, timerSeconds, submitted, isSubmitting]);
+  }, [taskId, questions, answers, hasTimer, timerSeconds, submitted, isSubmitting]);
 
   // Clean up localStorage on successful submission
   useEffect(() => {
@@ -105,7 +175,17 @@ export default function TaskExecutor({
         started_at: startTime.toISOString(),
       };
 
+      console.log('Submitting completion:', completionData);
       await onComplete(completionData);
+
+      // Clear saved progress state since attempt is complete
+      console.log('Clearing saved progress after successful submission');
+      localStorage.removeItem(`task-progress-${taskId}`);
+
+      // Backend already clears progress_state when submission succeeds
+      // Invalidate all related queries so UI updates with new completion_count
+      await queryClient.invalidateQueries(); // Invalidate ALL queries to ensure cache is fresh
+      console.log('Invalidated ALL queries - completion count should update');
 
       // Task auto-completes after submission
       setIsComplete(true);
@@ -119,22 +199,50 @@ export default function TaskExecutor({
 
   const handleSaveAndExit = async () => {
     pauseTimer();
+    setIsSaving(true);
 
     // Save progress to both localStorage and database
     const progressData = {
+      handler_type: 'interactive_math_quiz',  // Required for backend to recognize format
+      questions,
       answers,
+      has_timer: hasTimer,
       total_time_seconds: timerSeconds,
       saved_at: new Date().toISOString()
     };
 
+    console.log('TaskExecutor Save and Exit - saving data:', progressData);
+    console.log('  Current answers state:', answers);
+    console.log('  Current timer:', timerSeconds);
+
     try {
+      // Save to localStorage (always succeeds for browser recovery)
       localStorage.setItem(`task-progress-${taskId}`, JSON.stringify(progressData));
-      await apiClient.post(`/api/completions/${taskId}/save-progress`, progressData);
+      console.log('Saved to localStorage');
+
+      // Save to database (for multi-device recovery) - WAIT for this to complete
+      const response = await apiClient.post(`/api/completions/${taskId}/save-progress`, progressData);
+      console.log('Saved to database, response:', response);
+
+      // Wait a tiny bit more to ensure database write completes
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Invalidate queries so the task list refetches with updated progress_state
+      await queryClient.invalidateQueries({ queryKey: ['task', taskId] });
+      await queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      await queryClient.invalidateQueries({ queryKey: ['execution', taskId] });
+
+      console.log('Invalidated queries to force refetch');
+
     } catch (error) {
       console.error('Failed to save progress:', error);
+      // Show error to user but still allow exit
+      alert(t('tasks:save_progress_error') || 'Failed to save progress. Your work is saved locally and will be available when you return.');
+    } finally {
+      setIsSaving(false);
     }
 
-    // Navigate back
+    // Navigate back AFTER save completes and queries are invalidated
     if (onCancel) {
       onCancel();
     } else {
@@ -195,13 +303,14 @@ export default function TaskExecutor({
                         onChange={(e) =>
                           handleAnswerChange(question.question_id, e.target.value)
                         }
+                        onWheel={(e) => e.currentTarget.blur()}
                         readOnly={submitted}
-                        className={`w-24 md:w-32 px-3 py-2 border-2 rounded-lg text-center ${
+                        className={`w-24 md:w-32 px-3 py-2 border-2 rounded-lg text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                           submitted
                             ? isCorrect
                               ? 'border-green-500 bg-green-50'
                               : 'border-red-500 bg-red-50'
-                            : 'border-gray-300 focus:border-blue-500 focus:outline-none'
+                            : 'border-gray-300 focus:border-blue-500 focus:outline-none placeholder:opacity-100 focus:placeholder:opacity-0'
                         }`}
                         placeholder="?"
                       />
@@ -235,7 +344,7 @@ export default function TaskExecutor({
         </div>
 
         {/* Action Buttons */}
-        <div className="mt-6 flex flex-col sm:flex-row gap-3 sticky bottom-4">
+        <div className="mt-6 flex flex-col sm:flex-row gap-3 sticky bottom-4 bg-white/95 backdrop-blur-sm p-4 rounded-lg shadow-lg">
           {!submitted ? (
             <>
               <button
@@ -247,10 +356,10 @@ export default function TaskExecutor({
               </button>
               <button
                 onClick={handleSaveAndExit}
-                disabled={isSubmitting}
+                disabled={isSubmitting || isSaving}
                 className="sm:flex-1 px-6 py-3 md:py-4 bg-gray-600 text-white rounded-lg font-semibold hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg text-base md:text-lg"
               >
-                {t('tasks:save_and_exit')}
+                {isSaving ? t('common:saving') || 'Saving...' : t('tasks:save_and_exit')}
               </button>
               <button
                 onClick={onCancel}

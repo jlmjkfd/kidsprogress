@@ -1,6 +1,8 @@
 """FastAPI application entry point."""
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 import os
 from dotenv import load_dotenv
@@ -177,6 +179,18 @@ class TimezoneMiddleware(BaseHTTPMiddleware):
         return response
 
 app.add_middleware(TimezoneMiddleware)
+
+# Exception handler for validation errors
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Log validation errors for debugging."""
+    print(f"[VALIDATION ERROR] {request.method} {request.url}")
+    print(f"[VALIDATION ERROR] Body: {await request.body()}")
+    print(f"[VALIDATION ERROR] Errors: {exc.errors()}")
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={"detail": exc.errors()},
+    )
 
 # Include routers
 app.include_router(auth.router)

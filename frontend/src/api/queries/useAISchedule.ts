@@ -38,22 +38,27 @@ export function useAIRecommendation(
   enabled: boolean = true
 ) {
   return useQuery({
-    queryKey: ["aiRecommendation", childId, currentTime, childState],
+    // Don't include currentTime in queryKey - it changes every second
+    // We always want fresh data, not cached by time
+    queryKey: ["aiRecommendation", childId],
     queryFn: async (): Promise<TaskRecommendation> => {
+      // Build request body with only defined values
+      const body: Record<string, any> = {};
+      if (currentTime !== undefined) {
+        body.current_time = currentTime;
+      }
+      if (childState !== undefined) {
+        body.child_state = childState;
+      }
+
       const response = await apiClient.post(
-        `/api/ai/schedule/recommend`,
-        {
-          child_id: childId,
-          current_time: currentTime,
-          child_state: childState,
-        }
+        `/api/ai/schedule/recommend?child_id=${childId}`,
+        body
       );
-      // Backend returns {success: true, recommendation: {...}, timestamp: ...}
-      // Extract just the recommendation object
-      return response.data.recommendation || response.data;
+      return response.data;
     },
     enabled: enabled && !!childId,
-    staleTime: 30000, // 30 seconds - recommendations can change quickly
+    staleTime: 0, // Always fetch fresh - recommendations change frequently
   });
 }
 

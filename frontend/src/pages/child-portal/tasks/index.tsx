@@ -25,7 +25,7 @@ import {
 } from "@/api/mutations/useTaskMutations";
 import { Task } from "@/types/task";
 import { DayType } from "@/types/schoolCalendar";
-import { AIRecommendationButton } from "@/components/AIRecommendationButton";
+import { AIRecommendationPanel } from "@/components/AIRecommendationPanel";
 import { TaskCalendar } from "@/components/calendar";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { QuickCaptureModal } from "@/components/QuickCaptureModal";
@@ -48,7 +48,6 @@ export default function ChildTasksPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [isQuickCaptureOpen, setIsQuickCaptureOpen] = useState(false);
   const [isPlanAheadOpen, setIsPlanAheadOpen] = useState(false);
-  const [showAIRecommendation, setShowAIRecommendation] = useState(false);
 
   // Helper to get local date string (YYYY-MM-DD)
   const getLocalDateString = (date: Date = new Date()) => {
@@ -81,7 +80,9 @@ export default function ChildTasksPage() {
     allTasks?.filter((task) => {
       const today = getLocalDateString();
       const taskDate = task.scheduled_date?.split("T")[0];
-      return taskDate === today || task.status === "in_progress";
+      // Only show tasks scheduled for today (removed || task.status === "in_progress"
+      // because virtual instances inherit in_progress status from recurring task)
+      return taskDate === today;
     }) || [];
 
   // Get current time for informational task categorization
@@ -279,13 +280,6 @@ export default function ChildTasksPage() {
               <IconCalendar size={18} />
               <span>{t("tasks:plan_ahead.button")}</span>
             </button>
-            <button
-              onClick={() => setShowAIRecommendation(true)}
-              className="flex h-10 items-center gap-2 rounded-lg bg-purple-600 px-4 text-sm font-semibold text-white shadow-sm transition-all hover:bg-purple-700"
-            >
-              <IconStar size={18} />
-              <span>{t("tasks:ai_recommendation")}</span>
-            </button>
           </div>
         </div>
 
@@ -332,13 +326,6 @@ export default function ChildTasksPage() {
             >
               <IconCalendar size={18} />
               <span>{t("tasks:plan_ahead.button")}</span>
-            </button>
-            <button
-              onClick={() => setShowAIRecommendation(true)}
-              className="flex h-10 items-center gap-2 rounded-lg bg-purple-600 px-4 text-sm font-semibold text-white shadow-sm transition-all hover:bg-purple-700"
-            >
-              <IconStar size={18} />
-              <span>{t("tasks:ai_recommendation")}</span>
             </button>
           </div>
         </div>
@@ -575,9 +562,13 @@ export default function ChildTasksPage() {
           </div>
         ) : (
           /* List View - Split Layout: Today's Tasks | Overdue Tasks */
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
-            {/* Left Column: Today's Tasks */}
-            <div className="space-y-3">
+          <>
+            {/* AI Recommendation Panel - Full width above task lists */}
+            <AIRecommendationPanel childId={selectedChildId || ""} defaultExpanded={false} />
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
+              {/* Left Column: Today's Tasks */}
+              <div className="space-y-3">
               {/* Today's Schedule - Informational Tasks */}
               {informationalTasks.length > 0 && (
                 <CollapsibleSection
@@ -830,6 +821,7 @@ export default function ChildTasksPage() {
               )}
             </div>
           </div>
+          </>
         )}
       </div>
 
@@ -856,25 +848,6 @@ export default function ChildTasksPage() {
         childId={selectedChildId || ""}
       />
 
-      {/* AI Recommendation - Shown when FAB triggers it */}
-      {showAIRecommendation && (
-        <div className="bg-opacity-50 fixed inset-0 z-40 flex items-center justify-center bg-black p-4">
-          <div className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-gray-900">
-                {t("tasks:ai_recommendation")}
-              </h2>
-              <button
-                onClick={() => setShowAIRecommendation(false)}
-                className="rounded-lg p-2 text-gray-500 hover:bg-gray-100"
-              >
-                ✕
-              </button>
-            </div>
-            <AIRecommendationButton childId={selectedChildId || ""} />
-          </div>
-        </div>
-      )}
     </div>
   );
 }

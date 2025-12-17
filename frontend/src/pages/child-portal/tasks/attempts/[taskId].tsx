@@ -14,6 +14,7 @@ import { TaskCompletion } from "@/types/template";
 import { AttemptSidebar } from "./components/AttemptSidebar";
 import { getPlugin } from "@/templates/registry";
 import { formatLocalDate, formatLocalTime } from "@/utils/timezone";
+import { ScrollPositionManager } from "@/utils/ScrollAnchor";
 
 export default function AttemptDetailPage() {
   const { t, i18n } = useTranslation(["tasks", "common"]);
@@ -56,6 +57,17 @@ export default function AttemptDetailPage() {
   }, [completions, selectedCompletionId]);
 
   const getDuration = (completion: TaskCompletion) => {
+    // For template tasks, use stored total_time_seconds (handles save/resume correctly)
+    // For standard tasks, calculate from timestamps
+    const totalSeconds = completion.detailed_data?.total_time_seconds;
+
+    if (totalSeconds !== undefined && totalSeconds !== null) {
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+    }
+
+    // Fallback: calculate from timestamps (for tasks without total_time_seconds)
     const start = new Date(completion.started_at);
     const end = new Date(completion.completed_at);
     const durationMs = end.getTime() - start.getTime();
@@ -65,14 +77,9 @@ export default function AttemptDetailPage() {
   };
 
   const handleBack = () => {
-    // Check if we came from parent portal by checking the document.referrer or history
-    // For now, use navigate(-1) which goes to the previous page
-    // This works correctly whether coming from child portal or parent portal
-    if (window.history.length > 1) {
-      navigate(-1);
-    } else {
-      navigate(`/child-portal/${childId}/tasks`);
-    }
+    // Mark that we're returning from attempts to trigger scroll restoration
+    ScrollPositionManager.markReturningFromAttempts();
+    navigate(-1);
   };
 
   if (taskLoading || completionsLoading) {
@@ -97,22 +104,69 @@ export default function AttemptDetailPage() {
 
   // Render template-specific view using plugin registry
   const renderAttemptContent = () => {
-    const plugin = task.template_id ? getPlugin(task.template_id) : null;
-
-    if (plugin && plugin.components.AttemptView) {
-      const AttemptView = plugin.components.AttemptView;
-      return <AttemptView completion={selectedCompletion} />;
+    // Template tasks - use plugin AttemptView
+    if (task.template_id) {
+      const plugin = getPlugin(task.template_id);
+      if (plugin && plugin.components.AttemptView) {
+        const AttemptView = plugin.components.AttemptView;
+        return <AttemptView completion={selectedCompletion} />;
+      }
     }
 
-    // Generic fallback for templates without AttemptView
+    // Standard tasks - show tool data
+    const toolData = selectedCompletion.detailed_data?.tools;
+    if (toolData && typeof toolData === 'object' && Object.keys(toolData).length > 0) {
+      return (
+        <div className="space-y-4">
+          {Object.entries(toolData).map(([toolId, toolState]: [string, any]) => (
+            <div key={toolId} className="rounded-2xl bg-white p-6 shadow-lg">
+              <div className="mb-4 flex items-center gap-2">
+                <div className="rounded-lg bg-purple-100 p-2">
+                  {toolId === 'note' && <span className="text-2xl">📝</span>}
+                  {toolId === 'timer' && <span className="text-2xl">⏱️</span>}
+                  {toolId === 'calculator' && <span className="text-2xl">🔢</span>}
+                  {!['note', 'timer', 'calculator'].includes(toolId) && <span className="text-2xl">🔧</span>}
+                </div>
+                <h3 className="text-xl font-bold capitalize text-gray-900">{toolId}</h3>
+              </div>
+
+              {toolId === 'note' && toolState.state?.content && (
+                <div className="whitespace-pre-wrap rounded-lg bg-gray-50 p-4 text-gray-800">
+                  {toolState.state.content}
+                </div>
+              )}
+
+              {toolId === 'timer' && toolState.state?.elapsedSeconds !== undefined && (
+                <div className="text-lg text-gray-800">
+                  <span className="font-semibold">{t("tasks:duration")}:</span>{' '}
+                  {Math.floor(toolState.state.elapsedSeconds / 60)} {t("common:minutes")} {toolState.state.elapsedSeconds % 60} {t("common:seconds")}
+                </div>
+              )}
+
+              {toolId === 'calculator' && (
+                <div className="rounded-lg bg-gray-50 p-4 text-sm text-gray-600">
+                  {t("tasks:calculator_used")}
+                </div>
+              )}
+
+              {toolState.lastUpdated && (
+                <p className="mt-2 text-xs text-gray-500">
+                  {t("common:last_updated")}: {new Date(toolState.lastUpdated).toLocaleString(locale)}
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    // Fallback - no tool data
     return (
       <div className="rounded-2xl bg-white p-6 shadow-lg">
         <h3 className="mb-4 text-xl font-bold text-gray-900">
           {t("tasks:completion_details")}
         </h3>
-        <pre className="overflow-auto rounded-lg bg-gray-50 p-4 text-sm">
-          {JSON.stringify(selectedCompletion.detailed_data, null, 2)}
-        </pre>
+        <p className="text-gray-600">{t("tasks:no_details_available")}</p>
       </div>
     );
   };

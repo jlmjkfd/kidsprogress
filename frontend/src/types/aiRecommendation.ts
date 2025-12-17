@@ -18,16 +18,28 @@ export interface ScheduleConflict {
   conflicting_item?: Record<string, unknown>;
 }
 
-export interface TaskRecommendation {
-  suggested_task: Task;
+export interface SingleTaskRecommendation {
+  task: Task;
   reasoning: string;
   priority_score: number; // 0-100
   estimated_minutes: number;
+}
+
+export interface TaskRecommendation {
+  tasks: SingleTaskRecommendation[]; // 1-3 recommended tasks
+  overall_reasoning: string;
   break_suggested: boolean;
   break_duration_minutes: number;
-  alternatives: Task[];
   conflicts: ScheduleConflict[];
   confidence: number; // 0-1
+  valid_until?: string; // ISO datetime - cache validity
+
+  // Backward compatibility
+  suggested_task?: Task; // First task
+  reasoning?: string; // Overall reasoning
+  priority_score?: number; // First task priority
+  estimated_minutes?: number; // First task estimated minutes
+  alternatives?: Task[]; // Tasks 2 and 3
 }
 
 export interface ReplanChange {

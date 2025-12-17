@@ -19,13 +19,23 @@ export const useTasksByCollection = (collectionId: string, status?: TaskStatus) 
   });
 };
 
-export const useTasksByChild = (childId: string, status?: TaskStatus) => {
+export const useTasksByChild = (
+  childId: string,
+  status?: TaskStatus,
+  startDate?: string,
+  endDate?: string
+) => {
   return useQuery({
-    queryKey: ["tasks", "child", childId, status],
+    queryKey: ["tasks", "child", childId, status, startDate, endDate],
     queryFn: async () => {
+      const params: Record<string, string> = {};
+      if (status) params.status = status;
+      if (startDate) params.start_date = startDate;
+      if (endDate) params.end_date = endDate;
+
       const response = await apiClient.get<Task[]>(
         `/api/tasks/child/${childId}`,
-        { params: status ? { status } : {} }
+        { params }
       );
       return response.data;
     },

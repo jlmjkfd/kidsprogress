@@ -6,6 +6,7 @@ the main business logic decoupled and testable.
 
 import logging
 from motor.motor_asyncio import AsyncIOMotorDatabase
+from bson import ObjectId
 from backend.services.event_bus.events import (
     TaskStarted, TaskCompleted, TaskPaused, TaskResumed, TaskSkipped
 )
@@ -35,8 +36,8 @@ class SessionHandler:
         """
         try:
             await self.sessions_collection.insert_one({
-                "task_id": event.task_id,
-                "child_id": event.child_id,
+                "task_id": ObjectId(event.task_id),
+                "child_id": ObjectId(event.child_id),
                 "started_at": event.timestamp,
             })
             logger.info(f"Created session for task {event.task_id}")
@@ -55,7 +56,7 @@ class SessionHandler:
         """
         try:
             result = await self.sessions_collection.delete_one({
-                "task_id": event.task_id
+                "task_id": ObjectId(event.task_id)
             })
             logger.info(
                 f"Removed session for task {event.task_id} "
@@ -76,7 +77,7 @@ class SessionHandler:
         """
         try:
             result = await self.sessions_collection.delete_one({
-                "task_id": event.task_id
+                "task_id": ObjectId(event.task_id)
             })
             logger.info(
                 f"Removed session for task {event.task_id} (paused) "
@@ -97,8 +98,8 @@ class SessionHandler:
         """
         try:
             await self.sessions_collection.insert_one({
-                "task_id": event.task_id,
-                "child_id": event.child_id,
+                "task_id": ObjectId(event.task_id),
+                "child_id": ObjectId(event.child_id),
                 "started_at": event.timestamp,
             })
             logger.info(f"Created session for resumed task {event.task_id}")
@@ -117,7 +118,7 @@ class SessionHandler:
         """
         try:
             result = await self.sessions_collection.delete_one({
-                "task_id": event.task_id
+                "task_id": ObjectId(event.task_id)
             })
             logger.info(
                 f"Removed session for task {event.task_id} (skipped) "

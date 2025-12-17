@@ -39,6 +39,8 @@ export interface AdditionSubtractionExecution {
   has_timer: boolean;
   /** Optional: for resume functionality */
   answers?: Record<string, number>;
+  /** Optional: saved timer value for resume functionality */
+  total_time_seconds?: number;
 }
 
 /**

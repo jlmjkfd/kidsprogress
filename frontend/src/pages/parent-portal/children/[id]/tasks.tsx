@@ -241,10 +241,11 @@ export default function ChildTasksPage() {
     // Close the occurrence modal first
     setEditingOccurrence(null);
 
-    // Find the template in the tasks list
+    // Find the template in the tasks list by _id
     const template = tasks?.find(
       (t) => t._id === templateId && t.is_recurring && !t.is_virtual
     );
+
     if (template) {
       setEditingTask(template);
     }

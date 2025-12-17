@@ -54,12 +54,25 @@ async def get_tasks_by_collection(
 async def get_tasks_by_child(
     child_id: str,
     status: Optional[TaskStatus] = Query(None, description="Filter by task status"),
+    start_date: Optional[str] = Query(None, description="Start date (YYYY-MM-DD)"),
+    end_date: Optional[str] = Query(None, description="End date (YYYY-MM-DD)"),
     current_user: User = Depends(get_current_user),
     service: TaskService = Depends(get_task_service),
 ):
-    """Get all tasks for a child (includes virtual instances and templates as dicts)."""
+    """Get tasks for a child (includes virtual instances). Defaults to 30 days ago to 60 days ahead."""
+    from datetime import datetime
     try:
-        return await service.get_tasks_by_child(child_id, str(current_user.id), status)
+        # Parse dates if provided
+        parsed_start = datetime.fromisoformat(start_date).date() if start_date else None
+        parsed_end = datetime.fromisoformat(end_date).date() if end_date else None
+
+        return await service.get_tasks_by_child(
+            child_id,
+            str(current_user.id),
+            status,
+            start_date=parsed_start,
+            end_date=parsed_end
+        )
     except ValueError as e:
         if "not found" in str(e).lower():
             raise not_found(str(e))

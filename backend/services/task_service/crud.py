@@ -436,9 +436,16 @@ class TaskCRUD:
 
                     tasks.append(instance_data)
 
-        # Note: We do NOT add recurring templates to the list anymore.
-        # They are just definitions - only virtual instances should be shown to users.
-        # Templates can be edited separately via the template edit UI.
+        # Add recurring templates to the list so frontend can edit them
+        # Frontend needs access to templates to support "Edit all occurrences" workflow
+        for template in recurring_templates:
+            template_dict = template.model_dump(mode='json', by_alias=True)
+            # Ensure _id is a string
+            if "_id" in template_dict and not isinstance(template_dict["_id"], str):
+                template_dict["_id"] = str(template_dict["_id"])
+            # Mark as not virtual (templates are real tasks, not virtual instances)
+            template_dict["is_virtual"] = False
+            tasks.append(template_dict)
 
         # Sort by scheduled_date
         # All items are now dicts (both templates and virtual instances)
@@ -569,8 +576,8 @@ class TaskCRUD:
 
         # Process recurring task groups
         for source_id, instances in recurring_groups.items():
-            # Sort instances by date
-            instances.sort(key=lambda t: t.get("scheduled_date", ""))
+            # Sort instances by date (parse to handle both string and datetime types)
+            instances.sort(key=lambda t: parse_date(t.get("scheduled_date")) or date.min)
 
             # Filter out dates that have completions
             source_id_obj = None
