@@ -38,23 +38,10 @@ export enum ObligationLevel {
   OPTIONAL = "optional",
 }
 
-export enum ActivationType {
-  MANUAL = "manual",
-  DATE_BASED = "date_based",
-  DEPENDENCY = "dependency",
-}
-
 export enum MediaPurpose {
   WORK_SUBMISSION = "work_submission",
   MOMENT = "moment",
   PROGRESS_PHOTO = "progress_photo",
-}
-
-export enum EvaluationMethod {
-  AI_EVALUATION = "ai_evaluation",
-  PARENT_REVIEW = "parent_review",
-  SELF_ASSESSMENT = "self_assessment",
-  NONE = "none",
 }
 
 // ==================== Task Metadata ====================
@@ -185,12 +172,6 @@ export interface TaskSourceMetadata {
   recurrence_info?: string;
 }
 
-export interface ActivationRule {
-  activation_type: ActivationType;
-  activate_on?: string; // ISO datetime
-  depends_on_task_id?: string;
-}
-
 export interface TaskConstraints {
   available_from?: string; // ISO datetime
   available_until?: string; // ISO datetime
@@ -206,22 +187,6 @@ export interface RecurrenceException {
   date: string; // YYYY-MM-DD
   type: "deleted" | "modified";
   overrides?: Record<string, any>; // Fields to override
-}
-
-export interface QuantifiableMetric {
-  metric_type_code: string;
-  target_value?: number;
-  actual_value?: number;
-  unit?: string;
-}
-
-export interface QualityAspect {
-  name: string;
-  description?: string;
-  evaluation_method: EvaluationMethod;
-  criteria?: string;
-  rating?: number; // 1-5
-  feedback?: string;
 }
 
 export interface MediaAttachment {
@@ -243,8 +208,6 @@ export interface ToolUsage {
 
 export interface AIGeneratedAttributes {
   suggested_task_type?: string;
-  suggested_metrics: QuantifiableMetric[];
-  suggested_quality_aspects: QualityAspect[];
   suggested_tools: string[];
   estimated_duration_minutes?: number;
   difficulty_level?: number; // 1-5
@@ -309,19 +272,13 @@ export interface Task {
   // Blocking & Interruption (Unified Model - replaces TimeBlock)
   is_informational: boolean; // Informational tasks (school time, sleep) - no start/complete buttons
   blocks_other_tasks: boolean;
-  can_be_interrupted: boolean;
-  can_be_split: boolean;
-  min_session_duration?: number;
 
   // Pool / Activity (Unified Model - replaces Activity)
   is_in_pool: boolean;
   pool_usage_rules?: PoolUsageRules;
 
   // Rollover tracking (Enhanced)
-  original_date?: string;
-  rollover_count: number;
   is_in_backlog: boolean;
-  is_delayed: boolean;
 
   // Kids create tasks support
   created_by: string; // "PARENT" or "CHILD"
@@ -329,7 +286,6 @@ export interface Task {
 
   // Concurrent task support (Enhanced)
   concurrent_allowed: boolean;
-  concurrent_compatible_with: string[];
 
   // Priority (Enhanced)
   priority_boost: number;
@@ -337,12 +293,7 @@ export interface Task {
 
   // Lifecycle
   status: TaskStatus;
-  activation_rule?: ActivationRule;
   constraints?: TaskConstraints;
-
-  // Evaluation
-  metrics: QuantifiableMetric[];
-  quality_aspects: QualityAspect[];
 
   // Media & Tools
   attachments: MediaAttachment[];
@@ -357,7 +308,6 @@ export interface Task {
   // Timestamps
   created_at: string;
   updated_at: string;
-  activated_at?: string;
   started_at?: string;
   completed_at?: string;
 
@@ -397,9 +347,6 @@ export interface TaskCreate {
   // Blocking & Interruption
   is_informational?: boolean;
   blocks_other_tasks?: boolean;
-  can_be_interrupted?: boolean;
-  can_be_split?: boolean;
-  min_session_duration?: number;
 
   // Pool / Activity
   is_in_pool?: boolean;
@@ -411,10 +358,7 @@ export interface TaskCreate {
   progress_state?: Record<string, any>;
 
   // Existing fields
-  activation_rule?: ActivationRule;
   constraints?: TaskConstraints;
-  metrics?: QuantifiableMetric[];
-  quality_aspects?: QualityAspect[];
   tools?: ToolUsage[];
   subtasks?: Subtask[];
 }
@@ -447,9 +391,6 @@ export interface TaskUpdate {
   // Blocking & Interruption
   is_informational?: boolean;
   blocks_other_tasks?: boolean;
-  can_be_interrupted?: boolean;
-  can_be_split?: boolean;
-  min_session_duration?: number;
 
   // Pool / Activity
   is_in_pool?: boolean;
@@ -461,10 +402,7 @@ export interface TaskUpdate {
   progress_state?: Record<string, any>;
 
   // Existing fields
-  activation_rule?: ActivationRule;
   constraints?: TaskConstraints;
-  metrics?: QuantifiableMetric[];
-  quality_aspects?: QualityAspect[];
   tools?: ToolUsage[];
   subtasks?: Subtask[];
 }

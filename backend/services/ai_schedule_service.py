@@ -525,8 +525,8 @@ class AIScheduleService:
                 # Fixed time tasks are generally less suitable for advance completion
                 # unless they're flexible activities (like reading, practice)
                 if task_type == "fixed":
-                    # Check if it's a flexible activity type
-                    if task.can_be_interrupted or task.obligation_level == ObligationLevel.OPTIONAL:
+                    # Check if it's a flexible activity type (optional tasks are more flexible)
+                    if task.obligation_level == ObligationLevel.OPTIONAL:
                         suitable_advance_tasks.append((task, scheduled_time, minutes_until, 60.0))
                 else:
                     # Time window tasks are more suitable for advance completion

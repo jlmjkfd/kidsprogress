@@ -42,26 +42,11 @@ class ObligationLevel(str, Enum):
     OPTIONAL = "optional"  # Nice to have
 
 
-class ActivationType(str, Enum):
-    """How the task becomes available."""
-    MANUAL = "manual"  # Parent manually activates
-    DATE_BASED = "date_based"  # Activates on specific date/time
-    DEPENDENCY = "dependency"  # Activates when another task completes
-
-
 class MediaPurpose(str, Enum):
     """Purpose of media attachment."""
     WORK_SUBMISSION = "work_submission"  # Requires evaluation
     MOMENT = "moment"  # Just recording the moment
     PROGRESS_PHOTO = "progress_photo"  # Track progress over time
-
-
-class EvaluationMethod(str, Enum):
-    """How to evaluate quality aspects."""
-    AI_EVALUATION = "ai_evaluation"  # LLM evaluates
-    PARENT_REVIEW = "parent_review"  # Parent manually reviews
-    SELF_ASSESSMENT = "self_assessment"  # Child self-evaluates
-    NONE = "none"  # No evaluation needed
 
 
 # Sub-models
@@ -102,13 +87,6 @@ class TaskSourceMetadata(BaseModel):
     recurrence_info: Optional[str] = None  # Human-readable recurrence
 
 
-class ActivationRule(BaseModel):
-    """Rules for when task becomes available."""
-    activation_type: ActivationType
-    activate_on: Optional[datetime] = None  # For date_based
-    depends_on_task_id: Optional[str] = None  # For dependency
-
-
 class TaskConstraints(BaseModel):
     """Temporal and dependency constraints."""
     available_from: Optional[datetime] = None  # Can't start before this
@@ -126,24 +104,6 @@ class RecurrenceException(BaseModel):
     date: str  # YYYY-MM-DD format
     type: str  # "deleted" or "modified"
     overrides: Optional[Dict[str, Any]] = None  # Fields to override (e.g., {"fixed_time_slot": {...}})
-
-
-class QuantifiableMetric(BaseModel):
-    """Quantifiable metric for task."""
-    metric_type_code: str  # Reference to MetricTypeDefinition
-    target_value: Optional[float] = None  # e.g., 20 pages
-    actual_value: Optional[float] = None  # Filled when completed
-    unit: Optional[str] = None  # From metric type, cached here
-
-
-class QualityAspect(BaseModel):
-    """Quality aspect for subjective evaluation."""
-    name: str  # e.g., "Handwriting Quality", "Problem-Solving Approach"
-    description: Optional[str] = None
-    evaluation_method: EvaluationMethod
-    criteria: Optional[str] = None  # What to look for
-    rating: Optional[int] = None  # 1-5 stars, filled when evaluated
-    feedback: Optional[str] = None  # Written feedback
 
 
 class MediaAttachment(BaseModel):
@@ -168,8 +128,6 @@ class ToolUsage(BaseModel):
 class AIGeneratedAttributes(BaseModel):
     """AI-suggested attributes (editable by parent)."""
     suggested_task_type: Optional[str] = None
-    suggested_metrics: List[QuantifiableMetric] = []
-    suggested_quality_aspects: List[QualityAspect] = []
     suggested_tools: List[str] = []
     estimated_duration_minutes: Optional[int] = None
     difficulty_level: Optional[int] = None  # 1-5
@@ -235,19 +193,13 @@ class Task(BaseModel):
     # Blocking & Interruption (Unified Model - replaces TimeBlock)
     is_informational: bool = False  # NEW: Informational tasks (school time, sleep) - no start/complete buttons
     blocks_other_tasks: bool = False  # True for time blocks (school, lessons)
-    can_be_interrupted: bool = True  # False for critical tasks
-    can_be_split: bool = False  # Can task be done in multiple sessions?
-    min_session_duration: Optional[int] = None  # Minimum chunk size in minutes
 
     # Pool / Activity Rules (Unified Model - replaces Activity model)
     is_in_pool: bool = False  # True for activity pool tasks
     pool_usage_rules: Optional[PoolUsageRules] = None  # Usage limits and rules
 
     # Rollover tracking (Enhanced)
-    original_date: Optional[datetime] = None  # Original scheduled date
-    rollover_count: int = 0
     is_in_backlog: bool = False
-    is_delayed: bool = False
 
     # Kids create tasks support
     created_by: str = "PARENT"  # "PARENT" or "CHILD"
@@ -255,7 +207,6 @@ class Task(BaseModel):
 
     # Concurrent task support (Enhanced)
     concurrent_allowed: bool = False
-    concurrent_compatible_with: List[str] = []  # Task type codes
 
     # Priority (Enhanced)
     priority_boost: int = Field(default=0, ge=-5, le=5)  # Manual priority adjustment
@@ -263,12 +214,7 @@ class Task(BaseModel):
 
     # Lifecycle
     status: TaskStatus = TaskStatus.PENDING
-    activation_rule: Optional[ActivationRule] = None
     constraints: Optional[TaskConstraints] = None
-
-    # Evaluation
-    metrics: List[QuantifiableMetric] = []
-    quality_aspects: List[QualityAspect] = []
 
     # Media & Tools
     attachments: List[MediaAttachment] = []
@@ -283,7 +229,6 @@ class Task(BaseModel):
     # Timestamps
     created_at: datetime = Field(default_factory=utcnow)
     updated_at: datetime = Field(default_factory=utcnow)
-    activated_at: Optional[datetime] = None
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
 
@@ -313,10 +258,7 @@ class Task(BaseModel):
             elif hours_until < 48:
                 base += 20
 
-        # 4. Rollover penalty
-        base -= (self.rollover_count * 10)
-
-        # 5. Manual boost
+        # 4. Manual boost
         base += (self.priority_boost * 5)
 
         return base
@@ -359,9 +301,6 @@ class TaskCreate(BaseModel):
     # Blocking & Interruption
     is_informational: bool = False
     blocks_other_tasks: bool = False
-    can_be_interrupted: bool = True
-    can_be_split: bool = False
-    min_session_duration: Optional[int] = None
 
     # Pool / Activity
     is_in_pool: bool = False
@@ -377,10 +316,7 @@ class TaskCreate(BaseModel):
     progress_state: Optional[Dict[str, Any]] = None
 
     # Existing fields
-    activation_rule: Optional[ActivationRule] = None
     constraints: Optional[TaskConstraints] = None
-    metrics: List[QuantifiableMetric] = []
-    quality_aspects: List[QualityAspect] = []
     tools: List[ToolUsage] = []
     subtasks: List[Subtask] = []
 
@@ -414,9 +350,6 @@ class TaskUpdate(BaseModel):
     # Blocking & Interruption
     is_informational: Optional[bool] = None
     blocks_other_tasks: Optional[bool] = None
-    can_be_interrupted: Optional[bool] = None
-    can_be_split: Optional[bool] = None
-    min_session_duration: Optional[int] = None
 
     # Pool / Activity
     is_in_pool: Optional[bool] = None
@@ -432,10 +365,7 @@ class TaskUpdate(BaseModel):
     progress_state: Optional[Dict[str, Any]] = None
 
     # Existing fields
-    activation_rule: Optional[ActivationRule] = None
     constraints: Optional[TaskConstraints] = None
-    metrics: Optional[List[QuantifiableMetric]] = None
-    quality_aspects: Optional[List[QualityAspect]] = None
     tools: Optional[List[ToolUsage]] = None
     subtasks: Optional[List[Subtask]] = None
 
