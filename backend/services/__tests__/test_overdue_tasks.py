@@ -128,7 +128,7 @@ async def sample_tasks(test_db, sample_parent, sample_child):
             "parent_id": sample_parent.id,
             "title": "Overdue Optional",
             "scheduled_date": yesterday,
-            "status": TaskStatus.PAUSED.value,
+            "status": TaskStatus.PENDING.value,
             "obligation_level": ObligationLevel.OPTIONAL.value,
             "is_informational": False,
             "is_recurring": False,

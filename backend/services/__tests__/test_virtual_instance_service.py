@@ -752,36 +752,6 @@ class TestVirtualTaskFields:
             assert instance["obligation_level"] == "must_do"
 
     @pytest.mark.asyncio
-    async def test_virtual_task_inherits_metrics(
-        self, sample_collection, sample_child, sample_parent
-    ):
-        """Test virtual task inherits metrics from template."""
-        from models.task import QuantifiableMetric
-
-        template = create_recurring_task_template(
-            collection_id=sample_collection["_id"],
-            child_id=sample_child["_id"],
-            parent_id=sample_parent["_id"],
-            metrics=[
-                QuantifiableMetric(
-                    metric_type_code="pages_read",
-                    target_value=20.0,
-                    unit="pages"
-                )
-            ],
-            recurrence_pattern="FREQ=DAILY;COUNT=2",
-            scheduled_date=datetime(2025, 12, 10)
-        )
-
-        instances = await VirtualInstanceService.expand_recurring_task(
-            template, date(2025, 12, 10), date(2025, 12, 15)
-        )
-
-        for instance in instances:
-            assert len(instance["metrics"]) == 1
-            assert instance["metrics"][0]["metric_type_code"] == "pages_read"
-
-    @pytest.mark.asyncio
     async def test_virtual_task_inherits_tools(
         self, sample_collection, sample_child, sample_parent
     ):

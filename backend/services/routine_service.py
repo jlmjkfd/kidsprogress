@@ -54,8 +54,6 @@ class RoutineService:
             priority_boost=data.priority_boost,
             concurrent_allowed=data.concurrent_allowed,
             concurrent_compatible_with=data.concurrent_compatible_with,
-            metrics=data.metrics,
-            quality_aspects=data.quality_aspects,
             tools=data.tools,
             subtasks=data.subtasks,
         )
@@ -219,8 +217,6 @@ class RoutineService:
             "priority_boost": routine.priority_boost,
             "concurrent_allowed": routine.concurrent_allowed,
             "concurrent_compatible_with": routine.concurrent_compatible_with or [],
-            "metrics": [m.model_dump() if hasattr(m, 'model_dump') else m for m in routine.metrics] if routine.metrics else [],
-            "quality_aspects": [q.model_dump() if hasattr(q, 'model_dump') else q for q in routine.quality_aspects] if routine.quality_aspects else [],
             "tools": [t.model_dump() if hasattr(t, 'model_dump') else t for t in routine.tools] if routine.tools else [],
             "subtasks": [s.model_dump(by_alias=True) if hasattr(s, 'model_dump') else s for s in routine.subtasks] if routine.subtasks else [],
             "status": TaskStatus.PENDING.value,

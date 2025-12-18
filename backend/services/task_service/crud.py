@@ -96,9 +96,6 @@ class TaskCRUD:
             # Blocking & Interruption (Unified Model - replaces TimeBlock)
             "is_informational": task_data.is_informational if task_data.is_informational is not None else False,
             "blocks_other_tasks": task_data.blocks_other_tasks,
-            "can_be_interrupted": task_data.can_be_interrupted,
-            "can_be_split": task_data.can_be_split,
-            "min_session_duration": task_data.min_session_duration,
 
             # Pool / Activity (Unified Model - replaces Activity)
             "is_in_pool": task_data.is_in_pool,
@@ -125,8 +122,6 @@ class TaskCRUD:
 
             "status": TaskStatus.PENDING.value,
             "constraints": task_data.constraints.model_dump() if task_data.constraints else None,
-            "pause_history": [],
-            "current_pause": None,
             "attachments": [],
             "tools": [t.model_dump() for t in task_data.tools],
             "ai_attributes": None,
@@ -905,12 +900,6 @@ class TaskCRUD:
             update_doc["is_informational"] = task_data.is_informational
         if task_data.blocks_other_tasks is not None:
             update_doc["blocks_other_tasks"] = task_data.blocks_other_tasks
-        if task_data.can_be_interrupted is not None:
-            update_doc["can_be_interrupted"] = task_data.can_be_interrupted
-        if task_data.can_be_split is not None:
-            update_doc["can_be_split"] = task_data.can_be_split
-        if task_data.min_session_duration is not None:
-            update_doc["min_session_duration"] = task_data.min_session_duration
 
         # Pool / Activity (Unified Model)
         if task_data.is_in_pool is not None:
@@ -924,14 +913,8 @@ class TaskCRUD:
         if task_data.priority_boost is not None:
             update_doc["priority_boost"] = task_data.priority_boost
 
-        if task_data.activation_rule is not None:
-            update_doc["activation_rule"] = task_data.activation_rule.model_dump()
         if task_data.constraints is not None:
             update_doc["constraints"] = task_data.constraints.model_dump()
-        if task_data.metrics is not None:
-            update_doc["metrics"] = [m.model_dump() for m in task_data.metrics]
-        if task_data.quality_aspects is not None:
-            update_doc["quality_aspects"] = [q.model_dump() for q in task_data.quality_aspects]
         if task_data.tools is not None:
             update_doc["tools"] = [t.model_dump() for t in task_data.tools]
         if task_data.subtasks is not None:

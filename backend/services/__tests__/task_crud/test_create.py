@@ -15,8 +15,7 @@ from bson import ObjectId
 
 from models.task import (
     TaskCreate, TaskStatus, ObligationLevel, TaskSource, SchedulingType,
-    TimeSlot, TimeWindow, DeadlineType, ActivationRule, ActivationType,
-    TaskConstraints, QuantifiableMetric, QualityAspect, EvaluationMethod,
+    TimeSlot, TimeWindow, DeadlineType, TaskConstraints,
     ToolUsage, Subtask, PoolUsageRules
 )
 from utils.datetime_utils import utcnow
@@ -242,32 +241,6 @@ class TestCreateTask:
             assert task.priority_boost == boost
 
     @pytest.mark.asyncio
-    async def test_create_task_with_activation_rule(
-        self, task_service, sample_parent, sample_child, sample_collection
-    ):
-        """Test creating task with activation rules."""
-        activation_date = datetime.now() + timedelta(days=2)
-
-        task_data = TaskCreate(
-            collection_id=str(sample_collection["_id"]),
-            child_id=str(sample_child.id),
-            title="Future task",
-            scheduled_date=datetime.now() + timedelta(days=3),
-            activation_rule=ActivationRule(
-                activation_type=ActivationType.DATE_BASED,
-                activate_on=activation_date
-            )
-        )
-
-        task = await task_service.crud.create_task(
-            parent_id=str(sample_parent.id),
-            task_data=task_data
-        )
-
-        assert task.activation_rule is not None
-        assert task.activation_rule.activation_type == ActivationType.DATE_BASED
-
-    @pytest.mark.asyncio
     async def test_create_task_with_constraints(
         self, task_service, sample_parent, sample_child, sample_collection
     ):
@@ -294,74 +267,6 @@ class TestCreateTask:
         assert task.constraints is not None
         assert task.constraints.cannot_start_before_time == "08:00"
         assert task.constraints.cannot_start_after_time == "18:00"
-
-    @pytest.mark.asyncio
-    async def test_create_task_with_metrics(
-        self, task_service, sample_parent, sample_child, sample_collection
-    ):
-        """Test creating task with quantifiable metrics."""
-        task_data = TaskCreate(
-            collection_id=str(sample_collection["_id"]),
-            child_id=str(sample_child.id),
-            title="Reading task",
-            scheduled_date=datetime.now() + timedelta(days=1),
-            metrics=[
-                QuantifiableMetric(
-                    metric_type_code="pages_read",
-                    target_value=20.0,
-                    unit="pages"
-                ),
-                QuantifiableMetric(
-                    metric_type_code="reading_time",
-                    target_value=30.0,
-                    unit="minutes"
-                )
-            ]
-        )
-
-        task = await task_service.crud.create_task(
-            parent_id=str(sample_parent.id),
-            task_data=task_data
-        )
-
-        assert len(task.metrics) == 2
-        assert task.metrics[0].metric_type_code == "pages_read"
-        assert task.metrics[0].target_value == 20.0
-        assert task.metrics[1].metric_type_code == "reading_time"
-
-    @pytest.mark.asyncio
-    async def test_create_task_with_quality_aspects(
-        self, task_service, sample_parent, sample_child, sample_collection
-    ):
-        """Test creating task with quality aspects for evaluation."""
-        task_data = TaskCreate(
-            collection_id=str(sample_collection["_id"]),
-            child_id=str(sample_child.id),
-            title="Writing assignment",
-            scheduled_date=datetime.now() + timedelta(days=1),
-            quality_aspects=[
-                QualityAspect(
-                    name="Handwriting Quality",
-                    description="Neatness and legibility",
-                    evaluation_method=EvaluationMethod.PARENT_REVIEW,
-                    criteria="Check for consistent letter size and spacing"
-                ),
-                QualityAspect(
-                    name="Grammar",
-                    evaluation_method=EvaluationMethod.AI_EVALUATION
-                )
-            ]
-        )
-
-        task = await task_service.crud.create_task(
-            parent_id=str(sample_parent.id),
-            task_data=task_data
-        )
-
-        assert len(task.quality_aspects) == 2
-        assert task.quality_aspects[0].name == "Handwriting Quality"
-        assert task.quality_aspects[0].evaluation_method == EvaluationMethod.PARENT_REVIEW
-        assert task.quality_aspects[1].evaluation_method == EvaluationMethod.AI_EVALUATION
 
     @pytest.mark.asyncio
     async def test_create_task_with_tools(
@@ -441,50 +346,6 @@ class TestCreateTask:
 
         assert task.is_informational is True
         assert task.blocks_other_tasks is True
-
-    @pytest.mark.asyncio
-    async def test_create_task_blocking_non_interruptible(
-        self, task_service, sample_parent, sample_child, sample_collection
-    ):
-        """Test creating blocking, non-interruptible task."""
-        task_data = TaskCreate(
-            collection_id=str(sample_collection["_id"]),
-            child_id=str(sample_child.id),
-            title="Important lesson",
-            scheduled_date=datetime.now() + timedelta(days=1),
-            blocks_other_tasks=True,
-            can_be_interrupted=False
-        )
-
-        task = await task_service.crud.create_task(
-            parent_id=str(sample_parent.id),
-            task_data=task_data
-        )
-
-        assert task.blocks_other_tasks is True
-        assert task.can_be_interrupted is False
-
-    @pytest.mark.asyncio
-    async def test_create_task_splittable(
-        self, task_service, sample_parent, sample_child, sample_collection
-    ):
-        """Test creating task that can be split into multiple sessions."""
-        task_data = TaskCreate(
-            collection_id=str(sample_collection["_id"]),
-            child_id=str(sample_child.id),
-            title="Long assignment",
-            scheduled_date=datetime.now() + timedelta(days=1),
-            can_be_split=True,
-            min_session_duration=15
-        )
-
-        task = await task_service.crud.create_task(
-            parent_id=str(sample_parent.id),
-            task_data=task_data
-        )
-
-        assert task.can_be_split is True
-        assert task.min_session_duration == 15
 
     @pytest.mark.asyncio
     async def test_create_task_in_pool(
@@ -596,18 +457,11 @@ class TestCreateTask:
         assert task.is_recurring is False
         assert task.is_informational is False
         assert task.blocks_other_tasks is False
-        assert task.can_be_interrupted is True
-        assert task.can_be_split is False
         assert task.is_in_pool is False
-        assert task.rollover_count == 0
         assert task.is_in_backlog is False
-        assert task.is_delayed is False
         assert task.concurrent_allowed is False
         assert task.priority_boost == 0
         assert task.completion_count == 0
-        assert len(task.pause_history) == 0
-        assert len(task.metrics) == 0
-        assert len(task.quality_aspects) == 0
         assert len(task.attachments) == 0
         assert len(task.tools) == 0
         assert len(task.subtasks) == 0

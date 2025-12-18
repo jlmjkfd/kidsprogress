@@ -457,19 +457,6 @@ class TestMaterializeVirtualTask:
 
         # Add complex fields to virtual data
         virtual_data["fixed_time_slot"] = {"start": "14:00", "end": "15:00"}
-        virtual_data["metrics"] = [
-            {
-                "metric_type_code": "pages",
-                "target_value": 20.0,
-                "unit": "pages"
-            }
-        ]
-        virtual_data["quality_aspects"] = [
-            {
-                "name": "Handwriting",
-                "evaluation_method": "parent_review"
-            }
-        ]
 
         materialized = await materialization_service.materialize_virtual_task(
             virtual_id, virtual_data
@@ -480,8 +467,6 @@ class TestMaterializeVirtualTask:
         assert materialized.description == "Do complex work"
         assert materialized.estimated_duration_minutes == 60
         assert materialized.fixed_time_slot is not None
-        assert len(materialized.metrics) == 1
-        assert len(materialized.quality_aspects) == 1
 
     @pytest.mark.asyncio
     async def test_materialized_task_can_be_modified_independently(
@@ -1035,54 +1020,6 @@ class TestEdgeCases:
         )
 
         assert materialized.execution_config == template.execution_config
-
-    @pytest.mark.asyncio
-    async def test_materialize_virtual_with_metrics_and_quality_aspects(
-        self, test_db, materialization_service, sample_collection, sample_child, sample_parent
-    ):
-        """Test materialize virtual with metrics/quality_aspects."""
-        template = create_recurring_task_template(
-            collection_id=sample_collection["_id"],
-            child_id=sample_child["_id"],
-            parent_id=sample_parent["_id"],
-            metrics=[
-                QuantifiableMetric(
-                    metric_type_code="pages",
-                    target_value=20.0,
-                    unit="pages"
-                )
-            ],
-            quality_aspects=[
-                QualityAspect(
-                    name="Handwriting",
-                    evaluation_method=EvaluationMethod.PARENT_REVIEW
-                )
-            ]
-        )
-        await create_template_in_db(test_db, template)
-
-        virtual_id = f"{template.id}_2025-12-15"
-        virtual_data = create_virtual_task_data(template, "2025-12-15")
-        virtual_data["metrics"] = [
-            {
-                "metric_type_code": "pages",
-                "target_value": 20.0,
-                "unit": "pages"
-            }
-        ]
-        virtual_data["quality_aspects"] = [
-            {
-                "name": "Handwriting",
-                "evaluation_method": "parent_review"
-            }
-        ]
-
-        materialized = await materialization_service.materialize_virtual_task(
-            virtual_id, virtual_data
-        )
-
-        assert len(materialized.metrics) == 1
-        assert len(materialized.quality_aspects) == 1
 
     @pytest.mark.asyncio
     async def test_virtual_id_with_edge_date_year_boundary(

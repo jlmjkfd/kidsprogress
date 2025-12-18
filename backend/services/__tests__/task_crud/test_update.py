@@ -18,8 +18,7 @@ from bson import ObjectId
 
 from models.task import (
     TaskUpdate, TaskStatus, ObligationLevel, SchedulingType, TimeSlot,
-    DeadlineType, PoolUsageRules, QuantifiableMetric, QualityAspect,
-    EvaluationMethod, ToolUsage, Subtask
+    DeadlineType, PoolUsageRules, ToolUsage, Subtask
 )
 from utils.datetime_utils import utcnow
 
@@ -136,8 +135,7 @@ class TestUpdateTask:
         """Test updating blocking and interruption fields."""
         update_data = TaskUpdate(
             is_informational=True,
-            blocks_other_tasks=True,
-            can_be_interrupted=False
+            blocks_other_tasks=True
         )
 
         updated_task = await task_service.crud.update_task(
@@ -148,7 +146,6 @@ class TestUpdateTask:
 
         assert updated_task.is_informational is True
         assert updated_task.blocks_other_tasks is True
-        assert updated_task.can_be_interrupted is False
 
     @pytest.mark.asyncio
     async def test_update_task_pool_fields(
@@ -172,53 +169,6 @@ class TestUpdateTask:
         assert updated_task.is_in_pool is True
         assert updated_task.pool_usage_rules is not None
         assert updated_task.pool_usage_rules.max_times_per_day == 3
-
-    @pytest.mark.asyncio
-    async def test_update_task_metrics(
-        self, task_service, sample_parent, sample_task
-    ):
-        """Test updating task metrics."""
-        update_data = TaskUpdate(
-            metrics=[
-                QuantifiableMetric(
-                    metric_type_code="problems_solved",
-                    target_value=15.0,
-                    unit="problems"
-                )
-            ]
-        )
-
-        updated_task = await task_service.crud.update_task(
-            task_id=str(sample_task["_id"]),
-            parent_id=str(sample_parent.id),
-            task_data=update_data
-        )
-
-        assert len(updated_task.metrics) == 1
-        assert updated_task.metrics[0].metric_type_code == "problems_solved"
-
-    @pytest.mark.asyncio
-    async def test_update_task_quality_aspects(
-        self, task_service, sample_parent, sample_task
-    ):
-        """Test updating quality aspects."""
-        update_data = TaskUpdate(
-            quality_aspects=[
-                QualityAspect(
-                    name="Accuracy",
-                    evaluation_method=EvaluationMethod.AI_EVALUATION
-                )
-            ]
-        )
-
-        updated_task = await task_service.crud.update_task(
-            task_id=str(sample_task["_id"]),
-            parent_id=str(sample_parent.id),
-            task_data=update_data
-        )
-
-        assert len(updated_task.quality_aspects) == 1
-        assert updated_task.quality_aspects[0].name == "Accuracy"
 
     @pytest.mark.asyncio
     async def test_update_task_tools(

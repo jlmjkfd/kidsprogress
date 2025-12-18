@@ -726,8 +726,8 @@ async def test_create_task_from_activity_preserves_scheduling_type(activity_serv
 
 
 @pytest.mark.asyncio
-async def test_create_task_from_activity_preserves_metrics_quality_tools_subtasks(activity_service: ActivityService, test_db, sample_parent, sample_child, sample_collection):
-    """Test that metrics, quality_aspects, tools, and subtasks are preserved."""
+async def test_create_task_from_activity_preserves_tools_subtasks(activity_service: ActivityService, test_db, sample_parent, sample_child, sample_collection):
+    """Test that tools and subtasks are preserved."""
     # Create activity with these fields
     activity_data = {
         "_id": ObjectId(),
@@ -739,8 +739,6 @@ async def test_create_task_from_activity_preserves_metrics_quality_tools_subtask
         "description": "Test",
         "task_type_code": "study",
         "scheduling_type": "flexible",
-        "metrics": [{"metric_name": "score", "metric_type_code": "numerical", "unit": "points", "target_value": 90.0}],
-        "quality_aspects": [{"name": "accuracy", "description": "90% correct", "evaluation_method": "self_assessment"}],
         "tools": [{"tool_name": "calculator", "tool_code": "calc", "quantity": 1}],
         "subtasks": [{"title": "Review chapter", "order": 1}],
         "is_active": True,
@@ -753,8 +751,6 @@ async def test_create_task_from_activity_preserves_metrics_quality_tools_subtask
     task = await activity_service.create_task_from_activity(activity, date.today())
 
     # Verify arrays are preserved
-    assert task.metrics == activity.metrics
-    assert task.quality_aspects == activity.quality_aspects
     assert task.tools == activity.tools
     assert task.subtasks == activity.subtasks
 

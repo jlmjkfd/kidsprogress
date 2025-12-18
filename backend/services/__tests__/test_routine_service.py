@@ -749,8 +749,8 @@ async def test_generate_tasks_for_date_updates_last_generated_date(routine_servi
 
 
 @pytest.mark.asyncio
-async def test_generate_tasks_for_date_preserves_metrics_quality_tools_subtasks(routine_service: RoutineService, test_db, sample_parent, sample_child, sample_collection):
-    """Test generated task preserves arrays from routine."""
+async def test_generate_tasks_for_date_preserves_tools_subtasks(routine_service: RoutineService, test_db, sample_parent, sample_child, sample_collection):
+    """Test generated task preserves tools and subtasks from routine."""
     routine_data = {
         "_id": ObjectId(),
         "parent_id": sample_parent["_id"],
@@ -764,8 +764,6 @@ async def test_generate_tasks_for_date_preserves_metrics_quality_tools_subtasks(
             "start_date": date(2025, 12, 10).isoformat(),
             "skip_dates": []
         },
-        "metrics": [{"metric_name": "score", "metric_type_code": "numerical", "unit": "points", "target_value": 90.0}],
-        "quality_aspects": [{"name": "accuracy", "description": "90% correct", "evaluation_method": "self_assessment"}],
         "tools": [{"tool_name": "calculator", "tool_code": "calc", "quantity": 1}],
         "subtasks": [{"title": "Review", "order": 1}],
         "is_active": True,
@@ -777,8 +775,6 @@ async def test_generate_tasks_for_date_preserves_metrics_quality_tools_subtasks(
     routine = await routine_service.get_routine(routine_data["_id"])
     task = await routine_service.generate_tasks_for_date(routine, date(2025, 12, 10))
 
-    assert task.metrics == routine.metrics
-    assert task.quality_aspects == routine.quality_aspects
     assert task.tools == routine.tools
     assert task.subtasks == routine.subtasks
 

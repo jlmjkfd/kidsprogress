@@ -166,8 +166,6 @@ class RoutineCreate(BaseModel):
     priority_boost: int = Field(default=0, ge=-5, le=5)
     concurrent_allowed: bool = False
     concurrent_compatible_with: List[str] = []
-    metrics: List[QuantifiableMetric] = []
-    quality_aspects: List[QualityAspect] = []
     tools: List[ToolUsage] = []
     subtasks: List[Subtask] = []
 

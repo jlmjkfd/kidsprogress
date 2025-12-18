@@ -36,20 +36,6 @@ class TestCompleteTask:
         assert result.completed_at is not None
 
     @pytest.mark.asyncio
-    async def test_complete_task_ends_active_session(
-        self, task_service, sample_child, in_progress_task
-    ):
-        """Test that completing removes the active session."""
-        await task_service.lifecycle.complete_task(
-            task_id=str(in_progress_task["_id"]),
-            child_id=str(sample_child.id)
-        )
-
-        # Check session was removed
-        sessions = await task_service.session.get_sessions(str(sample_child.id))
-        assert len(sessions) == 0
-
-    @pytest.mark.asyncio
     async def test_complete_task_sets_completed_at(
         self, task_service, sample_child, in_progress_task
     ):
@@ -166,12 +152,6 @@ class TestCompleteTask:
         }
         await test_db.tasks.insert_one(task_data)
 
-        # Create session
-        await task_service.session.create_session(
-            str(task_data["_id"]),
-            str(sample_child.id)
-        )
-
         result = await task_service.lifecycle.complete_task(
             task_id=str(task_data["_id"]),
             child_id=str(sample_child.id)
@@ -202,12 +182,6 @@ class TestCompleteTask:
             "created_at": utcnow()
         }
         await test_db.tasks.insert_one(task_data)
-
-        # Create session
-        await task_service.session.create_session(
-            str(task_data["_id"]),
-            str(sample_child.id)
-        )
 
         result = await task_service.lifecycle.complete_task(
             task_id=str(task_data["_id"]),
@@ -243,12 +217,6 @@ class TestCompleteTask:
         }
         await test_db.tasks.insert_one(task_data)
 
-        # Create session
-        await task_service.session.create_session(
-            str(task_data["_id"]),
-            str(sample_child.id)
-        )
-
         result = await task_service.lifecycle.complete_task(
             task_id=str(task_data["_id"]),
             child_id=str(sample_child.id)
@@ -279,12 +247,6 @@ class TestCompleteTask:
             "created_at": utcnow()
         }
         await test_db.tasks.insert_one(task_data)
-
-        # Create session
-        await task_service.session.create_session(
-            str(task_data["_id"]),
-            str(sample_child.id)
-        )
 
         result = await task_service.lifecycle.complete_task(
             task_id=str(task_data["_id"]),
@@ -317,12 +279,6 @@ class TestCompleteTask:
             "created_at": utcnow()
         }
         await test_db.tasks.insert_one(task_data)
-
-        # Create session
-        await task_service.session.create_session(
-            str(task_data["_id"]),
-            str(sample_child.id)
-        )
 
         result = await task_service.lifecycle.complete_task(
             task_id=str(task_data["_id"]),
@@ -405,22 +361,6 @@ class TestCompleteTaskWithTimes:
         assert result.status == TaskStatus.COMPLETED.value
         # Times are overridden (not the original started_at)
         assert result.started_at.hour == 9
-
-    @pytest.mark.asyncio
-    async def test_complete_with_times_removes_session(
-        self, task_service, sample_child, in_progress_task
-    ):
-        """Test that session is removed when completing with times."""
-        await task_service.lifecycle.complete_task_with_times(
-            task_id=str(in_progress_task["_id"]),
-            child_id=str(sample_child.id),
-            start_time="14:00",
-            end_time="15:00"
-        )
-
-        # Session should be removed
-        sessions = await task_service.session.get_sessions(str(sample_child.id))
-        assert len(sessions) == 0
 
     @pytest.mark.asyncio
     async def test_complete_with_times_invalid_task_returns_none(

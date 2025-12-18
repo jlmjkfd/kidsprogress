@@ -47,53 +47,13 @@ class TestLifecycleEdgeCases:
             str(pending_task["_id"]),
             str(sample_child.id)
         )
-        await task_service.lifecycle.start_task(
+        result2 = await task_service.lifecycle.start_task(
             str(task2_data["_id"]),
             str(sample_child.id)
         )
 
-        # Should have 2 sessions
-        sessions = await task_service.session.get_sessions(str(sample_child.id))
-        assert len(sessions) == 2
-
-    @pytest.mark.asyncio
-    async def test_session_cleanup_on_errors(
-        self, task_service, sample_child, test_db, sample_collection, sample_parent
-    ):
-        """Test that sessions are cleaned up even if operations fail."""
-        # Create task
-        task_data = {
-            "_id": ObjectId(),
-            "collection_id": sample_collection["_id"],
-            "child_id": sample_child.id,
-            "parent_id": sample_parent.id,
-            "title": "Test Task",
-            "status": TaskStatus.IN_PROGRESS.value,
-            "scheduled_date": datetime.now(timezone.utc),
-            "started_at": utcnow(),
-            "is_recurring": False,
-            "rollover_count": 0,
-            "priority_boost": 0,
-            "completion_count": 0,
-            "created_at": utcnow()
-        }
-        await test_db.tasks.insert_one(task_data)
-
-        # Create session
-        await task_service.session.create_session(
-            str(task_data["_id"]),
-            str(sample_child.id)
-        )
-
-        # Complete task (should remove session)
-        await task_service.lifecycle.complete_task(
-            str(task_data["_id"]),
-            str(sample_child.id)
-        )
-
-        # Session should be gone
-        sessions = await task_service.session.get_sessions(str(sample_child.id))
-        assert len(sessions) == 0
+        # Both tasks should be IN_PROGRESS (sessions handled by event bus)
+        assert result2["task"].status == TaskStatus.IN_PROGRESS.value
 
     @pytest.mark.asyncio
     async def test_timezone_handling_utc(
@@ -127,17 +87,6 @@ class TestLifecycleEdgeCases:
         self, task_service, sample_child, pending_task
     ):
         """Test that invalid state transitions are prevented."""
-        # Cannot pause a PENDING task
-        with pytest.raises(ValueError):
-            await task_service.lifecycle.pause_task(
-                str(pending_task["_id"]),
-                paused_by="CHILD"
-            )
-
-        # Cannot resume a PENDING task
-        with pytest.raises(ValueError):
-            await task_service.lifecycle.resume_task(str(pending_task["_id"]))
-
         # Cannot complete a PENDING task
         with pytest.raises(ValueError):
             await task_service.lifecycle.complete_task(

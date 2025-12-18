@@ -141,7 +141,7 @@ async def pending_task(test_db, sample_parent, sample_child, sample_collection):
 
 
 @pytest_asyncio.fixture
-async def in_progress_task(test_db, sample_parent, sample_child, sample_collection, task_service):
+async def in_progress_task(test_db, sample_parent, sample_child, sample_collection):
     """Create a task that's in progress."""
     task_data = {
         "_id": ObjectId(),
@@ -157,21 +157,13 @@ async def in_progress_task(test_db, sample_parent, sample_child, sample_collecti
         "is_recurring": False,
         "is_informational": False,
         "blocks_other_tasks": False,
-        "can_be_interrupted": True,
         "is_in_pool": False,
         "rollover_count": 0,
         "priority_boost": 0,
         "completion_count": 0,
-        "pause_history": [],
         "created_at": utcnow(),
         "updated_at": utcnow()
     }
     await test_db.tasks.insert_one(task_data)
-
-    # Create active session
-    await task_service.session.create_session(
-        str(task_data["_id"]),
-        str(sample_child.id)
-    )
 
     return task_data
