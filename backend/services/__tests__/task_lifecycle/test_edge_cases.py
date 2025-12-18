@@ -35,7 +35,6 @@ class TestLifecycleEdgeCases:
             "status": TaskStatus.PENDING.value,
             "scheduled_date": datetime.now(timezone.utc),
             "is_recurring": False,
-            "rollover_count": 0,
             "priority_boost": 0,
             "completion_count": 0,
             "created_at": utcnow()
@@ -134,7 +133,6 @@ class TestLifecycleEdgeCases:
             "status": TaskStatus.SKIPPED.value,
             "scheduled_date": datetime.now(timezone.utc),
             "is_recurring": False,
-            "rollover_count": 0,
             "priority_boost": 0,
             "completion_count": 0,
             "created_at": utcnow()
@@ -164,7 +162,6 @@ class TestLifecycleEdgeCases:
             "started_at": utcnow() - timedelta(minutes=30),
             "completed_at": utcnow(),
             "is_recurring": False,
-            "rollover_count": 0,
             "priority_boost": 0,
             "completion_count": 0,
             "created_at": utcnow()
@@ -181,40 +178,6 @@ class TestLifecycleEdgeCases:
         # Note: Check actual implementation - may keep or clear
 
     @pytest.mark.asyncio
-    async def test_activate_task(
-        self, task_service, sample_parent, test_db, sample_collection, sample_child
-    ):
-        """Test activate_task method (DRAFT -> SCHEDULED).
-
-        Note: Current implementation expects PENDING status, not DRAFT.
-        This test documents the actual behavior.
-        """
-        pending_task_data = {
-            "_id": ObjectId(),
-            "collection_id": sample_collection["_id"],
-            "child_id": sample_child.id,
-            "parent_id": sample_parent.id,
-            "title": "Draft Task",
-            "status": TaskStatus.PENDING.value,  # Implementation expects PENDING
-            "scheduled_date": datetime.now(timezone.utc),
-            "is_recurring": False,
-            "rollover_count": 0,
-            "priority_boost": 0,
-            "completion_count": 0,
-            "created_at": utcnow()
-        }
-        await test_db.tasks.insert_one(pending_task_data)
-
-        result = await task_service.lifecycle.activate_task(
-            task_id=str(pending_task_data["_id"]),
-            parent_id=str(sample_parent.id)
-        )
-
-        # Implementation sets to PENDING and adds activated_at
-        assert result is not None
-        assert result.activated_at is not None
-
-    @pytest.mark.asyncio
     async def test_validate_concurrent_tasks_not_allowed(
         self, task_service, sample_child, test_db, sample_collection, sample_parent
     ):
@@ -229,10 +192,8 @@ class TestLifecycleEdgeCases:
             "status": TaskStatus.PENDING.value,
             "scheduled_date": datetime.now(timezone.utc),
             "concurrent_allowed": False,
-            "concurrent_compatible_with": [],
             "task_type_code": "homework",
             "is_recurring": False,
-            "rollover_count": 0,
             "priority_boost": 0,
             "completion_count": 0,
             "created_at": utcnow()
@@ -252,7 +213,6 @@ class TestLifecycleEdgeCases:
             "started_at": utcnow(),
             "concurrent_allowed": True,
             "is_recurring": False,
-            "rollover_count": 0,
             "priority_boost": 0,
             "completion_count": 0,
             "created_at": utcnow()

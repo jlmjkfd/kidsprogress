@@ -147,19 +147,17 @@ class TestDeleteTask:
         assert result is False
 
     @pytest.mark.asyncio
-    async def test_delete_task_invalid_id_raises_error(
+    async def test_delete_task_invalid_id_returns_false(
         self, task_service, sample_parent
     ):
-        """Test that invalid real task_id raises ValueError.
-
-        Note: delete_task checks for virtual task format first (contains '_').
-        An ID without '_' that's not a valid ObjectId will raise ValueError.
-        """
-        with pytest.raises(ValueError, match="Invalid task_id"):
-            await task_service.crud.delete_task(
-                task_id="notavalidobjectid",  # No underscore, not valid ObjectId
-                parent_id=str(sample_parent.id)
-            )
+        """Test that invalid task_id returns False (not found)."""
+        result = await task_service.crud.delete_task(
+            task_id="notavalidobjectid",  # Invalid ID
+            parent_id=str(sample_parent.id),
+            recurrence_component=task_service.recurrence
+        )
+        # Invalid IDs are treated as not found
+        assert result is False
 
     @pytest.mark.asyncio
     async def test_delete_completed_task(

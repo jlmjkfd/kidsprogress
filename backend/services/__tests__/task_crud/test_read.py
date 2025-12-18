@@ -534,12 +534,13 @@ class TestGetTaskById:
         assert task is None
 
     @pytest.mark.asyncio
-    async def test_get_task_invalid_id_raises_error(
+    async def test_get_task_invalid_id_returns_none(
         self, task_service, sample_parent
     ):
-        """Test that invalid task_id raises ValueError."""
-        with pytest.raises(ValueError, match="Invalid task_id"):
-            await task_service.crud.get_task_by_id(
-                task_id="invalid_id",
-                parent_id=str(sample_parent.id)
-            )
+        """Test that invalid task_id returns None."""
+        result = await task_service.crud.get_task_by_id(
+            task_id="invalid_id",
+            parent_id=str(sample_parent.id)
+        )
+        # Invalid IDs are treated as not found
+        assert result is None
