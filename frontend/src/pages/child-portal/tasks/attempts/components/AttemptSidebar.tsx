@@ -62,9 +62,16 @@ export function AttemptSidebar({
                     : "hover:bg-gray-50"
                 }`}
               >
-                <p className="font-bold text-gray-900">
-                  {attemptNumber}
-                </p>
+                <div className="flex flex-col gap-1">
+                  <p className="font-bold text-gray-900">
+                    {attemptNumber}
+                  </p>
+                  {completion.completion_id === 'in-progress' && (
+                    <span className="text-xs text-blue-600 font-medium">
+                      {t("tasks:in_progress")}
+                    </span>
+                  )}
+                </div>
                 {completion.measured_data?.score !== undefined && (
                   <div className="rounded-full bg-green-100 px-2 py-1">
                     <span className="text-xs font-bold text-green-700">
@@ -106,13 +113,20 @@ export function AttemptSidebar({
                 }`}
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span
-                    className={`text-lg font-bold ${
-                      isSelected ? "text-purple-600" : "text-gray-900"
-                    }`}
-                  >
-                    {attemptNumber}
-                  </span>
+                  <div className="flex flex-col gap-1">
+                    <span
+                      className={`text-lg font-bold ${
+                        isSelected ? "text-purple-600" : "text-gray-900"
+                      }`}
+                    >
+                      {attemptNumber}
+                    </span>
+                    {completion.completion_id === 'in-progress' && (
+                      <span className="text-xs text-blue-600 font-medium">
+                        {t("tasks:in_progress")}
+                      </span>
+                    )}
+                  </div>
 
                   {completion.measured_data?.score !== undefined && (
                     <div className="rounded-full bg-green-100 px-2 py-1">

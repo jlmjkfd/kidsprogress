@@ -2,7 +2,7 @@
  * Task List Page - Refactored version with componentization
  */
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   IconPlus,
@@ -43,10 +43,17 @@ type ViewMode = "list" | "calendar";
 
 export default function ChildTasksPage() {
   const { childId } = useParams<{ childId: string }>();
+  const location = useLocation();
   const { t } = useTranslation(["common", "tasks"]);
 
+  // Get navigation state (from attempts page back navigation)
+  const navigationState = location.state as {
+    viewMode?: ViewMode;
+    selectedDate?: string;
+  } | null;
+
   // View state
-  const [viewMode, setViewMode] = useState<ViewMode>("list");
+  const [viewMode, setViewMode] = useState<ViewMode>(navigationState?.viewMode || "list");
 
   // Filter state
   const [statusFilter, setStatusFilter] = useState<TaskStatus | "all">("all");
@@ -70,7 +77,7 @@ export default function ChildTasksPage() {
   const [completingTask, setCompletingTask] = useState<Task | null>(null);
 
   // Calendar state
-  const [selectedDate, setSelectedDate] = useState<string>("");
+  const [selectedDate, setSelectedDate] = useState<string>(navigationState?.selectedDate || "");
   const [selectedDateTasks, setSelectedDateTasks] = useState<Task[]>([]);
 
   // Data fetching

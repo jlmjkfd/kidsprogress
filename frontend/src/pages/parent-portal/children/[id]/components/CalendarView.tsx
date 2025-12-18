@@ -47,6 +47,7 @@ export function CalendarView({
         onTaskClick={onTaskClick}
         onDayClick={onDayClick}
         editable={true}
+        defaultSelectedDate={selectedDate}
       />
 
       {/* Task list for selected/today's date */}
@@ -73,6 +74,8 @@ export function CalendarView({
                 onDelete={onTaskDelete}
                 onRestore={onRestoreOccurrence}
                 onRestoreSkipped={onRestoreSkipped}
+                viewMode="calendar"
+                selectedDate={selectedDate}
               />
             ))}
           </div>

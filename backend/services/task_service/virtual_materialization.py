@@ -59,6 +59,7 @@ class VirtualTaskMaterializer:
         materialized_data.pop("_id", None)  # Remove virtual ID
         materialized_data["is_virtual"] = False  # Mark as real
         materialized_data["source_recurring_task_id"] = ObjectId(template_id)
+        materialized_data["completion_count"] = 0  # Reset for this specific date
 
         # Convert string IDs back to ObjectIds
         if isinstance(materialized_data.get("child_id"), str):

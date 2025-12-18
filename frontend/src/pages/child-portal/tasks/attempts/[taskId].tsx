@@ -3,7 +3,7 @@
  * Shows questions/answers, score, and allows viewing multiple attempts
  */
 import { useState, useEffect } from "react";
-import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { IconArrowLeft, IconTrophy, IconClock, IconCalendar } from "@tabler/icons-react";
 import { useTask } from "@/api/queries/useTasks";
@@ -18,10 +18,23 @@ import { ScrollPositionManager } from "@/utils/ScrollAnchor";
 
 export default function AttemptDetailPage() {
   const { t, i18n } = useTranslation(["tasks", "common"]);
-  const { taskId, childId } = useParams<{ taskId: string; childId: string }>();
+  const params = useParams<{ taskId: string; childId: string; id: string }>();
+  const { taskId, childId } = params;
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const selectedChildId = useAppSelector((state) => state.child.selectedChildId);
+
+  // Parent portal uses 'id' param, child portal uses 'childId'
+  const actualChildId = selectedChildId || childId || params.id;
+
+  // Get navigation state (where we came from)
+  const navigationState = location.state as {
+    from?: 'child-portal' | 'parent-portal';
+    viewMode?: 'list' | 'calendar';
+    selectedDate?: string;
+    expandedOverdueTaskId?: string;
+  } | null;
 
   // Get current locale for date/time formatting
   const locale = i18n.language === 'zh' ? 'zh-CN' : 'en-US';
@@ -36,17 +49,40 @@ export default function AttemptDetailPage() {
 
   // Fetch task and completions
   const { data: task, isLoading: taskLoading } = useTask(taskId || "");
+
+  // Pass task_id (virtual or real) - backend will handle parsing virtual IDs
   const { data: completionsData, isLoading: completionsLoading } = useCompletions({
     task_id: taskId,
-    child_id: selectedChildId || childId,
+    child_id: actualChildId,
     limit: 100,
   });
 
   // Filter completions by scheduled_date if this is a virtual task
   const allCompletions = completionsData?.completions || [];
-  const completions = scheduledDate
+  let completions = scheduledDate
     ? allCompletions.filter(c => c.scheduled_date === scheduledDate)
     : allCompletions;
+
+  // Add in-progress attempt from progress_state if it exists
+  // This shows saved work even if not submitted yet
+  if (task?.progress_state && Object.keys(task.progress_state).length > 0) {
+    const inProgressAttempt: TaskCompletion = {
+      id: 'in-progress',
+      completion_id: 'in-progress',
+      task_id: taskId || '',
+      child_id: task.child_id || '',
+      template_id: task.template_id || '',
+      session_number: (completions.length || 0) + 1,
+      scheduled_date: scheduledDate || undefined,
+      started_at: task.started_at || new Date().toISOString(),
+      completed_at: '', // Not completed yet
+      measured_data: {},
+      detailed_data: task.progress_state,
+    };
+    // Add at the beginning (most recent)
+    completions = [inProgressAttempt, ...completions];
+  }
+
   const selectedCompletion = completions.find(c => c.completion_id === selectedCompletionId) || completions[0];
 
   // Auto-select first completion if none selected
@@ -79,7 +115,43 @@ export default function AttemptDetailPage() {
   const handleBack = () => {
     // Mark that we're returning from attempts to trigger scroll restoration
     ScrollPositionManager.markReturningFromAttempts();
-    navigate(-1);
+
+    // Smart back navigation based on where we came from
+    if (navigationState?.from === 'child-portal') {
+      // Child portal - navigate to tasks page with view mode and state
+      const baseUrl = `/child-portal/${actualChildId}/tasks`;
+      const state: any = {
+        viewMode: navigationState.viewMode || 'list',
+      };
+
+      // If coming from calendar view, restore selected date
+      if (navigationState.viewMode === 'calendar' && navigationState.selectedDate) {
+        state.selectedDate = navigationState.selectedDate;
+      }
+
+      // If coming from overdue card, pass template ID to expand it
+      if (navigationState.expandedOverdueTaskId) {
+        state.expandedOverdueTaskId = navigationState.expandedOverdueTaskId;
+      }
+
+      navigate(baseUrl, { state });
+    } else if (navigationState?.from === 'parent-portal') {
+      // Parent portal - navigate to tasks page with view mode and state
+      const baseUrl = `/parent-portal/children/${actualChildId}/tasks`;
+      const state: any = {
+        viewMode: navigationState.viewMode || 'list',
+      };
+
+      // If coming from calendar view, restore selected date
+      if (navigationState.viewMode === 'calendar' && navigationState.selectedDate) {
+        state.selectedDate = navigationState.selectedDate;
+      }
+
+      navigate(baseUrl, { state });
+    } else {
+      // Fallback to browser back button
+      navigate(-1);
+    }
   };
 
   if (taskLoading || completionsLoading) {
@@ -212,9 +284,15 @@ export default function AttemptDetailPage() {
                   <h2 className="text-xl font-bold text-gray-900 sm:text-2xl">
                     {t("tasks:attempt_number", { number: selectedCompletion.session_number })}
                   </h2>
-                  <p className="text-sm text-gray-600">
-                    {formatLocalDate(selectedCompletion.completed_at, locale)} • {formatLocalTime(selectedCompletion.completed_at, locale)}
-                  </p>
+                  {selectedCompletion.completion_id === 'in-progress' || !selectedCompletion.completed_at ? (
+                    <p className="text-sm font-medium text-blue-600">
+                      {t("tasks:in_progress")}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-gray-600">
+                      {formatLocalDate(selectedCompletion.completed_at, locale)} • {formatLocalTime(selectedCompletion.completed_at, locale)}
+                    </p>
+                  )}
                 </div>
               </div>
 

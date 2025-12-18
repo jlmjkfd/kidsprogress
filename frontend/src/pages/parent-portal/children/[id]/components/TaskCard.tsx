@@ -33,6 +33,8 @@ interface TaskCardProps {
   onRestoreSkipped?: (taskId: string) => void; // For skipped tasks
   onEdit: (task: Task) => void;
   onDelete?: (taskId: string) => void;
+  viewMode?: 'list' | 'calendar'; // Current view mode for back navigation
+  selectedDate?: string; // Selected date in calendar view for back navigation
 }
 
 export function TaskCard({
@@ -47,6 +49,8 @@ export function TaskCard({
   onRestoreSkipped,
   onEdit,
   onDelete,
+  viewMode,
+  selectedDate,
 }: TaskCardProps) {
   const { t } = useTranslation(["common", "tasks"]);
   const navigate = useNavigate();
@@ -295,13 +299,25 @@ export function TaskCard({
               </button>
             )}
 
-            {/* View Attempts Button - for tasks with completion data */}
+            {/* View Attempts Button - for tasks with completion data or saved progress */}
             {(() => {
               if (!childId) return null;
 
-              // Template tasks: show if has completion attempts
+              // Template tasks (recurring parent): always show View Attempts
+              // Virtual/materialized instances: show if they have completions OR saved progress
               if (task.template_id) {
-                if (!task.completion_count || task.completion_count === 0) return null;
+                // Check if this is a template (parent) or instance (child)
+                if (task.is_recurring && !task.source_recurring_task_id) {
+                  // This is the template task (parent) - always show
+                } else {
+                  // This is a virtual/materialized instance
+                  // Show if has completions OR has saved progress (in-progress attempt)
+                  const hasCompletions = task.completion_count && task.completion_count > 0;
+                  const hasSavedProgress = task.progress_state && Object.keys(task.progress_state).length > 0;
+                  if (!hasCompletions && !hasSavedProgress) {
+                    return null;
+                  }
+                }
               } else {
                 // Standard tasks: show if completed (completion record saved with tool data)
                 // or has attachments from execution
@@ -313,14 +329,27 @@ export function TaskCard({
               return (
                 <button
                   onClick={() => {
+                    // For materialized/virtual instances, construct virtual task ID for attempts page
+                    // Format: template_id_scheduled_date (e.g., "673abc123_2025-12-10")
+                    let attemptTaskId = task._id;
+                    let taskScheduledDate: string | undefined;
+
+                    if (task.source_recurring_task_id && task.scheduled_date) {
+                      // This is a materialized instance - use virtual ID format
+                      const dateStr = task.scheduled_date.split('T')[0];
+                      attemptTaskId = `${task.source_recurring_task_id}_${dateStr}`;
+                      taskScheduledDate = dateStr;
+                    } else if (task.is_virtual) {
+                      // Already virtual - use as-is
+                      attemptTaskId = task._id;
+                      taskScheduledDate = task.scheduled_date?.split('T')[0];
+                    } else {
+                      taskScheduledDate = task.scheduled_date?.split('T')[0];
+                    }
+
                     // Save scroll position (index + exact scrollTop) for accurate restoration
                     if (virtualIndex !== undefined && scrollContainerRef?.current) {
                       const scrollTop = scrollContainerRef.current.scrollTop;
-                      console.log('[Save Scroll] Saving position:', {
-                        index: virtualIndex,
-                        taskId: task._id,
-                        scrollTop
-                      });
                       ScrollPositionManager.save({
                         index: virtualIndex,
                         taskId: task._id,
@@ -328,7 +357,18 @@ export function TaskCard({
                       });
                       ScrollPositionManager.markReturningFromAttempts();
                     }
-                    navigate(`/parent-portal/children/${childId}/attempts/${task._id}`);
+
+                    // For calendar view, use the task's scheduled date to return to correct date
+                    const calendarDate = viewMode === 'calendar' ? taskScheduledDate : undefined;
+
+                    // Pass navigation state so back button knows where to return
+                    navigate(`/parent-portal/children/${childId}/attempts/${attemptTaskId}`, {
+                      state: {
+                        from: 'parent-portal',
+                        viewMode,
+                        selectedDate: calendarDate,
+                      }
+                    });
                   }}
                   className="flex items-center gap-1 rounded-md bg-purple-600 px-3 py-2 text-sm text-white transition-colors hover:bg-purple-700"
                   title={t("tasks:view_attempts")}

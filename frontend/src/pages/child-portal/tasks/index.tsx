@@ -5,7 +5,7 @@
  */
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useAppSelector } from "@/store/hooks";
 import {
   IconChecklist,
@@ -18,7 +18,7 @@ import {
   IconCheckbox,
   IconHistory,
 } from "@tabler/icons-react";
-import { useTasksByChild, useOverdueTasks } from "@/api/queries/useTasks";
+import { useTasksByChild, useOverdueTasks, useOverdueTasksFlat } from "@/api/queries/useTasks";
 import {
   useStartTask,
   useCompleteTask,
@@ -40,27 +40,36 @@ type ViewMode = "list" | "calendar";
 export default function ChildTasksPage() {
   const { t } = useTranslation(["tasks", "common"]);
   const navigate = useNavigate();
+  const location = useLocation();
   const { childId } = useParams<{ childId: string }>();
   const selectedChildId = useAppSelector(
     (state) => state.child.selectedChildId
   );
 
-  const [viewMode, setViewMode] = useState<ViewMode>("list");
-  const [isQuickCaptureOpen, setIsQuickCaptureOpen] = useState(false);
-  const [isPlanAheadOpen, setIsPlanAheadOpen] = useState(false);
+  // Get navigation state (from attempts page back navigation)
+  const navigationState = location.state as {
+    viewMode?: ViewMode;
+    selectedDate?: string;
+    expandedOverdueTaskId?: string;
+  } | null;
 
   // Helper to get local date string (YYYY-MM-DD)
   const getLocalDateString = (date: Date = new Date()) => {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
   };
+
+  const [viewMode, setViewMode] = useState<ViewMode>(navigationState?.viewMode || "list");
+  const [isQuickCaptureOpen, setIsQuickCaptureOpen] = useState(false);
+  const [isPlanAheadOpen, setIsPlanAheadOpen] = useState(false);
   const [selectedDate, setSelectedDate] =
-    useState<string>(getLocalDateString());
+    useState<string>(navigationState?.selectedDate || getLocalDateString());
   const [selectedDayType, setSelectedDayType] = useState<DayType>();
   const [selectedDateTasks, setSelectedDateTasks] = useState<Task[]>([]);
 
   // TODO: Implement proper child authentication to get child_id
   const { data: allTasks, isLoading } = useTasksByChild(selectedChildId || "");
-  const { data: overdueData } = useOverdueTasks(selectedChildId || "");
+  const { data: overdueData } = useOverdueTasks(selectedChildId || ""); // Grouped format for recurring
+  const { data: overdueTasksFlat } = useOverdueTasksFlat(selectedChildId || ""); // Flat for one-off
   const startTaskMutation = useStartTask();
   const completeTaskMutation = useCompleteTask();
 
@@ -158,12 +167,14 @@ export default function ChildTasksPage() {
       return completedDate === today && t.status === "completed";
     }) || [];
 
-  // Combine all overdue tasks from different obligation levels
-  const allOverdueTasks = [
+  // Separate overdue recurring tasks (grouped) from one-off tasks (flat)
+  const overdueRecurringTasks = [
     ...(overdueData?.must_do || []),
     ...(overdueData?.should_do || []),
     ...(overdueData?.optional || []),
-  ];
+  ].filter(t => t.is_recurring);
+
+  const overdueOneOffTasks = (overdueTasksFlat || []).filter(t => !t.is_recurring && !t.source_recurring_task_id);
 
   // Tasks for selected date in calendar view - updated by onDayClick callback
   // State is updated when user clicks a day in the calendar
@@ -197,8 +208,59 @@ export default function ChildTasksPage() {
     navigate(`/child-portal/${childId}/tasks/result/${taskId}`);
   };
 
-  const handleViewAttempts = (taskId: string) => {
-    navigate(`/child-portal/${childId}/tasks/attempts/${taskId}`);
+  const handleViewAttempts = (taskId: string, fromOverdueCard?: boolean) => {
+    // Check if this is a virtual task ID (format: template_id_YYYY-MM-DD)
+    const isVirtualId = taskId.includes('_') && taskId.split('_').length >= 2;
+
+    let attemptTaskId = taskId;
+    let taskScheduledDate: string | undefined;
+    let templateId: string | undefined;
+
+    if (isVirtualId) {
+      // Virtual task ID from OverdueTaskCard - extract template ID and date
+      const parts = taskId.split('_');
+      const lastPart = parts[parts.length - 1];
+      // Check if last part looks like a date (YYYY-MM-DD)
+      if (lastPart.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        taskScheduledDate = lastPart;
+        templateId = parts.slice(0, -1).join('_'); // Everything before the date
+      }
+      attemptTaskId = taskId; // Already in virtual format
+    } else {
+      // Find the task to check if it's materialized
+      const task = allTasks?.find((t) => t._id === taskId);
+
+      // For materialized instances, construct virtual task ID for attempts page
+      if (task?.source_recurring_task_id && task.scheduled_date) {
+        // This is a materialized instance - use virtual ID format
+        const dateStr = task.scheduled_date.split('T')[0];
+        attemptTaskId = `${task.source_recurring_task_id}_${dateStr}`;
+        taskScheduledDate = dateStr;
+        templateId = task.source_recurring_task_id;
+      } else if (task?.is_virtual) {
+        // Already virtual - use as-is
+        attemptTaskId = taskId;
+        taskScheduledDate = task.scheduled_date?.split('T')[0];
+        templateId = task.template_id;
+      } else {
+        taskScheduledDate = task?.scheduled_date?.split('T')[0];
+        templateId = task?.template_id;
+      }
+    }
+
+    // For calendar view, use the task's scheduled date, not the currently selected date
+    // This ensures returning to the correct date in calendar view
+    const calendarDate = viewMode === 'calendar' ? (taskScheduledDate || selectedDate) : undefined;
+
+    // Pass navigation state so back button knows where to return
+    navigate(`/child-portal/${childId}/tasks/attempts/${attemptTaskId}`, {
+      state: {
+        from: 'child-portal',
+        viewMode,
+        selectedDate: calendarDate,
+        expandedOverdueTaskId: fromOverdueCard ? templateId : undefined,
+      }
+    });
   };
 
   if (isLoading) {
@@ -346,6 +408,7 @@ export default function ChildTasksPage() {
                   setSelectedDayType(dayType);
                 }}
                 editable={false}
+                defaultSelectedDate={selectedDate}
               />
             </div>
 
@@ -782,7 +845,7 @@ export default function ChildTasksPage() {
                 {t("tasks:overdue")}
               </h2>
 
-              {allOverdueTasks.length === 0 ? (
+              {overdueRecurringTasks.length === 0 && overdueOneOffTasks.length === 0 ? (
                 <div className="rounded-2xl bg-white p-8 text-center shadow-lg">
                   <IconTrophy
                     className="mx-auto mb-2 text-green-400"
@@ -792,7 +855,8 @@ export default function ChildTasksPage() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {allOverdueTasks.map((task) => (
+                  {/* Recurring tasks - use OverdueTaskCard (grouped with expandable dates) */}
+                  {overdueRecurringTasks.map((task) => (
                     <OverdueTaskCard
                       key={task.task_id}
                       task={task}
@@ -804,8 +868,7 @@ export default function ChildTasksPage() {
                         });
                       }}
                       onMarkAllDone={async (sourceId) => {
-                        // Mark all overdue instances of this recurring task as done
-                        const tasksToComplete = allOverdueTasks.filter(
+                        const tasksToComplete = overdueRecurringTasks.filter(
                           (t) => t.is_recurring && t.source_id === sourceId
                         );
                         for (const t of tasksToComplete) {
@@ -815,6 +878,32 @@ export default function ChildTasksPage() {
                           });
                         }
                       }}
+                      onViewAttempts={handleViewAttempts}
+                      defaultExpanded={navigationState?.expandedOverdueTaskId === task.source_id}
+                    />
+                  ))}
+
+                  {/* One-off tasks - use regular TaskCard (with Start/Resume buttons) */}
+                  {overdueOneOffTasks.map((task) => (
+                    <TaskCard
+                      key={task._id}
+                      task={task}
+                      isCompact={true}
+                      showScheduledDate={true}
+                      onStart={
+                        task.status === "pending" && !isInformationalTask(task)
+                          ? () => handleStartTask(task._id)
+                          : undefined
+                      }
+                      onResume={
+                        task.status === "in_progress" && !isInformationalTask(task)
+                          ? () =>
+                              navigate(
+                                `/child-portal/${childId}/tasks/execute/${task._id}`
+                              )
+                          : undefined
+                      }
+                      onViewAttempts={() => handleViewAttempts(task._id)}
                     />
                   ))}
                 </div>
@@ -991,10 +1080,13 @@ function TaskCard({
 
       {/* Action Buttons - Bottom Right */}
       <div className="flex justify-end gap-2">
-        {/* View Previous Attempts Button - Show if task has at least one completion */}
+        {/* View Previous Attempts Button - Show if task has completions OR saved progress */}
         {onViewAttempts &&
-          task.completion_count !== undefined &&
-          task.completion_count > 0 && (
+          (() => {
+            const hasCompletions = task.completion_count && task.completion_count > 0;
+            const hasSavedProgress = task.progress_state && Object.keys(task.progress_state).length > 0;
+            return hasCompletions || hasSavedProgress;
+          })() && (
             <button
               onClick={onViewAttempts}
               className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white shadow-md transition-all hover:bg-indigo-700"

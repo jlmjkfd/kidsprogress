@@ -409,6 +409,7 @@ export function TaskListView({
                           onDelete={onTaskDelete}
                           onRestore={onRestoreOccurrence}
                           onRestoreSkipped={onRestoreSkipped}
+                          viewMode="list"
                         />
                       ))}
                     </div>

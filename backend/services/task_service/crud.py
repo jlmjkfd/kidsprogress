@@ -464,6 +464,40 @@ class TaskCRUD:
 
         return tasks
 
+    async def get_materialized_tasks_by_source(
+        self, child_id: str, source_id: str, parent_id: str
+    ) -> List[Task]:
+        """Get all materialized task instances for a recurring task source.
+
+        This returns all saved instances of a recurring task (where scheduled_date matches missed dates).
+        Used to check status (pending vs in_progress) for overdue recurring tasks.
+
+        Args:
+            child_id: Child's ObjectId as string
+            source_id: Source recurring task's ObjectId as string
+            parent_id: Parent's ObjectId as string (for authorization)
+
+        Returns:
+            List of materialized tasks for the source
+        """
+        child_id_obj = validate_object_id(child_id, "child_id", raise_http_exception=False)
+        parent_id_obj = validate_object_id(parent_id, "parent_id", raise_http_exception=False)
+        source_id_obj = validate_object_id(source_id, "source_id", raise_http_exception=False)
+
+        cursor = self.tasks_collection.find({
+            "child_id": child_id_obj,
+            "parent_id": parent_id_obj,
+            "source_recurring_task_id": source_id_obj,
+            "is_virtual": {"$ne": True},  # Only materialized tasks
+        }).sort("scheduled_date", 1)
+
+        tasks = []
+        async for doc in cursor:
+            task_obj = Task(**doc)
+            tasks.append(task_obj)
+
+        return tasks
+
     async def get_task_by_id(self, task_id: str, parent_id: str) -> Optional[Task]:
         """Get a task by ID (supports both real and virtual task IDs).
 
@@ -542,12 +576,17 @@ class TaskCRUD:
         recurring_groups = defaultdict(list)
         one_off_tasks = []
 
+        print(f"[get_overdue_tasks] Processing {len(overdue_tasks)} overdue tasks for grouping")
         for task_dict in overdue_tasks:
             # Check if this is a recurring task instance (virtual or materialized)
             source_id = task_dict.get("source_recurring_task_id") or task_dict.get("source_id")
             is_virtual = task_dict.get("is_virtual", False)
             is_recurring = task_dict.get("is_recurring", False)
             task_source = task_dict.get("task_source", "one_time")  # Default to one_time
+            task_status = task_dict.get("status", "unknown")
+            task_id = task_dict.get("_id")
+
+            print(f"[get_overdue_tasks] Task {task_id}: status={task_status}, is_virtual={is_virtual}, is_recurring={is_recurring}, source_id={source_id}")
 
             # For manually created recurring tasks (where task IS the source),
             # use the task's own ID as the source_id
@@ -556,14 +595,22 @@ class TaskCRUD:
                 source_id = str(task_id) if task_id else None
 
             # Group recurring tasks by their source template ID
-            # Group if has source_id AND (is_virtual OR is_recurring)
-            # This includes routine/activity tasks AND manually created recurring tasks
-            if source_id and (is_virtual or is_recurring):
-                # Use source_id for grouping
+            # Group if: has source_recurring_task_id (materialized instance)
+            #        OR is_virtual (virtual instance)
+            #        OR is_recurring (template task itself)
+            if task_dict.get("source_recurring_task_id"):
+                # Materialized instance - has source_recurring_task_id
+                group_key = str(source_id) if not isinstance(source_id, str) else source_id
+                print(f"[get_overdue_tasks] Adding materialized task {task_id} to recurring group {group_key}")
+                recurring_groups[group_key].append(task_dict)
+            elif source_id and (is_virtual or is_recurring):
+                # Virtual instance or template task
                 group_key = source_id if isinstance(source_id, str) else str(source_id)
+                print(f"[get_overdue_tasks] Adding task {task_id} to recurring group {group_key}")
                 recurring_groups[group_key].append(task_dict)
             else:
                 # Treat as one-off task (non-recurring tasks without source_id)
+                print(f"[get_overdue_tasks] Adding task {task_id} to one-off tasks")
                 one_off_tasks.append(task_dict)
 
         # Build response grouped by obligation level
@@ -575,6 +622,17 @@ class TaskCRUD:
 
         # Process recurring task groups
         for source_id, instances in recurring_groups.items():
+            # Filter out the template task itself - only keep virtual instances and materialized instances
+            # Template task has is_recurring=True but is NOT a virtual instance and has no source_recurring_task_id
+            instances = [
+                t for t in instances
+                if t.get("is_virtual") or t.get("source_recurring_task_id")
+            ]
+
+            # Skip if no virtual instances remain
+            if not instances:
+                continue
+
             # Sort instances by date (parse to handle both string and datetime types)
             instances.sort(key=lambda t: parse_date(t.get("scheduled_date")) or date.min)
 

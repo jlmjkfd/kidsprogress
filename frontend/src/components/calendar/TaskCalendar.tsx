@@ -29,6 +29,7 @@ interface TaskCalendarProps {
   onDayClick?: (date: string, tasks: Task[], dayType?: DayType) => void; // Callback when day is clicked
   editable?: boolean; // If false, tasks are read-only
   defaultView?: CalendarView;
+  defaultSelectedDate?: string; // Default selected date (YYYY-MM-DD format)
 }
 
 export function TaskCalendar({
@@ -37,16 +38,27 @@ export function TaskCalendar({
   onTaskClick,
   onDayClick,
   defaultView = "month",
+  defaultSelectedDate,
 }: TaskCalendarProps) {
   const { t, i18n } = useTranslation(["tasks", "common"]);
   const currentLocale = i18n.language || "en";
-  const [currentDate, setCurrentDate] = useState(new Date());
+
+  // Initialize currentDate based on defaultSelectedDate if provided
+  const getInitialDate = () => {
+    if (defaultSelectedDate) {
+      const [year, month, day] = defaultSelectedDate.split('-').map(Number);
+      return new Date(year, month - 1, day);
+    }
+    return new Date();
+  };
+
+  const [currentDate, setCurrentDate] = useState(getInitialDate());
   const [view, setView] = useState<CalendarView>(defaultView);
 
   // Selected date state (shared across all views)
   const today = new Date();
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-  const [selectedDate, setSelectedDate] = useState<string>(todayStr);
+  const [selectedDate, setSelectedDate] = useState<string>(defaultSelectedDate || todayStr);
 
   // Month view collapse state
   const [monthCollapsed, setMonthCollapsed] = useState(false);

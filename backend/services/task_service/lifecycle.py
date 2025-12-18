@@ -27,19 +27,17 @@ class TaskLifecycle:
         self.tasks_collection = db.tasks
         # Dependencies injected later
         self.virtualizer: Optional['VirtualTaskMaterializer'] = None
-        self.session: Optional['TaskSession'] = None
         self.crud: Optional['TaskCRUD'] = None
 
-    def set_dependencies(self, virtualizer: 'VirtualTaskMaterializer', session: 'TaskSession', crud: 'TaskCRUD') -> None:
+    def set_dependencies(self, virtualizer: 'VirtualTaskMaterializer', session, crud: 'TaskCRUD') -> None:
         """Inject dependencies after initialization.
 
         Args:
             virtualizer: VirtualTaskMaterializer instance
-            session: TaskSession instance
+            session: Deprecated (no longer used)
             crud: TaskCRUD instance
         """
         self.virtualizer = virtualizer
-        self.session = session
         self.crud = crud
 
     def _ensure_dependencies(self) -> None:
@@ -48,7 +46,7 @@ class TaskLifecycle:
         Raises:
             RuntimeError: If dependencies not set
         """
-        if self.virtualizer is None or self.session is None:
+        if self.virtualizer is None:
             raise RuntimeError("Dependencies not set. Call set_dependencies() first.")
 
     async def activate_task(self, task_id: str, parent_id: str) -> Optional[Task]:
@@ -188,22 +186,8 @@ class TaskLifecycle:
             reason="starting task"
         )
 
-        # Check for concurrent tasks
-        assert self.session is not None, "Session not set"
-        active_sessions = await self.session.get_sessions(child_id)
+        # Concurrent task checking removed (no longer using active_task_sessions)
         concurrent_warnings = []
-
-        if active_sessions:
-            for session in active_sessions:
-                task = await self.tasks_collection.find_one({"_id": session["task_id"]})
-                if task:
-                    concurrent_warnings.append(
-                        {
-                            "task_id": str(task["_id"]),
-                            "title": task["title"],
-                            "started_at": session["started_at"].isoformat(),
-                        }
-                    )
 
         # Update task status
         result = await self.tasks_collection.find_one_and_update(
@@ -594,35 +578,9 @@ class TaskLifecycle:
         Returns:
             Dict with is_valid flag and warnings
         """
-        if task.concurrent_allowed:
-            return {"is_valid": True, "warnings": []}
-
-        # Get active sessions
-        assert self.session is not None, "Session not set"
-        sessions = await self.session.get_sessions(str(child_id))
-        if not sessions:
-            return {"is_valid": True, "warnings": []}
-
-        warnings = []
-        for session in sessions:
-            active_task_doc = await self.tasks_collection.find_one({"_id": session["task_id"]})
-            if active_task_doc:
-                active_task = Task(**active_task_doc)
-
-                # Check if compatible
-                if task.task_type_code in active_task.concurrent_compatible_with:
-                    continue
-
-                warnings.append({
-                    "task_id": str(active_task.id),
-                    "title": active_task.title,
-                    "message": f"Task '{active_task.title}' is currently in progress"
-                })
-
-        return {
-            "is_valid": len(warnings) == 0,
-            "warnings": warnings
-        }
+        # Concurrent task checking removed (no longer using active_task_sessions)
+        # Can check for in_progress tasks directly if needed in the future
+        return {"is_valid": True, "warnings": []}
 
     async def complete_recurring_tasks_bulk(
         self, source_id: str, child_id: str, date_list: List[str]

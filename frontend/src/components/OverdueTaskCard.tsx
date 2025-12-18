@@ -2,7 +2,7 @@
  * Overdue Task Card Component
  * Displays a single overdue task (one-off or recurring) with appropriate actions
  */
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -17,6 +17,7 @@ import {
   IconRepeat,
   IconCalendar,
   IconHistory,
+  IconPlayerPlay,
 } from "@tabler/icons-react";
 import { OverdueTask } from "@/types/task";
 
@@ -25,6 +26,8 @@ interface OverdueTaskCardProps {
   childId: string;
   onMarkDone?: (taskId: string) => void;
   onMarkAllDone?: (sourceId: string) => void;
+  onViewAttempts?: (taskId: string, fromOverdueCard: boolean) => void;
+  defaultExpanded?: boolean; // Auto-expand this card (e.g., when returning from attempts)
 }
 
 export function OverdueTaskCard({
@@ -32,25 +35,58 @@ export function OverdueTaskCard({
   childId,
   onMarkDone,
   onMarkAllDone,
+  onViewAttempts,
+  defaultExpanded = false,
 }: OverdueTaskCardProps) {
   const { t } = useTranslation(["tasks"]);
   const navigate = useNavigate();
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [showAllDates, setShowAllDates] = useState(false);
 
   // Fetch completion counts by date for this recurring task
+  const sourceId = task.is_recurring ? task.source_id : undefined;
+
   const { data: completionData } = useQuery({
-    queryKey: ["completion-counts", task.source_id],
+    queryKey: ["completion-counts", sourceId],
     queryFn: async () => {
       const response = await apiClient.get(
-        `/api/completions/by-date/${task.source_id}`
+        `/api/completions/by-date/${sourceId}`
       );
       return response.data;
     },
-    enabled: !!task.source_id && task.is_recurring,
+    enabled: !!sourceId && task.is_recurring,
   });
 
   const dateCounts = completionData?.date_counts || {};
+  console.log('[OverdueTaskCard] Completion counts by date:', dateCounts);
+
+  // Fetch materialized tasks for this recurring task to check status
+  // Always fetch when it's a recurring task (not only when expanded) so buttons show correct state
+  const { data: materializedTasks } = useQuery({
+    queryKey: ["materialized-tasks", sourceId],
+    queryFn: async () => {
+      const response = await apiClient.get(
+        `/api/tasks/child/${childId}/materialized/${sourceId}`
+      );
+      return response.data;
+    },
+    enabled: !!sourceId && task.is_recurring,
+  });
+
+  // Create a map of date -> task status
+  // Normalize dates to YYYY-MM-DD format for consistent comparison
+  const taskStatusByDate: Record<string, string> = {};
+  if (materializedTasks) {
+    for (const t of materializedTasks) {
+      if (t.scheduled_date) {
+        // Extract just the date part (YYYY-MM-DD) from ISO datetime string
+        const dateStr = t.scheduled_date.split('T')[0];
+        taskStatusByDate[dateStr] = t.status;
+      }
+    }
+  }
+
+  console.log('[OverdueTaskCard] Materialized tasks status map:', taskStatusByDate);
 
   const handleOpenTask = () => {
     navigate(`/child-portal/${childId}/tasks/execute/${task.task_id}`);
@@ -204,9 +240,9 @@ export function OverdueTaskCard({
       </div>
 
       {/* Mark All Done Button */}
-      {task.completion_type === "simple" && onMarkAllDone && (
+      {task.completion_type === "simple" && onMarkAllDone && sourceId && (
         <button
-          onClick={() => onMarkAllDone(task.source_id)}
+          onClick={() => onMarkAllDone(sourceId)}
           className="mb-3 flex items-center gap-2 rounded-xl bg-green-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-green-700"
         >
           <IconCheck size={18} />
@@ -255,14 +291,18 @@ export function OverdueTaskCard({
               : task.recent_missed_dates
             ).map((date) => {
               // Construct virtual task ID for this specific date
-              const virtualTaskId = `${task.source_id}_${date}`;
+              const virtualTaskId = `${sourceId}_${date}`;
               const executePath = `/child-portal/${childId}/tasks/execute/${virtualTaskId}`;
               const attemptsPath = `/child-portal/${childId}/tasks/attempts/${virtualTaskId}`;
               const hasCompletions = dateCounts[date] > 0;
+              const taskStatus = taskStatusByDate[date];
+              const isInProgress = taskStatus === "in_progress";
+
+              console.log(`[OverdueTaskCard] Date ${date}: status=${taskStatus}, isInProgress=${isInProgress}, hasCompletions=${hasCompletions}`);
 
               return (
                 <div
-                  key={date}
+                  key={`${sourceId}_${date}`}
                   className="flex items-center justify-between gap-2 rounded-lg bg-white p-2 shadow-sm"
                 >
                   <span className="flex-shrink-0 text-sm text-gray-700">
@@ -271,7 +311,13 @@ export function OverdueTaskCard({
                   <div className="flex items-center gap-1">
                     {hasCompletions && (
                       <button
-                        onClick={() => navigate(attemptsPath)}
+                        onClick={() => {
+                          if (onViewAttempts) {
+                            onViewAttempts(virtualTaskId, true);
+                          } else {
+                            navigate(attemptsPath);
+                          }
+                        }}
                         className="rounded-lg bg-purple-100 p-1.5 text-purple-700 transition-colors hover:bg-purple-200"
                         title={t("tasks:view_attempts")}
                       >
@@ -286,13 +332,21 @@ export function OverdueTaskCard({
                       >
                         <IconCheck size={16} />
                       </button>
-                    ) : (
+                    ) : isInProgress ? (
                       <button
                         onClick={() => navigate(executePath)}
                         className="rounded-lg bg-blue-100 p-1.5 text-blue-700 transition-colors hover:bg-blue-200"
-                        title={t("tasks:overdue_view.open_task")}
+                        title={t("tasks:resume")}
                       >
-                        <IconArrowRight size={16} />
+                        <IconPlayerPlay size={16} />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => navigate(executePath)}
+                        className="rounded-lg bg-green-100 p-1.5 text-green-700 transition-colors hover:bg-green-200"
+                        title={t("tasks:start")}
+                      >
+                        <IconPlayerPlay size={16} />
                       </button>
                     )}
                   </div>

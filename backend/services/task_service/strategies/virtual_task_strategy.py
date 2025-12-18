@@ -15,14 +15,14 @@ class VirtualTaskStrategy(TaskStrategy):
     async def get_task(
         self, identifier: TaskIdentifier, parent_id: str
     ) -> Optional[Task]:
-        """Generate virtual task instance from template.
+        """Get task for virtual ID - returns materialized task if exists, otherwise generates virtual instance.
 
         Args:
             identifier: TaskIdentifier (must be virtual)
             parent_id: Parent's ObjectId as string
 
         Returns:
-            Virtual task instance or None if template not found
+            Materialized task if exists, otherwise virtual task instance, or None if template not found
         """
         if not identifier.is_virtual:
             return None
@@ -39,7 +39,25 @@ class VirtualTaskStrategy(TaskStrategy):
         if not template_doc or not template_doc.get("is_recurring"):
             return None
 
-        # Generate virtual instance for this occurrence date
+        # Check if a materialized task exists for this date
+        # If user previously clicked Start and saved progress, a materialized task exists with progress_state
+        from datetime import datetime
+        scheduled_date = datetime.combine(identifier.occurrence_date, datetime.min.time())
+
+        materialized_task = await self.tasks_collection.find_one({
+            "source_recurring_task_id": template_id_obj,
+            "scheduled_date": scheduled_date,
+            "is_virtual": {"$ne": True},
+            "$or": [{"parent_id": parent_id_obj}, {"parent_id": parent_id}]
+        })
+
+        if materialized_task:
+            # Return materialized task (has progress_state if saved)
+            print(f"[VirtualTaskStrategy] Found materialized task for {identifier.raw_id}")
+            return Task(**materialized_task)
+
+        # No materialized task - generate virtual instance from template
+        print(f"[VirtualTaskStrategy] No materialized task, generating virtual instance for {identifier.raw_id}")
         template = Task(**template_doc)
         virtual_instance = VirtualInstanceService._create_virtual_instance(
             template, identifier.occurrence_date

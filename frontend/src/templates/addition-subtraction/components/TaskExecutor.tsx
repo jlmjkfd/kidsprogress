@@ -231,6 +231,8 @@ export default function TaskExecutor({
       await queryClient.invalidateQueries({ queryKey: ['task', taskId] });
       await queryClient.invalidateQueries({ queryKey: ['tasks'] });
       await queryClient.invalidateQueries({ queryKey: ['execution', taskId] });
+      await queryClient.invalidateQueries({ queryKey: ['materialized-tasks'] });
+      await queryClient.invalidateQueries({ queryKey: ['completion-counts'] });
 
       console.log('Invalidated queries to force refetch');
 

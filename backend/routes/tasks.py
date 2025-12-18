@@ -88,15 +88,66 @@ async def get_tasks_by_child(
 async def get_overdue_tasks(
     child_id: str,
     must_do_only: bool = Query(False, description="Show only MUST_DO tasks"),
+    flat: bool = Query(False, description="Return flat list of task objects instead of grouped format"),
     current_user: User = Depends(get_current_user),
     service: TaskService = Depends(get_task_service),
 ):
     """Get all overdue tasks for a child.
 
     Overdue = scheduled before today AND not completed/skipped/archived.
+
+    If flat=true, returns a simple list of Task objects that can be used with regular TaskCard.
+    If flat=false (default), returns the grouped format for OverdueTaskCard.
     """
     try:
-        return await service.get_overdue_tasks(child_id, str(current_user.id), must_do_only)
+        if flat:
+            # Return simple list of task objects
+            from datetime import timedelta
+            from backend.utils.datetime_utils import get_local_today
+
+            today = get_local_today()
+            start_date = today - timedelta(days=90)
+            end_date = today - timedelta(days=1)
+
+            # Get all overdue tasks (includes virtual instances)
+            all_tasks = await service.crud.get_tasks_by_child(
+                child_id,
+                str(current_user.id),
+                status=None,
+                start_date=start_date,
+                end_date=end_date
+            )
+
+            print(f"[overdue-flat] Found {len(all_tasks)} tasks between {start_date} and {end_date}")
+            print(f"[overdue-flat] Today is {today}")
+
+            # Filter for overdue
+            overdue = []
+            for t in all_tasks:
+                if t.get("status") in ["completed", "skipped", "archived"]:
+                    continue
+                if t.get("is_informational"):
+                    continue
+                from backend.services.task_service.operations.helpers import parse_date
+                scheduled_date = parse_date(t.get("scheduled_date"))
+                if scheduled_date and scheduled_date < today:
+                    if must_do_only and t.get("obligation_level") != "must_do":
+                        continue
+                    # Convert _id to string for Task model
+                    if "_id" in t and not isinstance(t["_id"], str):
+                        t["_id"] = str(t["_id"])
+                    try:
+                        overdue.append(Task(**t))
+                    except Exception as e:
+                        print(f"Error creating Task from dict: {e}")
+                        print(f"Task dict: {t}")
+                        # Skip invalid tasks instead of failing entire request
+                        continue
+
+            return overdue
+        else:
+            # Return grouped format (original behavior)
+            return await service.get_overdue_tasks(child_id, str(current_user.id), must_do_only)
     except ValueError as e:
         if "not found" in str(e).lower():
             raise not_found(str(e))
@@ -120,6 +171,24 @@ async def get_overdue_stats(
     """
     try:
         return await service.get_overdue_stats(child_id, str(current_user.id))
+    except ValueError as e:
+        raise bad_request(str(e))
+
+
+@router.get("/child/{child_id}/materialized/{source_id}", response_model=List[Task])
+async def get_materialized_tasks_by_source(
+    child_id: str,
+    source_id: str,
+    current_user: User = Depends(get_current_user),
+    service: TaskService = Depends(get_task_service),
+):
+    """Get all materialized task instances for a recurring task source.
+
+    This returns all saved instances of a recurring task (where scheduled_date matches missed dates).
+    Used to check status (pending vs in_progress) for overdue recurring tasks.
+    """
+    try:
+        return await service.crud.get_materialized_tasks_by_source(child_id, source_id, str(current_user.id))
     except ValueError as e:
         raise bad_request(str(e))
 

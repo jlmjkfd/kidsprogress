@@ -33,13 +33,6 @@ async def save_task_progress(
     database = db.get_database()
     tasks_collection = database["tasks"]
 
-    print(f"\n=== SAVE PROGRESS for task {task_id} ===")
-    print(f"Received progress_data keys: {progress_data.keys()}")
-    print(f"  handler_type: {progress_data.get('handler_type')}")
-    print(f"  questions: {len(progress_data.get('questions', []))} questions")
-    print(f"  answers: {len(progress_data.get('answers', {}))} answers")
-    print(f"  total_time_seconds: {progress_data.get('total_time_seconds')}")
-
     # Use TaskIdentifier to handle virtual vs real task IDs
     from backend.models.task_identifier import TaskIdentifier
     from datetime import datetime, timedelta
@@ -49,23 +42,57 @@ async def save_task_progress(
     if identifier.is_virtual:
         # For virtual tasks, find the materialized instance
         template_id = identifier.template_id
-        occurrence_date = identifier.occurrence_date.isoformat()
+        occurrence_date = identifier.occurrence_date
+
+        if not occurrence_date:
+            raise bad_request("Virtual task ID is missing occurrence date")
+
+        occurrence_date_str = occurrence_date.isoformat()
 
         # Look for materialized task created when virtual task was started
-        materialized_task = await tasks_collection.find_one({
-            "source_recurring_task_id": template_id,
+        # Use date range to handle timezone differences
+        query = {
+            "source_recurring_task_id": ObjectId(template_id),
             "is_virtual": False,
             "scheduled_date": {
-                "$gte": datetime.fromisoformat(occurrence_date),
-                "$lt": datetime.fromisoformat(occurrence_date) + timedelta(days=1)
+                "$gte": datetime.fromisoformat(occurrence_date_str),
+                "$lt": datetime.fromisoformat(occurrence_date_str) + timedelta(days=1)
             }
-        })
+        }
+
+        print(f"[save-progress] Virtual task: {task_id} -> searching for materialized task with date {occurrence_date_str}")
+        materialized_task = await tasks_collection.find_one(query)
 
         if not materialized_task:
-            raise not_found("Materialized task not found. Please start the task first.")
+            # Virtual task not materialized yet - materialize it now
+            print(f"[save-progress] No materialized task found, materializing virtual task {task_id}")
 
-        actual_task_id = materialized_task["_id"]
-        task = materialized_task
+            # Get virtual task data from service
+            task_obj = await service.get_task_by_id(task_id, str(current_user.id))
+            if not task_obj:
+                raise not_found("Virtual task not found")
+
+            # Convert Task model to dict for materialization
+            virtual_task_data = task_obj.model_dump(by_alias=True)
+
+            # Materialize the virtual task
+            from backend.services.task_service.virtual_materialization import VirtualTaskMaterializer
+            materializer = VirtualTaskMaterializer(database)
+            materialized = await materializer.materialize_virtual_task(task_id, virtual_task_data)
+
+            # Mark as in_progress since user is working on it
+            await tasks_collection.update_one(
+                {"_id": materialized.id},
+                {"$set": {"status": "in_progress", "started_at": utcnow()}}
+            )
+
+            print(f"[save-progress] Materialized task created: {materialized.id}")
+            actual_task_id = materialized.id
+            task = await tasks_collection.find_one({"_id": actual_task_id})
+        else:
+            print(f"[save-progress] Found materialized task: {materialized_task['_id']}")
+            actual_task_id = materialized_task["_id"]
+            task = materialized_task
     else:
         actual_task_id = ObjectId(task_id)
         task = await tasks_collection.find_one({"_id": actual_task_id})
@@ -89,7 +116,7 @@ async def save_task_progress(
         }
     )
 
-    print(f"Saved to database: matched={result.matched_count}, modified={result.modified_count}")
+    print(f"[save-progress] Saved successfully: task_id={actual_task_id}")
 
     return {"status": "saved", "saved_at": utcnow()}
 
@@ -262,26 +289,41 @@ async def submit_task_completion(
         identifier = TaskIdentifier(raw_id=task_id)
 
         # Calculate session number for this completion
-        # Use atomic increment to avoid race conditions when multiple completions happen quickly
+        # Count actual completions for this specific date to get accurate attempt number
         scheduled_date = task_obj.scheduled_date.strftime("%Y-%m-%d") if task_obj.scheduled_date else None
 
-        # For multi-completion tasks, use atomic increment on the task's completion_count
-        # This ensures correct counting even with concurrent submissions
+        # For recurring tasks, count completions by scheduled_date + task_id
+        # For one-off tasks, count completions by task_id only
         if identifier.is_virtual:
             template_id_obj = ObjectId(identifier.template_id)
             actual_task_id = template_id_obj
+            # Count completions for this specific date
+            session_count = await completions_collection.count_documents({
+                "task_id": template_id_obj,
+                "scheduled_date": scheduled_date
+            })
         else:
             actual_task_id = ObjectId(task_id)
+            # Count completions for this task (may or may not have scheduled_date)
+            if scheduled_date:
+                session_count = await completions_collection.count_documents({
+                    "task_id": actual_task_id,
+                    "scheduled_date": scheduled_date
+                })
+            else:
+                session_count = await completions_collection.count_documents({
+                    "task_id": actual_task_id
+                })
 
-        # Atomically increment completion_count and get the NEW value
-        result = await tasks_collection.find_one_and_update(
+        session_number = session_count + 1
+        print(f"[submit] Calculated session_number: {session_number} (found {session_count} existing completions for date {scheduled_date})")
+
+        # Update task's completion_count to match actual count
+        # This keeps the field in sync with reality
+        await tasks_collection.update_one(
             {"_id": actual_task_id},
-            {"$inc": {"completion_count": 1}},
-            return_document=True  # Return updated document
+            {"$set": {"completion_count": session_number}}
         )
-
-        session_number = result.get("completion_count", 1) if result else 1
-        print(f"DEBUG - Atomically incremented completion_count to: {session_number}")
 
         # Debug: Check incoming data types
         print("DEBUG - completion_routes.py:")
@@ -458,17 +500,21 @@ async def get_completions(
         from backend.models.task_identifier import TaskIdentifier
         identifier = TaskIdentifier(raw_id=task_id)
 
+        print(f"[get_completions] task_id={task_id}, is_virtual={identifier.is_virtual}")
+
         # Handle virtual task IDs (template_id_date format)
         if identifier.is_virtual:
             # Virtual task - query by template ID
             template_id_obj = ObjectId(identifier.template_id)
             query["$or"] = [{"task_id": template_id_obj}, {"task_id": identifier.template_id}]
+            print(f"[get_completions] Virtual task - querying by template_id: {identifier.template_id}")
         else:
             # Regular task ID - handle both ObjectId and string formats
             try:
                 query["$or"] = [{"task_id": ObjectId(task_id)}, {"task_id": task_id}]
             except:
                 query["task_id"] = task_id
+            print(f"[get_completions] Regular task - querying by task_id: {task_id}")
 
     if child_id:
         # Handle both ObjectId and string formats for backwards compatibility
