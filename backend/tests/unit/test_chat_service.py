@@ -117,16 +117,18 @@ class TestChatService:
 
     # Test get_ai_response (mock mode)
     @pytest.mark.asyncio
-    async def test_get_ai_response_mock(self, chat_service):
-        """Test mock AI response."""
+    async def test_get_ai_response_mock(self, chat_service, sample_child_id):
+        """Test AI response with mocked LLM."""
         child_info = {"name": "Test"}
         messages = [{"role": "user", "content": "Hello"}]
 
-        with patch("backend.services.chat_service.USE_MOCK_AI", True):
-            response = await chat_service.get_ai_response(child_info, messages, None)
+        with patch("backend.services.chat_service.call_llm") as mock_llm:
+            mock_llm.return_value = "Hello! How can I help you today?"
+            response = await chat_service.get_ai_response(child_info, messages, None, str(sample_child_id))
 
         assert response is not None
         assert len(response) > 0
+        assert "Hello" in response or "help" in response
 
     # Test get_chat_history
     @pytest.mark.asyncio
@@ -193,15 +195,16 @@ class TestChatService:
     # Test summarize_messages
     @pytest.mark.asyncio
     async def test_summarize_messages_mock(self, chat_service):
-        """Test message summarization in mock mode."""
+        """Test message summarization with mocked LLM."""
         messages = [
             ChatMessage(role="user", content="Question 1"),
             ChatMessage(role="assistant", content="Answer 1"),
             ChatMessage(role="user", content="Question 2"),
         ]
 
-        with patch("backend.services.chat_service.USE_MOCK_AI", True):
+        with patch("backend.services.chat_service.call_llm") as mock_llm:
+            mock_llm.return_value = "Summary of 3 messages discussing two questions"
             summary = await chat_service.summarize_messages(messages)
 
         assert summary is not None
-        assert "3" in summary  # Should mention number of messages
+        assert len(summary) > 0
