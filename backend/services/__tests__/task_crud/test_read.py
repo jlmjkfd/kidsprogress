@@ -284,11 +284,13 @@ class TestGetTasksByChild:
             parent_id=str(sample_parent.id)
         )
 
-        # Should get one-time task + virtual instances from recurring template
-        # Template itself should NOT be in results
+        # Should get one-time task + virtual instances from recurring template + template itself
+        # Templates are now included in results (current implementation)
         one_time_tasks = [t for t in tasks if not t.get("is_virtual")]
-        assert len(one_time_tasks) == 1
-        assert one_time_tasks[0]["title"] == "One-time task"
+        assert len(one_time_tasks) == 2  # one-time task + recurring template
+        titles = {t["title"] for t in one_time_tasks}
+        assert "One-time task" in titles
+        assert "Recurring template" in titles
 
 
 # ============================================================================

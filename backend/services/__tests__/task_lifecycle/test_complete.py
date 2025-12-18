@@ -53,15 +53,19 @@ class TestCompleteTask:
         assert before <= completed_at <= after
 
     @pytest.mark.asyncio
-    async def test_complete_pending_task_raises_error(
+    async def test_complete_pending_task_allowed(
         self, task_service, sample_child, pending_task
     ):
-        """Test that completing a PENDING task raises ValueError."""
-        with pytest.raises(ValueError, match="Can only complete tasks in IN_PROGRESS status"):
-            await task_service.lifecycle.complete_task(
-                task_id=str(pending_task["_id"]),
-                child_id=str(sample_child.id)
-            )
+        """Test that completing a PENDING task is allowed (mark done without starting)."""
+        result = await task_service.lifecycle.complete_task(
+            task_id=str(pending_task["_id"]),
+            child_id=str(sample_child.id)
+        )
+
+        # Direct PENDING -> COMPLETED is allowed by state machine
+        assert result is not None
+        assert result.status == TaskStatus.COMPLETED.value
+        assert result.completed_at is not None
 
     @pytest.mark.asyncio
     async def test_complete_already_completed_task_raises_error(
@@ -79,14 +83,13 @@ class TestCompleteTask:
             "started_at": utcnow() - timedelta(minutes=30),
             "completed_at": utcnow(),
             "is_recurring": False,
-            "rollover_count": 0,
             "priority_boost": 0,
             "completion_count": 0,
             "created_at": utcnow()
         }
         await test_db.tasks.insert_one(completed_task)
 
-        with pytest.raises(ValueError, match="Can only complete tasks in IN_PROGRESS status"):
+        with pytest.raises(ValueError, match="Invalid state transition.*cannot transition from completed to completed"):
             await task_service.lifecycle.complete_task(
                 task_id=str(completed_task["_id"]),
                 child_id=str(sample_child.id)

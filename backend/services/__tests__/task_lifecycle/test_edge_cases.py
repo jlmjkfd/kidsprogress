@@ -85,13 +85,14 @@ class TestLifecycleEdgeCases:
     async def test_state_transition_validation(
         self, task_service, sample_child, pending_task
     ):
-        """Test that invalid state transitions are prevented."""
-        # Cannot complete a PENDING task
-        with pytest.raises(ValueError):
-            await task_service.lifecycle.complete_task(
-                str(pending_task["_id"]),
-                str(sample_child.id)
-            )
+        """Test that PENDING->COMPLETED transition is allowed (mark done without starting)."""
+        # PENDING -> COMPLETED is valid (direct completion without starting)
+        result = await task_service.lifecycle.complete_task(
+            str(pending_task["_id"]),
+            str(sample_child.id)
+        )
+        assert result is not None
+        assert result.status == TaskStatus.COMPLETED.value
 
     @pytest.mark.asyncio
     async def test_cancel_task(
@@ -177,59 +178,3 @@ class TestLifecycleEdgeCases:
         # Timestamps should be cleared
         # Note: Check actual implementation - may keep or clear
 
-    @pytest.mark.asyncio
-    async def test_validate_concurrent_tasks_not_allowed(
-        self, task_service, sample_child, test_db, sample_collection, sample_parent
-    ):
-        """Test concurrent task validation when not allowed."""
-        # Create task with concurrent_allowed=False
-        task_data = {
-            "_id": ObjectId(),
-            "collection_id": sample_collection["_id"],
-            "child_id": sample_child.id,
-            "parent_id": sample_parent.id,
-            "title": "Non-concurrent Task",
-            "status": TaskStatus.PENDING.value,
-            "scheduled_date": datetime.now(timezone.utc),
-            "concurrent_allowed": False,
-            "task_type_code": "homework",
-            "is_recurring": False,
-            "priority_boost": 0,
-            "completion_count": 0,
-            "created_at": utcnow()
-        }
-        await test_db.tasks.insert_one(task_data)
-        task = Task(**task_data)
-
-        # Start another task first
-        other_task_data = {
-            "_id": ObjectId(),
-            "collection_id": sample_collection["_id"],
-            "child_id": sample_child.id,
-            "parent_id": sample_parent.id,
-            "title": "Other Task",
-            "status": TaskStatus.IN_PROGRESS.value,
-            "scheduled_date": datetime.now(timezone.utc),
-            "started_at": utcnow(),
-            "concurrent_allowed": True,
-            "is_recurring": False,
-            "priority_boost": 0,
-            "completion_count": 0,
-            "created_at": utcnow()
-        }
-        await test_db.tasks.insert_one(other_task_data)
-
-        # Create session for other task
-        await task_service.session.create_session(
-            str(other_task_data["_id"]),
-            str(sample_child.id)
-        )
-
-        # Validate concurrent
-        result = await task_service.lifecycle.validate_concurrent_tasks(
-            task,
-            sample_child.id
-        )
-
-        assert result["is_valid"] is False
-        assert len(result["warnings"]) > 0

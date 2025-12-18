@@ -99,14 +99,13 @@ class TestStartTask:
             "scheduled_date": datetime.now(timezone.utc),
             "completed_at": utcnow(),
             "is_recurring": False,
-            "rollover_count": 0,
             "priority_boost": 0,
             "completion_count": 0,
             "created_at": utcnow()
         }
         await test_db.tasks.insert_one(completed_task)
 
-        with pytest.raises(ValueError, match="Can only start tasks in PENDING status"):
+        with pytest.raises(ValueError, match="Invalid state transition.*cannot transition from completed to in_progress"):
             await task_service.lifecycle.start_task(
                 task_id=str(completed_task["_id"]),
                 child_id=str(sample_child.id)
@@ -148,19 +147,18 @@ class TestStartTask:
             )
 
     @pytest.mark.asyncio
-    async def test_start_task_with_concurrent_task_warning(
+    async def test_start_task_with_concurrent_task_no_warning(
         self, task_service, sample_child, pending_task, in_progress_task
     ):
-        """Test that starting task with concurrent task returns warning."""
+        """Test that starting task with concurrent task no longer returns warnings (feature removed)."""
         result = await task_service.lifecycle.start_task(
             task_id=str(pending_task["_id"]),
             child_id=str(sample_child.id)
         )
 
+        # Concurrent task checking was removed (see lifecycle.py line 189)
         assert "concurrent_tasks" in result
-        assert len(result["concurrent_tasks"]) > 0
-        assert result["concurrent_tasks"][0]["task_id"] == str(in_progress_task["_id"])
-        assert result["concurrent_tasks"][0]["title"] == "In Progress Task"
+        assert result["concurrent_tasks"] == []
 
     @pytest.mark.asyncio
     async def test_start_task_with_fixed_time_slot(
