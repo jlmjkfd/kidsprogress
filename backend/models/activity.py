@@ -9,8 +9,6 @@ from backend.models.task import (
     TimeSlot,
     SchedulingType,
     ObligationLevel,
-    QuantifiableMetric,
-    QualityAspect,
     ToolUsage,
     Subtask
 )
@@ -78,8 +76,6 @@ class Activity(BaseModel):
 
     # Task details template
     estimated_duration_minutes: Optional[int] = None
-    metrics: List[QuantifiableMetric] = []
-    quality_aspects: List[QualityAspect] = []
     tools: List[ToolUsage] = []
     subtasks: List[Subtask] = []
 
@@ -126,8 +122,6 @@ class ActivityCreate(BaseModel):
     concurrent_allowed: bool = True
     concurrent_compatible_with: List[str] = []
     estimated_duration_minutes: Optional[int] = None
-    metrics: List[QuantifiableMetric] = []
-    quality_aspects: List[QualityAspect] = []
     tools: List[ToolUsage] = []
     subtasks: List[Subtask] = []
 
@@ -147,8 +141,6 @@ class ActivityUpdate(BaseModel):
     concurrent_allowed: Optional[bool] = None
     concurrent_compatible_with: Optional[List[str]] = None
     estimated_duration_minutes: Optional[int] = None
-    metrics: Optional[List[QuantifiableMetric]] = None
-    quality_aspects: Optional[List[QualityAspect]] = None
     tools: Optional[List[ToolUsage]] = None
     subtasks: Optional[List[Subtask]] = None
 

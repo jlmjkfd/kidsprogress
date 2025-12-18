@@ -9,8 +9,6 @@ from backend.models.task import (
     TimeSlot,
     SchedulingType,
     ObligationLevel,
-    QuantifiableMetric,
-    QualityAspect,
     ToolUsage,
     Subtask
 )
@@ -139,8 +137,6 @@ class Routine(BaseModel):
     concurrent_compatible_with: List[str] = []
 
     # Task details template
-    metrics: List[QuantifiableMetric] = []
-    quality_aspects: List[QualityAspect] = []
     tools: List[ToolUsage] = []
     subtasks: List[Subtask] = []
 
@@ -190,7 +186,5 @@ class RoutineUpdate(BaseModel):
     priority_boost: Optional[int] = Field(None, ge=-5, le=5)
     concurrent_allowed: Optional[bool] = None
     concurrent_compatible_with: Optional[List[str]] = None
-    metrics: Optional[List[QuantifiableMetric]] = None
-    quality_aspects: Optional[List[QualityAspect]] = None
     tools: Optional[List[ToolUsage]] = None
     subtasks: Optional[List[Subtask]] = None

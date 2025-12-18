@@ -17,8 +17,7 @@ from services.task_service import TaskService
 from models.task import (
     Task, TaskCreate, TaskUpdate, TaskStatus, ObligationLevel,
     TaskSource, SchedulingType, TimeSlot, TimeWindow, DeadlineType,
-    ActivationRule, ActivationType, TaskConstraints, QuantifiableMetric,
-    QualityAspect, EvaluationMethod, ToolUsage, Subtask, PoolUsageRules
+    TaskConstraints, ToolUsage, Subtask, PoolUsageRules
 )
 from models.user import User
 from models.child import Child

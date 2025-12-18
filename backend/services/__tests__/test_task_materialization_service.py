@@ -24,7 +24,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from services.task_materialization_service import TaskMaterializationService
 from models.task import (
     Task, TaskStatus, SchedulingType, TimeSlot,
-    QuantifiableMetric, QualityAspect, EvaluationMethod,
     RecurrenceException
 )
 from utils.datetime_utils import utcnow
@@ -448,20 +447,7 @@ class TestMaterializeVirtualTask:
             description="Do complex work",
             estimated_duration_minutes=60,
             scheduling_type=SchedulingType.FIXED_TIME.value,
-            fixed_time_slot=TimeSlot(start="14:00", end="15:00"),
-            metrics=[
-                QuantifiableMetric(
-                    metric_type_code="pages",
-                    target_value=20.0,
-                    unit="pages"
-                )
-            ],
-            quality_aspects=[
-                QualityAspect(
-                    name="Handwriting",
-                    evaluation_method=EvaluationMethod.PARENT_REVIEW
-                )
-            ]
+            fixed_time_slot=TimeSlot(start="14:00", end="15:00")
         )
         await create_template_in_db(test_db, template)
 

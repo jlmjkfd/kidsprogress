@@ -17,7 +17,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 from services.task_service import TaskService
 from models.task import (
     Task, TaskCreate, TaskStatus, ObligationLevel,
-    TaskSource, SchedulingType, TimeSlot, TaskPauseRecord
+    TaskSource, SchedulingType, TimeSlot
 )
 from models.user import User
 from models.child import Child
@@ -174,39 +174,4 @@ async def in_progress_task(test_db, sample_parent, sample_child, sample_collecti
         str(sample_child.id)
     )
 
-    return task_data
-
-
-@pytest_asyncio.fixture
-async def paused_task(test_db, sample_parent, sample_child, sample_collection):
-    """Create a paused task."""
-    pause_record = TaskPauseRecord(
-        paused_at=utcnow(),
-        resumed_at=None,
-        paused_by="CHILD",
-        reason="Taking a break"
-    )
-
-    task_data = {
-        "_id": ObjectId(),
-        "collection_id": sample_collection["_id"],
-        "child_id": sample_child.id,
-        "parent_id": sample_parent.id,
-        "title": "Paused Task",
-        "status": TaskStatus.PAUSED.value,
-        "task_source": TaskSource.ONE_TIME.value,
-        "scheduling_type": SchedulingType.FLEXIBLE.value,
-        "scheduled_date": datetime.now(timezone.utc),
-        "started_at": utcnow() - timedelta(minutes=10),
-        "current_pause": pause_record.model_dump(),
-        "pause_history": [pause_record.model_dump()],
-        "is_recurring": False,
-        "is_informational": False,
-        "rollover_count": 0,
-        "priority_boost": 0,
-        "completion_count": 0,
-        "created_at": utcnow(),
-        "updated_at": utcnow()
-    }
-    await test_db.tasks.insert_one(task_data)
     return task_data
