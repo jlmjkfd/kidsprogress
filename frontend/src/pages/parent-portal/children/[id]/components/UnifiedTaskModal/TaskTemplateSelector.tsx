@@ -25,7 +25,6 @@ interface TaskTemplateSelectorProps {
       collection_id: string;
       scheduling_type: SchedulingType;
       blocks_other_tasks: boolean;
-      can_be_interrupted: boolean;
       template_id?: string;
     }
   ) => void;
@@ -57,7 +56,6 @@ export function TaskTemplateSelector({
               collection_id: defaultCollection?._id || currentCollectionId,
               scheduling_type: SchedulingType.FLEXIBLE,
               blocks_other_tasks: false,
-              can_be_interrupted: true,
             });
           }}
           className={`rounded-lg border-2 p-4 text-left transition-all ${
@@ -82,7 +80,6 @@ export function TaskTemplateSelector({
                 currentCollectionId,
               scheduling_type: SchedulingType.FIXED_TIME,
               blocks_other_tasks: true,
-              can_be_interrupted: false,
             });
           }}
           className={`rounded-lg border-2 p-4 text-left transition-all ${

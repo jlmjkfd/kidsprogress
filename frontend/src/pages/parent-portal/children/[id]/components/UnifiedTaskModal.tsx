@@ -97,9 +97,6 @@ export function UnifiedTaskModal({
     // Blocking & Interruption
     is_informational: task?.is_informational || false,
     blocks_other_tasks: task?.blocks_other_tasks || false,
-    can_be_interrupted: task?.can_be_interrupted ?? true,
-    can_be_split: task?.can_be_split || false,
-    min_session_duration: task?.min_session_duration || null,
 
     // Pool / Activity
     is_in_pool: task?.is_in_pool || false,
@@ -199,11 +196,6 @@ export function UnifiedTaskModal({
         // Blocking & Interruption
         is_informational: formData.is_informational,
         blocks_other_tasks: formData.blocks_other_tasks,
-        can_be_interrupted: formData.can_be_interrupted,
-        can_be_split: formData.can_be_split,
-        min_session_duration: formData.can_be_split
-          ? formData.min_session_duration || undefined
-          : undefined,
 
         // Pool
         is_in_pool: formData.is_in_pool,
@@ -536,17 +528,11 @@ export function UnifiedTaskModal({
               isRecurring={formData.is_recurring}
               recurrencePattern={formData.recurrence_pattern}
               blocksOtherTasks={formData.blocks_other_tasks}
-              canBeInterrupted={formData.can_be_interrupted}
-              canBeSplit={formData.can_be_split}
-              minSessionDuration={formData.min_session_duration}
               isInformational={formData.is_informational}
               onToggleAdvanced={() => setShowAdvanced(!showAdvanced)}
               onIsRecurringChange={(value) => setFormData({ ...formData, is_recurring: value })}
               onRecurrencePatternChange={(pattern) => setFormData({ ...formData, recurrence_pattern: pattern })}
               onBlocksOtherTasksChange={(value) => setFormData({ ...formData, blocks_other_tasks: value })}
-              onCanBeInterruptedChange={(value) => setFormData({ ...formData, can_be_interrupted: value })}
-              onCanBeSplitChange={(value) => setFormData({ ...formData, can_be_split: value })}
-              onMinSessionDurationChange={(duration) => setFormData({ ...formData, min_session_duration: duration })}
             />
 
             {/* Actions */}
