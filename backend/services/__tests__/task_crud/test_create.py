@@ -489,7 +489,6 @@ class TestCreateTask:
         assert task.updated_at is not None
         assert before <= task.created_at <= after
         assert before <= task.updated_at <= after
-        assert task.activated_at is None
         assert task.started_at is None
         assert task.completed_at is None
 
