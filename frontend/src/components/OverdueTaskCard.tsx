@@ -73,20 +73,24 @@ export function OverdueTaskCard({
     enabled: !!sourceId && task.is_recurring,
   });
 
-  // Create a map of date -> task status
+  // Create a map of date -> task status and progress state
   // Normalize dates to YYYY-MM-DD format for consistent comparison
   const taskStatusByDate: Record<string, string> = {};
+  const hasInProgressAttemptByDate: Record<string, boolean> = {};
   if (materializedTasks) {
     for (const t of materializedTasks) {
       if (t.scheduled_date) {
         // Extract just the date part (YYYY-MM-DD) from ISO datetime string
         const dateStr = t.scheduled_date.split('T')[0];
         taskStatusByDate[dateStr] = t.status;
+        // Check if there's an in-progress attempt (saved progress state with data)
+        hasInProgressAttemptByDate[dateStr] = !!(t.progress_state && Object.keys(t.progress_state).length > 0);
       }
     }
   }
 
   console.log('[OverdueTaskCard] Materialized tasks status map:', taskStatusByDate);
+  console.log('[OverdueTaskCard] In-progress attempts by date:', hasInProgressAttemptByDate);
 
   const handleOpenTask = () => {
     navigate(`/child-portal/${childId}/tasks/execute/${task.task_id}`);
@@ -296,9 +300,9 @@ export function OverdueTaskCard({
               const attemptsPath = `/child-portal/${childId}/tasks/attempts/${virtualTaskId}`;
               const hasCompletions = dateCounts[date] > 0;
               const taskStatus = taskStatusByDate[date];
-              const isInProgress = taskStatus === "in_progress";
+              const hasInProgressAttempt = hasInProgressAttemptByDate[date] || false;
 
-              console.log(`[OverdueTaskCard] Date ${date}: status=${taskStatus}, isInProgress=${isInProgress}, hasCompletions=${hasCompletions}`);
+              console.log(`[OverdueTaskCard] Date ${date}: status=${taskStatus}, hasInProgressAttempt=${hasInProgressAttempt}, hasCompletions=${hasCompletions}`);
 
               return (
                 <div
@@ -332,7 +336,7 @@ export function OverdueTaskCard({
                       >
                         <IconCheck size={16} />
                       </button>
-                    ) : isInProgress ? (
+                    ) : hasInProgressAttempt ? (
                       <button
                         onClick={() => navigate(executePath)}
                         className="rounded-lg bg-blue-100 p-1.5 text-blue-700 transition-colors hover:bg-blue-200"
