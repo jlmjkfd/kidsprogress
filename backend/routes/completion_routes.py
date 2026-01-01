@@ -407,6 +407,28 @@ async def submit_task_completion(
         # Check if this is a multi-completion task (field is set, regardless of value)
         is_multi_completion = hasattr(task_obj, 'max_completions_per_period') and task_obj.max_completions_per_period is not None
 
+        # For virtual tasks, clear progress_state from materialized instance
+        if identifier.is_virtual:
+            # Find the materialized instance for this virtual task occurrence
+            from datetime import timedelta
+            occurrence_date = identifier.occurrence_date
+            if occurrence_date:
+                occurrence_date_str = occurrence_date.isoformat()
+                materialized_query = {
+                    "source_recurring_task_id": ObjectId(identifier.template_id),
+                    "is_virtual": False,
+                    "scheduled_date": {
+                        "$gte": datetime.fromisoformat(occurrence_date_str),
+                        "$lt": datetime.fromisoformat(occurrence_date_str) + timedelta(days=1)
+                    }
+                }
+                # Clear progress_state from materialized instance
+                await tasks_collection.update_one(
+                    materialized_query,
+                    {"$set": {"progress_state": None, "updated_at": utcnow()}}
+                )
+                print(f"[submit] Cleared progress_state from materialized virtual task for date {occurrence_date_str}")
+
         # Only update task status if NOT a virtual task (virtual tasks don't modify template status)
         if not identifier.is_virtual and actual_task_id and is_multi_completion:
             # Multi-completion task

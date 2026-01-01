@@ -2,15 +2,14 @@
  * Unified Execution Page
  * Handles execution for both standard tasks (with tools) and template tasks
  */
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
-import { useQueryClient } from '@tanstack/react-query';
-import { IconArrowLeft, IconCheck, IconX } from '@tabler/icons-react';
-import { getSystemTools } from '@/tools';
-import type { ToolData, ExecutionSession } from '@/tools/types';
-import type { Task } from '@/types/task';
-import { apiClient } from '@/api/client';
+import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
+import { useQueryClient } from "@tanstack/react-query";
+import { IconArrowLeft, IconCheck, IconX } from "@tabler/icons-react";
+import { getSystemTools } from "@/tools";
+import type { ToolData, ExecutionSession } from "@/tools/types";
+import type { Task } from "@/types/task";
+import { apiClient } from "@/api/client";
 
 interface UnifiedExecutionPageProps {
   task: Task;
@@ -32,8 +31,7 @@ export default function UnifiedExecutionPage({
   templateExecutor,
   isTemplateTask,
 }: UnifiedExecutionPageProps) {
-  const { t } = useTranslation(['tasks', 'common']);
-  const navigate = useNavigate();
+  const { t } = useTranslation(["tasks", "common"]);
   const queryClient = useQueryClient();
   const [activeToolId, setActiveToolId] = useState<string | null>(null);
   const [showConfirmComplete, setShowConfirmComplete] = useState(false);
@@ -49,7 +47,7 @@ export default function UnifiedExecutionPage({
     }
 
     // Otherwise initialize with default states
-    systemTools.forEach(tool => {
+    systemTools.forEach((tool) => {
       initial[tool.id] = {
         toolId: tool.id,
         state: tool.defaultState,
@@ -76,7 +74,7 @@ export default function UnifiedExecutionPage({
         };
         localStorage.setItem(`execution-${taskId}`, JSON.stringify(session));
       } catch (error) {
-        console.error('Failed to save to localStorage:', error);
+        console.error("Failed to save to localStorage:", error);
       }
     };
 
@@ -96,7 +94,7 @@ export default function UnifiedExecutionPage({
           saved_at: new Date().toISOString(),
         });
       } catch (error) {
-        console.error('Failed to save progress to database:', error);
+        console.error("Failed to save progress to database:", error);
       }
     };
 
@@ -105,7 +103,7 @@ export default function UnifiedExecutionPage({
   }, [taskId, toolStates, isTemplateTask]);
 
   const handleToolStateChange = (toolId: string, newState: any) => {
-    setToolStates(prev => ({
+    setToolStates((prev) => ({
       ...prev,
       [toolId]: {
         toolId,
@@ -124,11 +122,9 @@ export default function UnifiedExecutionPage({
       });
 
       // Complete the task
-      await apiClient.post(
-        `/api/tasks/${taskId}/complete`,
-        null,
-        { params: { child_id: childId } }
-      );
+      await apiClient.post(`/api/tasks/${taskId}/complete`, null, {
+        params: { child_id: childId },
+      });
 
       // Clean up localStorage
       localStorage.removeItem(`execution-${taskId}`);
@@ -138,23 +134,23 @@ export default function UnifiedExecutionPage({
 
       onComplete();
     } catch (error) {
-      console.error('Failed to complete task:', error);
-      alert(t('errors:completion_failed'));
+      console.error("Failed to complete task:", error);
+      alert(t("errors:completion_failed"));
     }
   };
 
   return (
-    <div className={`min-h-screen bg-gray-50 ${isTemplateTask ? '' : 'pb-24'}`}>
+    <div className={`min-h-screen bg-gray-50 ${isTemplateTask ? "" : "pb-24"}`}>
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 py-4">
+      <div className="sticky top-0 z-10 border-b border-gray-200 bg-white">
+        <div className="mx-auto max-w-7xl px-4 py-4">
           <div className="flex items-center justify-between">
             <button
               onClick={onCancel}
               className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
             >
               <IconArrowLeft size={20} />
-              {t('common:back')}
+              {t("common:back")}
             </button>
             <h1 className="text-xl font-bold text-gray-900">{task.title}</h1>
             <div className="w-20" /> {/* Spacer for centering */}
@@ -162,26 +158,28 @@ export default function UnifiedExecutionPage({
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        <div className={`grid grid-cols-1 gap-6 ${isTemplateTask ? '' : 'lg:grid-cols-3'}`}>
+      <div className="mx-auto max-w-7xl px-4 py-6">
+        <div
+          className={`grid grid-cols-1 gap-6 ${isTemplateTask ? "" : "lg:grid-cols-3"}`}
+        >
           {/* Main Content Area */}
-          <div className={isTemplateTask ? '' : 'lg:col-span-2 space-y-6'}>
+          <div className={isTemplateTask ? "" : "space-y-6 lg:col-span-2"}>
             {isTemplateTask ? (
               // Template task executor - full width, handles its own layout
               templateExecutor
             ) : (
               // Standard task - show description and notes tool
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                  {t('tasks:task_details')}
+              <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+                <h2 className="mb-4 text-lg font-semibold text-gray-900">
+                  {t("tasks:task_details")}
                 </h2>
                 {task.description && (
-                  <p className="text-gray-600 mb-6">{task.description}</p>
+                  <p className="mb-6 text-gray-600">{task.description}</p>
                 )}
 
                 {/* Note tool for standard tasks */}
-                {systemTools.map(tool => {
-                  if (tool.id === 'note') {
+                {systemTools.map((tool) => {
+                  if (tool.id === "note") {
                     const ToolComponent = tool.component;
                     return (
                       <ToolComponent
@@ -189,7 +187,9 @@ export default function UnifiedExecutionPage({
                         taskId={taskId}
                         childId={childId}
                         state={toolStates[tool.id]?.state || tool.defaultState}
-                        onChange={(newState) => handleToolStateChange(tool.id, newState)}
+                        onChange={(newState) =>
+                          handleToolStateChange(tool.id, newState)
+                        }
                         isActive={true}
                       />
                     );
@@ -202,50 +202,59 @@ export default function UnifiedExecutionPage({
 
           {/* Tools Sidebar - Only for standard tasks */}
           {!isTemplateTask && (
-          <div className="space-y-4">
-            <h3 className="font-semibold text-gray-900">{t('tasks:tools')}</h3>
+            <div className="space-y-4">
+              <h3 className="font-semibold text-gray-900">
+                {t("tasks:tools")}
+              </h3>
 
-            {/* Tool Tabs */}
-            <div className="flex flex-wrap gap-2">
-              {systemTools.map(tool => {
-                if (tool.id === 'note' && !isTemplateTask) return null; // Note shown in main area for standard tasks
+              {/* Tool Tabs */}
+              <div className="flex flex-wrap gap-2">
+                {systemTools.map((tool) => {
+                  if (tool.id === "note" && !isTemplateTask) return null; // Note shown in main area for standard tasks
 
-                const Icon = tool.icon;
-                return (
-                  <button
-                    key={tool.id}
-                    onClick={() => setActiveToolId(activeToolId === tool.id ? null : tool.id)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
-                      activeToolId === tool.id
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-                    }`}
-                  >
-                    <Icon size={18} />
-                    {tool.name}
-                  </button>
-                );
-              })}
+                  const Icon = tool.icon;
+                  return (
+                    <button
+                      key={tool.id}
+                      onClick={() =>
+                        setActiveToolId(
+                          activeToolId === tool.id ? null : tool.id
+                        )
+                      }
+                      className={`flex items-center gap-2 rounded-lg px-4 py-2 font-medium transition-colors ${
+                        activeToolId === tool.id
+                          ? "bg-blue-600 text-white"
+                          : "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                      }`}
+                    >
+                      <Icon size={18} />
+                      {tool.name}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Active Tool */}
+              {activeToolId &&
+                systemTools.map((tool) => {
+                  if (tool.id === activeToolId) {
+                    const ToolComponent = tool.component;
+                    return (
+                      <ToolComponent
+                        key={tool.id}
+                        taskId={taskId}
+                        childId={childId}
+                        state={toolStates[tool.id]?.state || tool.defaultState}
+                        onChange={(newState) =>
+                          handleToolStateChange(tool.id, newState)
+                        }
+                        isActive={true}
+                      />
+                    );
+                  }
+                  return null;
+                })}
             </div>
-
-            {/* Active Tool */}
-            {activeToolId && systemTools.map(tool => {
-              if (tool.id === activeToolId) {
-                const ToolComponent = tool.component;
-                return (
-                  <ToolComponent
-                    key={tool.id}
-                    taskId={taskId}
-                    childId={childId}
-                    state={toolStates[tool.id]?.state || tool.defaultState}
-                    onChange={(newState) => handleToolStateChange(tool.id, newState)}
-                    isActive={true}
-                  />
-                );
-              }
-              return null;
-            })}
-          </div>
           )}
         </div>
       </div>
@@ -253,52 +262,52 @@ export default function UnifiedExecutionPage({
       {/* Floating Complete Button - Only for standard tasks */}
       {!isTemplateTask && (
         <>
-          <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-lg md:left-64">
-            <div className="max-w-7xl mx-auto flex gap-3">
+          <div className="fixed right-0 bottom-0 left-0 border-t border-gray-200 bg-white p-4 shadow-lg md:left-64">
+            <div className="mx-auto flex max-w-7xl gap-3">
               <button
                 onClick={() => setShowConfirmComplete(true)}
-                className="flex-1 flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white py-4 rounded-xl font-semibold text-lg transition-colors"
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-green-600 py-4 text-lg font-semibold text-white transition-colors hover:bg-green-700"
               >
                 <IconCheck size={24} />
-                {t('tasks:complete_task')}
+                {t("tasks:complete_task")}
               </button>
               <button
                 onClick={onCancel}
-                className="px-6 py-4 border-2 border-gray-300 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
+                className="rounded-xl border-2 border-gray-300 px-6 py-4 font-semibold transition-colors hover:bg-gray-50"
               >
-                {t('common:cancel')}
+                {t("common:cancel")}
               </button>
             </div>
           </div>
 
           {/* Confirmation Modal */}
           {showConfirmComplete && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">
-              {t('tasks:confirm_complete_title')}
-            </h3>
-            <p className="text-gray-600 mb-6">
-              {t('tasks:confirm_complete_message')}
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={handleComplete}
-                className="flex-1 flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-semibold transition-colors"
-              >
-                <IconCheck size={20} />
-                {t('common:yes')}
-              </button>
-              <button
-                onClick={() => setShowConfirmComplete(false)}
-                className="flex-1 flex items-center justify-center gap-2 bg-gray-200 hover:bg-gray-300 text-gray-700 py-3 rounded-lg font-semibold transition-colors"
-              >
-                <IconX size={20} />
-                {t('common:no')}
-              </button>
+            <div className="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black p-4">
+              <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+                <h3 className="mb-4 text-xl font-bold text-gray-900">
+                  {t("tasks:confirm_complete_title")}
+                </h3>
+                <p className="mb-6 text-gray-600">
+                  {t("tasks:confirm_complete_message")}
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleComplete}
+                    className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-green-600 py-3 font-semibold text-white transition-colors hover:bg-green-700"
+                  >
+                    <IconCheck size={20} />
+                    {t("common:yes")}
+                  </button>
+                  <button
+                    onClick={() => setShowConfirmComplete(false)}
+                    className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-gray-200 py-3 font-semibold text-gray-700 transition-colors hover:bg-gray-300"
+                  >
+                    <IconX size={20} />
+                    {t("common:no")}
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
           )}
         </>
       )}
