@@ -18,6 +18,10 @@ interface BasicInfoSectionProps {
   onTitleChange: (value: string) => void;
   onDescriptionChange: (value: string) => void;
   onCollectionChange: (value: string) => void;
+  disabledFields?: {
+    title?: boolean;
+    collection?: boolean;
+  };
 }
 
 export function BasicInfoSection({
@@ -30,6 +34,7 @@ export function BasicInfoSection({
   onTitleChange,
   onDescriptionChange,
   onCollectionChange,
+  disabledFields,
 }: BasicInfoSectionProps) {
   const { t } = useTranslation(["tasks", "common"]);
 
@@ -57,15 +62,20 @@ export function BasicInfoSection({
           id="title"
           value={title}
           onChange={(e) => onTitleChange(e.target.value)}
-          disabled={isTemplateMode}
+          disabled={isTemplateMode || disabledFields?.title}
           className={`w-full rounded-lg border px-3 py-2 ${
-            isTemplateMode
+            isTemplateMode || disabledFields?.title
               ? "bg-gray-50 text-gray-600 cursor-not-allowed border-gray-200"
               : "border-gray-300"
           }`}
           required
           maxLength={200}
         />
+        {disabledFields?.title && !isTemplateMode && (
+          <p className="mt-1 text-xs text-gray-500">
+            {t("tasks:title_cannot_change_hint")}
+          </p>
+        )}
       </div>
 
       {/* Description */}

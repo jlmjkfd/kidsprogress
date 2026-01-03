@@ -21,11 +21,17 @@ import { ObligationPrioritySection } from "./UnifiedTaskModal/ObligationPriority
 import { AdvancedOptionsSection } from "./UnifiedTaskModal/AdvancedOptionsSection";
 import { TaskFormActions } from "./UnifiedTaskModal/TaskFormActions";
 
+type EditScope = "single" | "all";
+
 interface UnifiedTaskModalProps {
   childId: string;
   task?: Task;
   onClose: () => void;
   onSubmit: (data: TaskCreate | TaskUpdate) => Promise<void>;
+  // For editing recurring task occurrences
+  isRecurringOccurrence?: boolean;
+  occurrenceDate?: string; // YYYY-MM-DD
+  onEditScopeChange?: (scope: EditScope, overrides: Record<string, unknown>) => Promise<void>;
 }
 
 export function UnifiedTaskModal({
@@ -33,6 +39,9 @@ export function UnifiedTaskModal({
   task,
   onClose,
   onSubmit,
+  isRecurringOccurrence = false,
+  occurrenceDate,
+  onEditScopeChange,
 }: UnifiedTaskModalProps) {
   const { t } = useTranslation(["common", "tasks"]);
   const { data: collections } = useTaskCollections(childId);
@@ -44,6 +53,18 @@ export function UnifiedTaskModal({
     task?.is_informational ? "informational" : "standard"
   );
   const [selectedTemplate, setSelectedTemplate] = useState<TaskTemplate | null>(null);
+  const [editScope, setEditScope] = useState<EditScope>("single");
+
+  // Determine which fields should be disabled for single occurrence edits
+  const isSingleOccurrenceEdit = isRecurringOccurrence && editScope === "single";
+  const disabledFields = {
+    title: isSingleOccurrenceEdit,
+    collection: isSingleOccurrenceEdit,
+    template: isSingleOccurrenceEdit,
+    recurrence: isSingleOccurrenceEdit,
+    schedulingType: isSingleOccurrenceEdit,
+    scheduledDate: isSingleOccurrenceEdit,
+  };
 
   // Load user's templates to find the template when editing
   const { data: myTemplates } = useMyTemplates();
@@ -265,8 +286,40 @@ export function UnifiedTaskModal({
         baseData.max_completions_per_period = formData.max_completions_per_period;
       }
 
-      if (task) {
-        // Update existing task
+      // Handle recurring occurrence edits differently
+      if (isRecurringOccurrence && onEditScopeChange) {
+        if (editScope === "single") {
+          // Edit only this occurrence - send overrides via exception
+          const overrides: Record<string, unknown> = {};
+          if (formData.description !== (task?.description || "")) {
+            overrides.description = formData.description;
+          }
+          if (
+            formData.fixed_start !== task?.fixed_time_slot?.start ||
+            formData.fixed_end !== task?.fixed_time_slot?.end
+          ) {
+            overrides.fixed_time_slot = {
+              start: formData.fixed_start,
+              end: formData.fixed_end,
+            };
+          }
+          if (formData.obligation_level !== task?.obligation_level) {
+            overrides.obligation_level = formData.obligation_level;
+          }
+          if (formData.priority_boost !== task?.priority_boost) {
+            overrides.priority_boost = formData.priority_boost;
+          }
+          if (formData.estimated_duration !== task?.estimated_duration_minutes) {
+            overrides.estimated_duration_minutes = formData.estimated_duration;
+          }
+
+          await onEditScopeChange("single", overrides);
+        } else {
+          // Edit all occurrences - send full update via normal flow
+          await onEditScopeChange("all", baseData);
+        }
+      } else if (task) {
+        // Normal task update
         await onSubmit(baseData as TaskUpdate);
       } else {
         // Create new task
@@ -292,17 +345,52 @@ export function UnifiedTaskModal({
       <div className="bg-opacity-50 fixed inset-0 z-50 flex items-start justify-center bg-black p-4 pt-8 overflow-y-auto">
         <div className="w-full max-w-3xl my-8 rounded-lg bg-white shadow-xl max-h-[90vh] flex flex-col">
           {/* Header */}
-          <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-white p-4 sm:p-6">
-            <h2 className="text-lg font-bold text-gray-900 sm:text-xl">
-              {task ? t("tasks:edit_task") : t("tasks:create_task")}
-            </h2>
-            <button
-              onClick={onClose}
-              className="text-gray-400 transition-colors hover:text-gray-600"
-              aria-label={t("common:close")}
-            >
-              <IconX size={24} />
-            </button>
+          <div className="sticky top-0 z-10 border-b bg-white">
+            <div className="flex items-center justify-between p-4 sm:p-6">
+              <h2 className="text-lg font-bold text-gray-900 sm:text-xl">
+                {task ? t("tasks:edit_task") : t("tasks:create_task")}
+              </h2>
+              <button
+                onClick={onClose}
+                className="text-gray-400 transition-colors hover:text-gray-600"
+                aria-label={t("common:close")}
+              >
+                <IconX size={24} />
+              </button>
+            </div>
+
+            {/* Edit Scope Tabs (only for recurring occurrence edits) */}
+            {isRecurringOccurrence && occurrenceDate && (
+              <div className="border-t border-gray-200 px-4 sm:px-6">
+                <div className="flex items-center gap-2 py-3">
+                  <span className="text-sm text-gray-600 mr-2">{t("tasks:editing")}:</span>
+                  <div className="inline-flex rounded-lg border border-gray-300 bg-gray-50 p-1">
+                    <button
+                      type="button"
+                      onClick={() => setEditScope("single")}
+                      className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                        editScope === "single"
+                          ? "bg-white text-blue-600 shadow-sm"
+                          : "text-gray-600 hover:text-gray-900"
+                      }`}
+                    >
+                      {t("tasks:this_occurrence")} ({occurrenceDate})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditScope("all")}
+                      className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                        editScope === "all"
+                          ? "bg-white text-blue-600 shadow-sm"
+                          : "text-gray-600 hover:text-gray-900"
+                      }`}
+                    >
+                      {t("tasks:all_occurrences")}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Form */}
@@ -484,6 +572,10 @@ export function UnifiedTaskModal({
               onTitleChange={(value) => setFormData({ ...formData, title: value })}
               onDescriptionChange={(value) => setFormData({ ...formData, description: value })}
               onCollectionChange={(value) => setFormData({ ...formData, collection_id: value })}
+              disabledFields={{
+                title: disabledFields.title,
+                collection: disabledFields.collection,
+              }}
             />
 
             {/* Scheduling Section */}
@@ -522,18 +614,20 @@ export function UnifiedTaskModal({
               onPriorityBoostChange={(boost) => setFormData({ ...formData, priority_boost: boost })}
             />
 
-            {/* Advanced Options */}
-            <AdvancedOptionsSection
-              showAdvanced={showAdvanced}
-              isRecurring={formData.is_recurring}
-              recurrencePattern={formData.recurrence_pattern}
-              blocksOtherTasks={formData.blocks_other_tasks}
-              isInformational={formData.is_informational}
-              onToggleAdvanced={() => setShowAdvanced(!showAdvanced)}
-              onIsRecurringChange={(value) => setFormData({ ...formData, is_recurring: value })}
-              onRecurrencePatternChange={(pattern) => setFormData({ ...formData, recurrence_pattern: pattern })}
-              onBlocksOtherTasksChange={(value) => setFormData({ ...formData, blocks_other_tasks: value })}
-            />
+            {/* Advanced Options - Hide recurrence section when editing single occurrence */}
+            {!isSingleOccurrenceEdit && (
+              <AdvancedOptionsSection
+                showAdvanced={showAdvanced}
+                isRecurring={formData.is_recurring}
+                recurrencePattern={formData.recurrence_pattern}
+                blocksOtherTasks={formData.blocks_other_tasks}
+                isInformational={formData.is_informational}
+                onToggleAdvanced={() => setShowAdvanced(!showAdvanced)}
+                onIsRecurringChange={(value) => setFormData({ ...formData, is_recurring: value })}
+                onRecurrencePatternChange={(pattern) => setFormData({ ...formData, recurrence_pattern: pattern })}
+                onBlocksOtherTasksChange={(value) => setFormData({ ...formData, blocks_other_tasks: value })}
+              />
+            )}
 
             {/* Actions */}
             <TaskFormActions

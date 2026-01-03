@@ -20,6 +20,7 @@ import {
   useUpdateTask,
   useDeleteTask,
   useRemoveRecurrenceException,
+  useAddRecurrenceException,
 } from "@/api/mutations/useTaskMutations";
 import {
   Task,
@@ -34,7 +35,6 @@ import { TaskFilters } from "./components/TaskFilters";
 import { TaskListView } from "./components/TaskListView";
 import { CalendarView } from "./components/CalendarView";
 import { SchoolCalendarModal } from "@/components/SchoolCalendarModal";
-import { EditOccurrenceModal } from "@/components/EditOccurrenceModal";
 import { DeleteOccurrenceModal } from "@/components/DeleteOccurrenceModal";
 import { EditRecurringTemplateDialog } from "@/components/EditRecurringTemplateDialog";
 import { CompleteTaskModal } from "@/components/CompleteTaskModal";
@@ -89,6 +89,7 @@ export default function ChildTasksPage() {
   const deleteTaskMutation = useDeleteTask();
   const completeWithTimesMutation = useCompleteTaskWithTimes();
   const uncompleteMutation = useUncompleteTask();
+  const addExceptionMutation = useAddRecurrenceException();
   const skipMutation = useSkipTask();
   const restoreSkippedMutation = useRestoreSkippedTask();
   const removeExceptionMutation = useRemoveRecurrenceException();
@@ -420,11 +421,31 @@ export default function ChildTasksPage() {
       )}
 
       {editingOccurrence && (
-        <EditOccurrenceModal
-          isOpen={true}
+        <UnifiedTaskModal
           onClose={() => setEditingOccurrence(null)}
+          onSubmit={handleUpdateTask}
           task={editingOccurrence}
-          onEditTemplate={handleEditTemplate}
+          childId={childId || ""}
+          isRecurringOccurrence={true}
+          occurrenceDate={editingOccurrence.scheduled_date?.split("T")[0]}
+          onEditScopeChange={async (scope, overrides) => {
+            if (scope === "single" && editingOccurrence.source_recurring_task_id) {
+              // Add exception for single occurrence edit
+              await addExceptionMutation.mutateAsync({
+                taskId: editingOccurrence.source_recurring_task_id,
+                exceptionDate: editingOccurrence.scheduled_date?.split("T")[0] || "",
+                exceptionType: "modified",
+                overrides,
+              });
+            } else if (scope === "all" && editingOccurrence.source_recurring_task_id) {
+              // Edit template - update the template directly
+              const updateData = overrides as TaskUpdate;
+              await updateTaskMutation.mutateAsync({
+                taskId: editingOccurrence.source_recurring_task_id,
+                data: updateData,
+              });
+            }
+          }}
         />
       )}
 

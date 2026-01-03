@@ -628,6 +628,10 @@
     "show_all": "显示全部（{{count}}天）",
     "show_recent": "仅显示最近",
     "collapse_section": "隐藏",
-    "expand_section": "显示"
+    "expand_section": "显示",
+    "editing": "编辑中",
+    "this_occurrence": "仅此次",
+    "all_occurrences": "所有重复",
+    "title_cannot_change_hint": "标题无法为单次编辑修改。切换至\"所有重复\"以编辑标题。"
   }
 }
