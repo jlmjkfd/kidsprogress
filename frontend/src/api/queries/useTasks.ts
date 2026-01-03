@@ -23,15 +23,17 @@ export const useTasksByChild = (
   childId: string,
   status?: TaskStatus,
   startDate?: string,
-  endDate?: string
+  endDate?: string,
+  includeDeleted?: boolean
 ) => {
   return useQuery({
-    queryKey: ["tasks", "child", childId, status, startDate, endDate],
+    queryKey: ["tasks", "child", childId, status, startDate, endDate, includeDeleted],
     queryFn: async () => {
       const params: Record<string, string> = {};
       if (status) params.status = status;
       if (startDate) params.start_date = startDate;
       if (endDate) params.end_date = endDate;
+      if (includeDeleted) params.include_deleted = "true";
 
       const response = await apiClient.get<Task[]>(
         `/api/tasks/child/${childId}`,

@@ -56,10 +56,15 @@ async def get_tasks_by_child(
     status: Optional[TaskStatus] = Query(None, description="Filter by task status"),
     start_date: Optional[str] = Query(None, description="Start date (YYYY-MM-DD)"),
     end_date: Optional[str] = Query(None, description="End date (YYYY-MM-DD)"),
+    include_deleted: bool = Query(False, description="Include deleted occurrences (parent portal only)"),
     current_user: User = Depends(get_current_user),
     service: TaskService = Depends(get_task_service),
 ):
-    """Get tasks for a child (includes virtual instances). Defaults to 30 days ago to 60 days ahead."""
+    """Get tasks for a child (includes virtual instances). Defaults to 30 days ago to 60 days ahead.
+
+    For parent portal, set include_deleted=true to show deleted occurrences with restore option.
+    For child portal, deleted occurrences are hidden (include_deleted=false, default).
+    """
     from datetime import datetime
     try:
         # Parse dates if provided
@@ -71,7 +76,8 @@ async def get_tasks_by_child(
             str(current_user.id),
             status,
             start_date=parsed_start,
-            end_date=parsed_end
+            end_date=parsed_end,
+            include_deleted=include_deleted
         )
     except ValueError as e:
         if "not found" in str(e).lower():

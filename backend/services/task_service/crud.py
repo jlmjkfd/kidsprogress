@@ -268,7 +268,7 @@ class TaskCRUD:
     async def get_tasks_by_child(
         self, child_id: str, parent_id: str, status: Optional[TaskStatus] = None,
         start_date: Optional[date] = None, end_date: Optional[date] = None,
-        virtual_service=None
+        virtual_service=None, include_deleted: bool = False
     ) -> List[Dict[str, Any]]:
         """Get all tasks for a child, including virtual instances from recurring tasks.
 
@@ -279,6 +279,7 @@ class TaskCRUD:
             start_date: Optional start date for virtual instance expansion (defaults to 30 days ago)
             end_date: Optional end date for virtual instance expansion (defaults to 60 days ahead)
             virtual_service: VirtualInstanceService for expanding recurring tasks
+            include_deleted: Include deleted occurrences (for parent portal, default False for child portal)
 
         Returns:
             List of tasks (includes both one-time tasks and virtual instances)
@@ -347,8 +348,8 @@ class TaskCRUD:
             # Add virtual instances directly as dicts (don't convert to Task objects)
             # They have string IDs which don't validate as ObjectId
             for instance_data in virtual_instances:
-                # Skip deleted occurrences (exceptions with type="deleted")
-                if instance_data.get("is_deleted"):
+                # Skip deleted occurrences unless include_deleted is True (for parent portal)
+                if instance_data.get("is_deleted") and not include_deleted:
                     continue
 
                 # Apply status filter if specified
