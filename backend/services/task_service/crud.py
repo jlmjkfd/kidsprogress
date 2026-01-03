@@ -347,6 +347,10 @@ class TaskCRUD:
             # Add virtual instances directly as dicts (don't convert to Task objects)
             # They have string IDs which don't validate as ObjectId
             for instance_data in virtual_instances:
+                # Skip deleted occurrences (exceptions with type="deleted")
+                if instance_data.get("is_deleted"):
+                    continue
+
                 # Apply status filter if specified
                 if status and instance_data.get("status") != status.value:
                     continue
