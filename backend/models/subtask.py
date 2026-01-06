@@ -1,6 +1,6 @@
 """Subtask model for task breakdown."""
 from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import Optional, List, Dict
 from datetime import datetime
 from bson import ObjectId
 from backend.models.common import PyObjectId

@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from backend.models.task_session import TaskSession
 from backend.services.task_session_service import TaskSessionService
-from backend.database import get_database
+from backend.dependencies.database import get_db
 from backend.utils.validators import validate_object_id
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
@@ -79,7 +79,7 @@ class SessionResponse(BaseModel):
 @router.post("/start", response_model=SessionResponse, status_code=status.HTTP_201_CREATED)
 async def start_session(
     request: SessionStartRequest,
-    db=Depends(get_database),
+    db=Depends(get_db),
 ):
     """
     Start a new work session for a task.
@@ -120,7 +120,7 @@ async def start_session(
 @router.get("/{session_id}", response_model=SessionResponse)
 async def get_session(
     session_id: str,
-    db=Depends(get_database),
+    db=Depends(get_db),
 ):
     """
     Get a session by ID.
@@ -151,7 +151,7 @@ async def get_session(
 async def save_progress(
     session_id: str,
     request: SessionProgressRequest,
-    db=Depends(get_database),
+    db=Depends(get_db),
 ):
     """
     Save progress for an active session.
@@ -183,7 +183,7 @@ async def complete_session(
     session_id: str,
     completion_id: str,
     final_progress: Optional[Dict[str, Any]] = None,
-    db=Depends(get_database),
+    db=Depends(get_db),
 ):
     """
     Mark a session as completed.
@@ -225,7 +225,7 @@ async def complete_session(
 async def abandon_session(
     session_id: str,
     reason: Optional[str] = None,
-    db=Depends(get_database),
+    db=Depends(get_db),
 ):
     """
     Mark a session as abandoned.
@@ -260,7 +260,7 @@ async def abandon_session(
 @router.post("/{session_id}/record-pause")
 async def record_pause(
     session_id: str,
-    db=Depends(get_database),
+    db=Depends(get_db),
 ):
     """
     Record that the user paused work.
@@ -279,7 +279,7 @@ async def record_pause(
 @router.post("/{session_id}/record-tool-switch")
 async def record_tool_switch(
     session_id: str,
-    db=Depends(get_database),
+    db=Depends(get_db),
 ):
     """
     Record that the user switched tools.
@@ -299,7 +299,7 @@ async def record_tool_switch(
 async def get_task_sessions(
     task_id: str,
     limit: int = 50,
-    db=Depends(get_database),
+    db=Depends(get_db),
 ):
     """
     Get session history for a task.
@@ -320,7 +320,7 @@ async def get_task_sessions(
 async def get_child_sessions(
     child_id: str,
     limit: int = 50,
-    db=Depends(get_database),
+    db=Depends(get_db),
 ):
     """
     Get session history for a child.

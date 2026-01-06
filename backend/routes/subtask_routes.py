@@ -9,7 +9,7 @@ from pydantic import BaseModel
 
 from backend.models.subtask import Subtask
 from backend.services.subtask_service import SubtaskService
-from backend.database import get_database
+from backend.dependencies.database import get_db
 from backend.utils.validators import validate_object_id
 
 router = APIRouter(prefix="/subtasks", tags=["subtasks"])
@@ -73,7 +73,7 @@ class SubtaskResponse(BaseModel):
 @router.post("/", response_model=SubtaskResponse, status_code=status.HTTP_201_CREATED)
 async def create_subtask(
     request: SubtaskCreateRequest,
-    db=Depends(get_database),
+    db=Depends(get_db),
 ):
     """
     Create a new subtask.
@@ -115,7 +115,7 @@ async def create_subtask(
 @router.get("/{subtask_id}", response_model=SubtaskResponse)
 async def get_subtask(
     subtask_id: str,
-    db=Depends(get_database),
+    db=Depends(get_db),
 ):
     """
     Get a subtask by ID.
@@ -141,7 +141,7 @@ async def get_subtask(
 async def get_task_subtasks(
     task_id: str,
     parent_subtask_id: Optional[str] = None,
-    db=Depends(get_database),
+    db=Depends(get_db),
 ):
     """
     Get subtasks for a task, optionally filtered by parent.
@@ -162,7 +162,7 @@ async def get_task_subtasks(
 @router.get("/task/{task_id}/all", response_model=List[SubtaskResponse])
 async def get_all_task_subtasks(
     task_id: str,
-    db=Depends(get_database),
+    db=Depends(get_db),
 ):
     """
     Get all subtasks for a task (including nested).
@@ -182,7 +182,7 @@ async def get_all_task_subtasks(
 async def update_subtask(
     subtask_id: str,
     request: SubtaskUpdateRequest,
-    db=Depends(get_database),
+    db=Depends(get_db),
 ):
     """
     Update a subtask.
@@ -224,7 +224,7 @@ async def update_subtask(
 async def complete_subtask(
     subtask_id: str,
     completed_by: str = "CHILD",
-    db=Depends(get_database),
+    db=Depends(get_db),
 ):
     """
     Mark a subtask as completed.
@@ -260,7 +260,7 @@ async def complete_subtask(
 @router.post("/{subtask_id}/uncomplete")
 async def uncomplete_subtask(
     subtask_id: str,
-    db=Depends(get_database),
+    db=Depends(get_db),
 ):
     """
     Mark a subtask as not completed (undo completion).
@@ -295,7 +295,7 @@ async def uncomplete_subtask(
 @router.get("/task/{task_id}/progress")
 async def get_subtask_progress(
     task_id: str,
-    db=Depends(get_database),
+    db=Depends(get_db),
 ):
     """
     Get completion progress for a task's subtasks.
@@ -314,7 +314,7 @@ async def get_subtask_progress(
 @router.delete("/{subtask_id}")
 async def delete_subtask(
     subtask_id: str,
-    db=Depends(get_database),
+    db=Depends(get_db),
 ):
     """
     Delete a subtask.

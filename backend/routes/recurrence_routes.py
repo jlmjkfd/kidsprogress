@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from backend.models.recurrence_rule import RecurrenceRule
 from backend.services.recurrence_rule_service import RecurrenceRuleService
-from backend.database import get_database
+from backend.dependencies.database import get_db
 from backend.utils.validators import validate_object_id
 
 router = APIRouter(prefix="/recurrence", tags=["recurrence"])
@@ -76,7 +76,7 @@ class ChangePatternRequest(BaseModel):
 @router.get("/{task_template_id}/current", response_model=RecurrenceRuleResponse)
 async def get_current_rule(
     task_template_id: str,
-    db=Depends(get_database),
+    db=Depends(get_db),
 ):
     """
     Get the currently active recurrence rule for a task template.
@@ -101,7 +101,7 @@ async def get_current_rule(
 @router.get("/{task_template_id}/history", response_model=List[RecurrenceRuleResponse])
 async def get_rule_history(
     task_template_id: str,
-    db=Depends(get_database),
+    db=Depends(get_db),
 ):
     """
     Get all recurrence rules for a task template (pattern history).
@@ -122,7 +122,7 @@ async def change_pattern(
     task_template_id: str,
     request: ChangePatternRequest,
     parent_id: str,  # TODO: Get from auth token
-    db=Depends(get_database),
+    db=Depends(get_db),
 ):
     """
     Change the recurrence pattern for a task template.
@@ -167,7 +167,7 @@ async def change_pattern(
 async def get_rule_for_date(
     task_template_id: str,
     target_date: date,
-    db=Depends(get_database),
+    db=Depends(get_db),
 ):
     """
     Get the recurrence rule that was active on a specific date.

@@ -9,7 +9,7 @@ from pydantic import BaseModel
 
 from backend.models.task_attachment import TaskAttachment, MediaPurpose
 from backend.services.task_attachment_service import TaskAttachmentService
-from backend.database import get_database
+from backend.dependencies.database import get_db
 from backend.utils.validators import validate_object_id
 
 router = APIRouter(prefix="/attachments", tags=["attachments"])
@@ -79,7 +79,7 @@ class AttachmentResponse(BaseModel):
 @router.post("/", response_model=AttachmentResponse, status_code=status.HTTP_201_CREATED)
 async def create_attachment(
     request: AttachmentCreateRequest,
-    db=Depends(get_database),
+    db=Depends(get_db),
 ):
     """
     Create a new attachment record.
@@ -130,7 +130,7 @@ async def create_attachment(
 @router.get("/{attachment_id}", response_model=AttachmentResponse)
 async def get_attachment(
     attachment_id: str,
-    db=Depends(get_database),
+    db=Depends(get_db),
 ):
     """
     Get an attachment by ID.
@@ -156,7 +156,7 @@ async def get_attachment(
 async def get_task_attachments(
     task_id: str,
     purpose: Optional[MediaPurpose] = None,
-    db=Depends(get_database),
+    db=Depends(get_db),
 ):
     """
     Get all attachments for a task.
@@ -176,7 +176,7 @@ async def get_task_attachments(
 @router.get("/completion/{completion_id}", response_model=List[AttachmentResponse])
 async def get_completion_attachments(
     completion_id: str,
-    db=Depends(get_database),
+    db=Depends(get_db),
 ):
     """
     Get all attachments for a completion.
@@ -197,7 +197,7 @@ async def get_child_attachments(
     child_id: str,
     file_type: Optional[str] = None,
     limit: int = 100,
-    db=Depends(get_database),
+    db=Depends(get_db),
 ):
     """
     Get attachments uploaded by a child.
@@ -218,7 +218,7 @@ async def get_child_attachments(
 @router.get("/child/{child_id}/storage-size")
 async def get_storage_size(
     child_id: str,
-    db=Depends(get_database),
+    db=Depends(get_db),
 ):
     """
     Get total storage used by a child's attachments.
@@ -240,7 +240,7 @@ async def get_storage_size(
 @router.delete("/{attachment_id}")
 async def delete_attachment(
     attachment_id: str,
-    db=Depends(get_database),
+    db=Depends(get_db),
 ):
     """
     Delete an attachment.
