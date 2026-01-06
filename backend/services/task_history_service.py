@@ -10,8 +10,8 @@ from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from backend.models.task_history import TaskHistory
-from backend.models.base import PyObjectId
-from backend.utils.time_helpers import utcnow
+from backend.models.common import PyObjectId
+from backend.utils.datetime_utils import utcnow
 
 
 class TaskHistoryService:
