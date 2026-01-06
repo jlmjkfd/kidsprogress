@@ -966,7 +966,10 @@ class TaskCRUD:
 
                 if not existing_rules:
                     # Create new rule
-                    effective_from = updated_task.scheduled_date if updated_task.scheduled_date else utcnow()
+                    if updated_task.scheduled_date:
+                        effective_from = updated_task.scheduled_date.date() if hasattr(updated_task.scheduled_date, 'date') else updated_task.scheduled_date
+                    else:
+                        effective_from = date.today()
                     await self.recurrence_rule_service.create_rule(
                         task_template_id=task_id_obj,
                         pattern=updated_task.recurrence_pattern,
@@ -976,11 +979,11 @@ class TaskCRUD:
                     )
                 elif existing_rules[0].pattern != updated_task.recurrence_pattern:
                     # Pattern changed - end current rule and create new one
-                    await self.recurrence_rule_service.update_rule_pattern(
+                    await self.recurrence_rule_service.change_pattern(
                         task_template_id=task_id_obj,
                         new_pattern=updated_task.recurrence_pattern,
-                        effective_from=utcnow(),
-                        created_by=parent_id_obj,
+                        effective_from=date.today(),
+                        changed_by=parent_id_obj,
                         reason="Recurrence pattern updated"
                     )
             elif not updated_task.is_recurring:

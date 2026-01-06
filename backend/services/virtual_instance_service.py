@@ -65,11 +65,11 @@ class VirtualInstanceService:
 
         for rule in rules:
             # Determine effective range for this rule
-            rule_start = max(effective_start, rule.effective_from.date())
+            rule_start = max(effective_start, rule.effective_from)
             rule_end = end_date
 
             if rule.effective_until:
-                rule_end = min(end_date, rule.effective_until.date())
+                rule_end = min(end_date, rule.effective_until)
 
             # Skip if rule doesn't apply to our date range
             if rule_start > rule_end:
