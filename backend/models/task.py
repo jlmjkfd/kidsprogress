@@ -179,16 +179,25 @@ class Task(BaseModel):
     deadline_type: Optional[DeadlineType] = None  # HARD or SOFT
     estimated_duration_minutes: Optional[int] = None  # How long task takes
 
-    # Recurrence (Unified Model - replaces separate Routine model)
+    # Recurrence (Separated to recurrence_rules collection)
     is_recurring: bool = False  # Is this a recurring task template?
-    recurrence_pattern: Optional[str] = None  # RRULE string for generation
+    current_rule_id: Optional[PyObjectId] = None  # Active recurrence rule (from recurrence_rules collection)
     source_recurring_task_id: Optional[PyObjectId] = None  # Link to parent recurring task
     exceptions: List[RecurrenceException] = []  # Exceptions for specific occurrences (edit/delete single instance)
+
+    # DEPRECATED: Keep for backward compatibility during migration
+    recurrence_pattern: Optional[str] = None  # Use current_rule_id instead
 
     # Multi-completion support (for practice tasks that can be done multiple times per day)
     max_completions_per_period: Optional[int] = None  # Max attempts per period (None = single completion)
     completion_count: int = 0  # Track how many times completed in current period
-    progress_state: Optional[Dict[str, Any]] = None  # Temporary storage for in-progress work
+
+    # Session tracking (Separated to task_sessions collection)
+    active_session_id: Optional[PyObjectId] = None  # Current active session (from task_sessions collection)
+    session_count: int = 0  # Total number of work sessions
+
+    # DEPRECATED: Keep for backward compatibility during migration
+    progress_state: Optional[Dict[str, Any]] = None  # Use task_sessions collection instead
 
     # Blocking & Interruption (Unified Model - replaces TimeBlock)
     is_informational: bool = False  # NEW: Informational tasks (school time, sleep) - no start/complete buttons
@@ -216,15 +225,22 @@ class Task(BaseModel):
     status: TaskStatus = TaskStatus.PENDING
     constraints: Optional[TaskConstraints] = None
 
-    # Media & Tools
-    attachments: List[MediaAttachment] = []
+    # Media & Tools (Attachments separated to task_attachments collection)
+    attachment_count: int = 0  # Count of attachments (from task_attachments collection)
     tools: List[ToolUsage] = []
+
+    # DEPRECATED: Keep for backward compatibility during migration
+    attachments: List[MediaAttachment] = []  # Use task_attachments collection instead
 
     # AI Support
     ai_attributes: Optional[AIGeneratedAttributes] = None
 
-    # Subtasks
-    subtasks: List[Subtask] = []
+    # Subtasks (Separated to subtasks collection)
+    subtask_count: int = 0  # Total number of subtasks
+    subtask_completed_count: int = 0  # Number of completed subtasks
+
+    # DEPRECATED: Keep for backward compatibility during migration
+    subtasks: List[Subtask] = []  # Use subtasks collection instead
 
     # Timestamps
     created_at: datetime = Field(default_factory=utcnow)

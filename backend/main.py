@@ -105,6 +105,35 @@ async def lifespan(app: FastAPI):
     await database.user_templates.create_index([("user_id", 1), ("template_id", 1)], unique=True)
     await database.user_templates.create_index("user_id")
 
+    # Recurrence Rules indexes
+    await database.recurrence_rules.create_index("task_template_id")
+    await database.recurrence_rules.create_index([("task_template_id", 1), ("effective_from", 1)])
+    await database.recurrence_rules.create_index([("task_template_id", 1), ("effective_until", 1)])
+    await database.recurrence_rules.create_index("effective_until")  # Find active rules
+
+    # Task Sessions indexes
+    await database.task_sessions.create_index([("task_id", 1), ("scheduled_date", 1)])
+    await database.task_sessions.create_index([("child_id", 1), ("started_at", -1)])
+    await database.task_sessions.create_index("completion_id")
+    await database.task_sessions.create_index([("completed_at", 1)])  # Find in-progress (null) vs completed
+
+    # Task Attachments indexes
+    await database.task_attachments.create_index("task_id")
+    await database.task_attachments.create_index("completion_id")
+    await database.task_attachments.create_index([("child_id", 1), ("uploaded_at", -1)])
+    await database.task_attachments.create_index("purpose")
+    await database.task_attachments.create_index("session_id")
+
+    # Subtasks indexes
+    await database.subtasks.create_index([("task_id", 1), ("order", 1)])
+    await database.subtasks.create_index("parent_subtask_id")
+    await database.subtasks.create_index([("task_id", 1), ("status", 1)])
+
+    # Task History indexes
+    await database.task_history.create_index([("task_id", 1), ("changed_at", -1)])
+    await database.task_history.create_index("changed_by")
+    await database.task_history.create_index("change_type")
+    await database.task_history.create_index([("changed_by", 1), ("changed_at", -1)])
 
     # Tools (still needed)
     await database.tools.create_index("code", unique=True)
