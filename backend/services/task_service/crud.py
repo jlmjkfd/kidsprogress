@@ -957,6 +957,38 @@ class TaskCRUD:
         if not result:
             return None
 
+        # Sync RecurrenceRule if recurrence settings changed
+        if task_data.is_recurring is not None or task_data.recurrence_pattern is not None:
+            updated_task = Task(**result)
+            if updated_task.is_recurring and updated_task.recurrence_pattern:
+                # Create or update RecurrenceRule for this task
+                existing_rules = await self.recurrence_rule_service.get_rule_history(task_id_obj)
+
+                if not existing_rules:
+                    # Create new rule
+                    effective_from = updated_task.scheduled_date if updated_task.scheduled_date else utcnow()
+                    await self.recurrence_rule_service.create_rule(
+                        task_template_id=task_id_obj,
+                        pattern=updated_task.recurrence_pattern,
+                        effective_from=effective_from,
+                        created_by=parent_id_obj,
+                        reason="Task converted to recurring"
+                    )
+                elif existing_rules[0].pattern != updated_task.recurrence_pattern:
+                    # Pattern changed - end current rule and create new one
+                    await self.recurrence_rule_service.update_rule_pattern(
+                        task_template_id=task_id_obj,
+                        new_pattern=updated_task.recurrence_pattern,
+                        effective_from=utcnow(),
+                        created_by=parent_id_obj,
+                        reason="Recurrence pattern updated"
+                    )
+            elif not updated_task.is_recurring:
+                # Task changed from recurring to non-recurring - remove all rules
+                existing_rules = await self.recurrence_rule_service.get_rule_history(task_id_obj)
+                for rule in existing_rules:
+                    await self.recurrence_rule_service.delete_rule(rule.id)
+
         return Task(**result)
 
     async def delete_task(self, task_id: str, parent_id: str, recurrence_component=None) -> bool:
