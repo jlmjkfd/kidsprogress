@@ -36,6 +36,10 @@ from backend.routes import (
     chat_routes,
     analysis_routes,
     template_library_routes,
+    recurrence_routes,
+    session_routes,
+    attachment_routes,
+    subtask_routes,
 )
 from backend.jobs import init_scheduler, shutdown_scheduler
 
@@ -232,6 +236,12 @@ app.include_router(ai_schedule_routes.router)
 app.include_router(completion_routes.router)
 app.include_router(analysis_routes.router)
 app.include_router(template_library_routes.router)
+
+# Task collection separation architecture routes
+app.include_router(recurrence_routes.router)
+app.include_router(session_routes.router)
+app.include_router(attachment_routes.router)
+app.include_router(subtask_routes.router)
 
 # AI Chat
 app.include_router(chat_routes.router)
