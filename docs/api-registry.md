@@ -1,7 +1,7 @@
 # API Registry
 
 > Manually updated after feature implementation
-> Last updated: 2025-12-08
+> Last updated: 2026-01-06
 
 ## Endpoints
 
@@ -822,15 +822,241 @@
 - **Status**: ✓ Active
 - **Note**: Batch query for calendar views - efficient day type lookup for date range
 
+---
+
+### Recurrence Rules (Collection Separation Architecture)
+
+#### GET /recurrence/{task_template_id}/current
+- **Route**: `backend/routes/recurrence_routes.py`
+- **Service**: `backend/services/recurrence_rule_service.py`
+- **Used in**: Not yet implemented in frontend
+- **Status**: ✓ Active (backend only)
+- **Purpose**: Get currently active recurrence pattern for a recurring task
+
+#### GET /recurrence/{task_template_id}/history
+- **Route**: `backend/routes/recurrence_routes.py`
+- **Service**: `backend/services/recurrence_rule_service.py`
+- **Used in**: Not yet implemented in frontend
+- **Status**: ✓ Active (backend only)
+- **Purpose**: Get all historical recurrence patterns with effective dates
+
+#### POST /recurrence/{task_template_id}/change-pattern
+- **Route**: `backend/routes/recurrence_routes.py`
+- **Service**: `backend/services/recurrence_rule_service.py`
+- **Used in**: Not yet implemented in frontend
+- **Status**: ✓ Active (backend only)
+- **Purpose**: Change recurrence pattern with effective date (prevents retroactive changes)
+
+#### GET /recurrence/{task_template_id}/rule-for-date
+- **Route**: `backend/routes/recurrence_routes.py`
+- **Service**: `backend/services/recurrence_rule_service.py`
+- **Used in**: Not yet implemented in frontend
+- **Status**: ✓ Active (backend only)
+- **Purpose**: Get the recurrence rule that was active on a specific date
+
+---
+
+### Task Sessions (Collection Separation Architecture)
+
+#### POST /sessions/start
+- **Route**: `backend/routes/session_routes.py`
+- **Service**: `backend/services/task_session_service.py`
+- **Used in**: Not yet implemented in frontend
+- **Status**: ✓ Active (backend only)
+- **Purpose**: Start a new work session for a task
+
+#### GET /sessions/{session_id}
+- **Route**: `backend/routes/session_routes.py`
+- **Service**: `backend/services/task_session_service.py`
+- **Used in**: Not yet implemented in frontend
+- **Status**: ✓ Active (backend only)
+- **Purpose**: Get session details by ID
+
+#### POST /sessions/{session_id}/save-progress
+- **Route**: `backend/routes/session_routes.py`
+- **Service**: `backend/services/task_session_service.py`
+- **Used in**: Not yet implemented in frontend
+- **Status**: ✓ Active (backend only)
+- **Purpose**: Save progress for active session with optional snapshots
+
+#### POST /sessions/{session_id}/complete
+- **Route**: `backend/routes/session_routes.py`
+- **Service**: `backend/services/task_session_service.py`
+- **Used in**: Not yet implemented in frontend
+- **Status**: ✓ Active (backend only)
+- **Purpose**: Mark session as completed and link to completion record
+
+#### POST /sessions/{session_id}/abandon
+- **Route**: `backend/routes/session_routes.py`
+- **Service**: `backend/services/task_session_service.py`
+- **Used in**: Not yet implemented in frontend
+- **Status**: ✓ Active (backend only)
+- **Purpose**: Mark session as abandoned with optional reason
+
+#### POST /sessions/{session_id}/record-pause
+- **Route**: `backend/routes/session_routes.py`
+- **Service**: `backend/services/task_session_service.py`
+- **Used in**: Not yet implemented in frontend
+- **Status**: ✓ Active (backend only)
+- **Purpose**: Record pause event for analytics
+
+#### POST /sessions/{session_id}/record-tool-switch
+- **Route**: `backend/routes/session_routes.py`
+- **Service**: `backend/services/task_session_service.py`
+- **Used in**: Not yet implemented in frontend
+- **Status**: ✓ Active (backend only)
+- **Purpose**: Record tool switch event for analytics
+
+#### GET /sessions/task/{task_id}
+- **Route**: `backend/routes/session_routes.py`
+- **Service**: `backend/services/task_session_service.py`
+- **Used in**: Not yet implemented in frontend
+- **Status**: ✓ Active (backend only)
+- **Purpose**: Get session history for a task
+
+#### GET /sessions/child/{child_id}
+- **Route**: `backend/routes/session_routes.py`
+- **Service**: `backend/services/task_session_service.py`
+- **Used in**: Not yet implemented in frontend
+- **Status**: ✓ Active (backend only)
+- **Purpose**: Get session history for a child
+
+---
+
+### Task Attachments (Collection Separation Architecture)
+
+#### POST /attachments
+- **Route**: `backend/routes/attachment_routes.py`
+- **Service**: `backend/services/task_attachment_service.py`
+- **Used in**: Not yet implemented in frontend
+- **Status**: ✓ Active (backend only)
+- **Purpose**: Create attachment record (after file upload to storage)
+
+#### GET /attachments/{attachment_id}
+- **Route**: `backend/routes/attachment_routes.py`
+- **Service**: `backend/services/task_attachment_service.py`
+- **Used in**: Not yet implemented in frontend
+- **Status**: ✓ Active (backend only)
+- **Purpose**: Get attachment details by ID
+
+#### GET /attachments/task/{task_id}
+- **Route**: `backend/routes/attachment_routes.py`
+- **Service**: `backend/services/task_attachment_service.py`
+- **Used in**: Not yet implemented in frontend
+- **Status**: ✓ Active (backend only)
+- **Purpose**: Get all attachments for a task (with optional purpose filter)
+
+#### GET /attachments/completion/{completion_id}
+- **Route**: `backend/routes/attachment_routes.py`
+- **Service**: `backend/services/task_attachment_service.py`
+- **Used in**: Not yet implemented in frontend
+- **Status**: ✓ Active (backend only)
+- **Purpose**: Get all attachments for a completion
+
+#### GET /attachments/child/{child_id}
+- **Route**: `backend/routes/attachment_routes.py`
+- **Service**: `backend/services/task_attachment_service.py`
+- **Used in**: Not yet implemented in frontend
+- **Status**: ✓ Active (backend only)
+- **Purpose**: Get attachments uploaded by a child (with optional file type filter)
+
+#### GET /attachments/child/{child_id}/storage-size
+- **Route**: `backend/routes/attachment_routes.py`
+- **Service**: `backend/services/task_attachment_service.py`
+- **Used in**: Not yet implemented in frontend
+- **Status**: ✓ Active (backend only)
+- **Purpose**: Get total storage used by child's attachments (for quota management)
+
+#### DELETE /attachments/{attachment_id}
+- **Route**: `backend/routes/attachment_routes.py`
+- **Service**: `backend/services/task_attachment_service.py`
+- **Used in**: Not yet implemented in frontend
+- **Status**: ✓ Active (backend only)
+- **Purpose**: Delete attachment record (file deletion handled separately)
+
+---
+
+### Subtasks (Collection Separation Architecture)
+
+#### POST /subtasks
+- **Route**: `backend/routes/subtask_routes.py`
+- **Service**: `backend/services/subtask_service.py`
+- **Used in**: Not yet implemented in frontend
+- **Status**: ✓ Active (backend only)
+- **Purpose**: Create a new subtask with optional parent for hierarchy
+
+#### GET /subtasks/{subtask_id}
+- **Route**: `backend/routes/subtask_routes.py`
+- **Service**: `backend/services/subtask_service.py`
+- **Used in**: Not yet implemented in frontend
+- **Status**: ✓ Active (backend only)
+- **Purpose**: Get subtask details by ID
+
+#### GET /subtasks/task/{task_id}
+- **Route**: `backend/routes/subtask_routes.py`
+- **Service**: `backend/services/subtask_service.py`
+- **Used in**: Not yet implemented in frontend
+- **Status**: ✓ Active (backend only)
+- **Purpose**: Get subtasks for a task (with optional parent filter for hierarchy)
+
+#### GET /subtasks/task/{task_id}/all
+- **Route**: `backend/routes/subtask_routes.py`
+- **Service**: `backend/services/subtask_service.py`
+- **Used in**: Not yet implemented in frontend
+- **Status**: ✓ Active (backend only)
+- **Purpose**: Get all subtasks for a task including nested
+
+#### PATCH /subtasks/{subtask_id}
+- **Route**: `backend/routes/subtask_routes.py`
+- **Service**: `backend/services/subtask_service.py`
+- **Used in**: Not yet implemented in frontend
+- **Status**: ✓ Active (backend only)
+- **Purpose**: Update subtask title, description, or order
+
+#### POST /subtasks/{subtask_id}/complete
+- **Route**: `backend/routes/subtask_routes.py`
+- **Service**: `backend/services/subtask_service.py`
+- **Used in**: Not yet implemented in frontend
+- **Status**: ✓ Active (backend only)
+- **Purpose**: Mark subtask as completed
+
+#### POST /subtasks/{subtask_id}/uncomplete
+- **Route**: `backend/routes/subtask_routes.py`
+- **Service**: `backend/services/subtask_service.py`
+- **Used in**: Not yet implemented in frontend
+- **Status**: ✓ Active (backend only)
+- **Purpose**: Undo subtask completion
+
+#### GET /subtasks/task/{task_id}/progress
+- **Route**: `backend/routes/subtask_routes.py`
+- **Service**: `backend/services/subtask_service.py`
+- **Used in**: Not yet implemented in frontend
+- **Status**: ✓ Active (backend only)
+- **Purpose**: Get completion progress statistics for task's subtasks
+
+#### DELETE /subtasks/{subtask_id}
+- **Route**: `backend/routes/subtask_routes.py`
+- **Service**: `backend/services/subtask_service.py`
+- **Used in**: Not yet implemented in frontend
+- **Status**: ✓ Active (backend only)
+- **Purpose**: Delete a subtask
+
+---
+
 ## Statistics
-- Total endpoints: 108 (+10 School Calendar)
+- Total endpoints: 138 (+30 Collection Separation Architecture)
 - Active in frontend: 44 (Unified Task Model + School Calendar + Day Types + AI Scheduling)
 - Frontend hooks ready: 67 (unified task management + school calendar complete)
-- Backend only: 15
+- Backend only: 45 (+30 Collection Separation Architecture, awaiting frontend integration)
 - **Obsolete (removed)**: ~40 endpoints (Routines, Activities, Time Blocks - replaced by Unified Task Model)
 - AI features: 4
 - Day Type Calendar: 8 (Unified Task Model support)
 - School Calendar: 10 (Term & Special Day management)
+- **Collection Separation Architecture**: 30 new endpoints
+  - Recurrence Rules: 4 endpoints (pattern management with history)
+  - Task Sessions: 9 endpoints (work session tracking with analytics)
+  - Task Attachments: 7 endpoints (media management with storage quotas)
+  - Subtasks: 10 endpoints (hierarchical task breakdown)
 
 ## Migration Notes
 - **Unified Task Model**: All task types (one-time, recurring, time-blocks, pool activities) now use `/api/tasks` endpoints
