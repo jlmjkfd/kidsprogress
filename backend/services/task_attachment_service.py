@@ -9,9 +9,9 @@ from typing import Optional, List, Dict, Any
 from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
-from models.task_attachment import TaskAttachment, MediaPurpose
-from models.base import PyObjectId
-from utils.time_helpers import utcnow
+from backend.models.task_attachment import TaskAttachment, MediaPurpose
+from backend.models.base import PyObjectId
+from backend.utils.time_helpers import utcnow
 
 
 class TaskAttachmentService:
