@@ -36,6 +36,13 @@ class TaskCRUD:
         }
         self.strategy_factory = TaskStrategyFactory(db, collections)
 
+        # Initialize services for separated collections
+        from backend.services.recurrence_rule_service import RecurrenceRuleService
+        from backend.services.virtual_instance_service import VirtualInstanceService
+
+        self.recurrence_rule_service = RecurrenceRuleService(db)
+        self.virtual_instance_service = VirtualInstanceService(self.recurrence_rule_service)
+
     # ============================================================================
     # TASK CREATION
     # ============================================================================
@@ -135,6 +142,23 @@ class TaskCRUD:
 
         result = await self.tasks_collection.insert_one(task_doc)
         task_doc["_id"] = result.inserted_id
+
+        # Create recurrence rule if this is a recurring task
+        if task_data.is_recurring and task_data.recurrence_pattern:
+            effective_from = task_data.scheduled_date.date() if task_data.scheduled_date else date.today()
+            rule = await self.recurrence_rule_service.create_rule(
+                task_template_id=result.inserted_id,
+                pattern=task_data.recurrence_pattern,
+                effective_from=effective_from,
+                created_by=parent_id_obj,
+                reason="Initial task creation"
+            )
+            # Update task with rule reference
+            await self.tasks_collection.update_one(
+                {"_id": result.inserted_id},
+                {"$set": {"current_rule_id": rule.id}}
+            )
+            task_doc["current_rule_id"] = rule.id
 
         # NOTE: Recurring tasks are now handled via virtual instance expansion
         # No need to pre-generate instances - they're created on-demand in get_tasks_by_child()
@@ -285,7 +309,6 @@ class TaskCRUD:
             List of tasks (includes both one-time tasks and virtual instances)
         """
         from datetime import date, timedelta
-        from backend.services.virtual_instance_service import VirtualInstanceService
         from backend.services.task_service.queries.specifications import (
             ChildTasksSpec,
             ParentTasksSpec,
@@ -338,7 +361,7 @@ class TaskCRUD:
 
         # Expand recurring templates into virtual instances
         for template in recurring_templates:
-            virtual_instances = await VirtualInstanceService.expand_recurring_task(
+            virtual_instances = await self.virtual_instance_service.expand_recurring_task(
                 template,
                 start_date,
                 end_date,

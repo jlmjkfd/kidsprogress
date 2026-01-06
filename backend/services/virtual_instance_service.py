@@ -2,6 +2,8 @@
 
 This service generates task instances on-the-fly from recurring task templates,
 avoiding database bloat from pre-generating all instances.
+
+Updated to use RecurrenceRuleService for pattern history tracking.
 """
 
 from datetime import datetime, date, timedelta, timezone
@@ -10,13 +12,23 @@ from dateutil.rrule import rrulestr, rrule, DAILY, WEEKLY, MONTHLY
 from copy import deepcopy
 
 from backend.models.task import Task, RecurrenceException
+from backend.services.recurrence_rule_service import RecurrenceRuleService
 
 
 class VirtualInstanceService:
     """Service for expanding recurring tasks into virtual instances."""
 
-    @staticmethod
+    def __init__(self, recurrence_rule_service: RecurrenceRuleService):
+        """
+        Initialize with RecurrenceRuleService.
+
+        Args:
+            recurrence_rule_service: Service for accessing recurrence rules
+        """
+        self.recurrence_rule_service = recurrence_rule_service
+
     async def expand_recurring_task(
+        self,
         template: Task,
         start_date: date,
         end_date: date,
@@ -33,7 +45,7 @@ class VirtualInstanceService:
         Returns:
             List of virtual task instances (as dicts, not stored in DB)
         """
-        if not template.is_recurring or not template.recurrence_pattern:
+        if not template.is_recurring:
             return []
 
         # Use template's scheduled_date as the recurrence start date
@@ -42,39 +54,62 @@ class VirtualInstanceService:
         # Only generate instances from recurrence_start onwards
         effective_start = max(recurrence_start, start_date)
 
-        # Get occurrence dates from RRULE
-        occurrence_dates = await VirtualInstanceService._expand_rrule(
-            template.recurrence_pattern,
-            effective_start,
-            end_date,
-            template.scheduled_date,
-            school_calendar_service,
-            str(template.child_id) if template.child_id else None,
-        )
+        # Get all rules for this task template
+        rules = await self.recurrence_rule_service.get_rule_history(template.id)
 
-        # Create virtual instances
-        instances = []
-        for occurrence_date in occurrence_dates:
-            # Check if this occurrence is in exceptions
-            exception = VirtualInstanceService._find_exception(
-                template.exceptions, occurrence_date
+        if not rules:
+            return []
+
+        # Generate instances for each rule's effective period
+        all_instances = []
+
+        for rule in rules:
+            # Determine effective range for this rule
+            rule_start = max(effective_start, rule.effective_from.date())
+            rule_end = end_date
+
+            if rule.effective_until:
+                rule_end = min(end_date, rule.effective_until.date())
+
+            # Skip if rule doesn't apply to our date range
+            if rule_start > rule_end:
+                continue
+
+            # Get occurrence dates from RRULE for this rule's period
+            occurrence_dates = await self._expand_rrule(
+                rule.pattern,
+                rule_start,
+                rule_end,
+                template.scheduled_date,
+                school_calendar_service,
+                str(template.child_id) if template.child_id else None,
             )
 
-            # Create virtual instance (include deleted ones with a flag)
-            instance = VirtualInstanceService._create_virtual_instance(
-                template, occurrence_date, exception
-            )
+            # Create virtual instances for this rule's occurrences
+            for occurrence_date in occurrence_dates:
+                # Check if this occurrence is in exceptions
+                exception = self._find_exception(
+                    template.exceptions, occurrence_date
+                )
 
-            # Mark deleted occurrences
-            if exception and exception.type == "deleted":
-                instance["is_deleted"] = True
+                # Create virtual instance (include deleted ones with a flag)
+                instance = self._create_virtual_instance(
+                    template, occurrence_date, exception
+                )
 
-            instances.append(instance)
+                # Mark deleted occurrences
+                if exception and exception.type == "deleted":
+                    instance["is_deleted"] = True
 
-        return instances
+                all_instances.append(instance)
 
-    @staticmethod
+        # Sort by scheduled_date
+        all_instances.sort(key=lambda x: x["scheduled_date"])
+
+        return all_instances
+
     async def _expand_rrule(
+        self,
         rrule_str: str,
         start_date: date,
         end_date: date,
@@ -132,8 +167,8 @@ class VirtualInstanceService:
             print(f"Error parsing RRULE '{rrule_str}': {e}")
             return []
 
-    @staticmethod
     def _find_exception(
+        self,
         exceptions: List[RecurrenceException], occurrence_date: date
     ) -> Optional[RecurrenceException]:
         """Find exception for a specific occurrence date.
@@ -151,8 +186,8 @@ class VirtualInstanceService:
                 return exception
         return None
 
-    @staticmethod
     def _create_virtual_instance(
+        self,
         template: Task,
         occurrence_date: date,
         exception: Optional[RecurrenceException] = None,
