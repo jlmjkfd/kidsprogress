@@ -104,7 +104,7 @@ class TaskService:
     async def get_tasks_by_child(
         self, child_id: str, parent_id: str, status: Optional[TaskStatus] = None,
         start_date: Optional[date] = None, end_date: Optional[date] = None,
-        include_deleted: bool = False
+        include_deleted: bool = False, include_templates: bool = True
     ) -> List[Dict[str, Any]]:
         """Get all tasks for a child, including virtual instances from recurring tasks.
 
@@ -115,11 +115,12 @@ class TaskService:
             start_date: Optional start date for virtual instance expansion (defaults to 30 days ago)
             end_date: Optional end date for virtual instance expansion (defaults to 60 days ahead)
             include_deleted: Include deleted occurrences (for parent portal)
+            include_templates: Include recurring templates (for parent portal to edit)
 
         Returns:
             List of task dicts (includes both one-time tasks and virtual instances as dicts)
         """
-        return await self.crud.get_tasks_by_child(child_id, parent_id, status, start_date, end_date, include_deleted=include_deleted)
+        return await self.crud.get_tasks_by_child(child_id, parent_id, status, start_date, end_date, include_deleted=include_deleted, include_templates=include_templates)
 
     async def get_overdue_tasks(
         self, child_id: str, parent_id: str, must_do_only: bool = False

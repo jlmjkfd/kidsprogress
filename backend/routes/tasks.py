@@ -57,6 +57,7 @@ async def get_tasks_by_child(
     start_date: Optional[str] = Query(None, description="Start date (YYYY-MM-DD)"),
     end_date: Optional[str] = Query(None, description="End date (YYYY-MM-DD)"),
     include_deleted: bool = Query(False, description="Include deleted occurrences (parent portal only)"),
+    include_templates: bool = Query(True, description="Include recurring templates (parent portal only, default True for backwards compatibility)"),
     current_user: User = Depends(get_current_user),
     service: TaskService = Depends(get_task_service),
 ):
@@ -64,6 +65,7 @@ async def get_tasks_by_child(
 
     For parent portal, set include_deleted=true to show deleted occurrences with restore option.
     For child portal, deleted occurrences are hidden (include_deleted=false, default).
+    For child portal, set include_templates=false to hide recurring templates (only show instances).
     """
     from datetime import datetime
     try:
@@ -77,7 +79,8 @@ async def get_tasks_by_child(
             status,
             start_date=parsed_start,
             end_date=parsed_end,
-            include_deleted=include_deleted
+            include_deleted=include_deleted,
+            include_templates=include_templates
         )
     except ValueError as e:
         if "not found" in str(e).lower():

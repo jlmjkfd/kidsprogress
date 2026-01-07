@@ -292,7 +292,7 @@ class TaskCRUD:
     async def get_tasks_by_child(
         self, child_id: str, parent_id: str, status: Optional[TaskStatus] = None,
         start_date: Optional[date] = None, end_date: Optional[date] = None,
-        virtual_service=None, include_deleted: bool = False
+        virtual_service=None, include_deleted: bool = False, include_templates: bool = True
     ) -> List[Dict[str, Any]]:
         """Get all tasks for a child, including virtual instances from recurring tasks.
 
@@ -304,6 +304,7 @@ class TaskCRUD:
             end_date: Optional end date for virtual instance expansion (defaults to 60 days ahead)
             virtual_service: VirtualInstanceService for expanding recurring tasks
             include_deleted: Include deleted occurrences (for parent portal, default False for child portal)
+            include_templates: Include recurring templates (for parent portal to edit, default False for child portal)
 
         Returns:
             List of tasks (includes both one-time tasks and virtual instances)
@@ -441,16 +442,17 @@ class TaskCRUD:
 
                     tasks.append(instance_data)
 
-        # Add recurring templates to the list so frontend can edit them
+        # Add recurring templates to the list so frontend can edit them (parent portal only)
         # Frontend needs access to templates to support "Edit all occurrences" workflow
-        for template in recurring_templates:
-            template_dict = template.model_dump(mode='json', by_alias=True)
-            # Ensure _id is a string
-            if "_id" in template_dict and not isinstance(template_dict["_id"], str):
-                template_dict["_id"] = str(template_dict["_id"])
-            # Mark as not virtual (templates are real tasks, not virtual instances)
-            template_dict["is_virtual"] = False
-            tasks.append(template_dict)
+        if include_templates:
+            for template in recurring_templates:
+                template_dict = template.model_dump(mode='json', by_alias=True)
+                # Ensure _id is a string
+                if "_id" in template_dict and not isinstance(template_dict["_id"], str):
+                    template_dict["_id"] = str(template_dict["_id"])
+                # Mark as not virtual (templates are real tasks, not virtual instances)
+                template_dict["is_virtual"] = False
+                tasks.append(template_dict)
 
         # Sort by scheduled_date
         # All items are now dicts (both templates and virtual instances)

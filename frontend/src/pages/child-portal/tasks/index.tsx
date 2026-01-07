@@ -67,7 +67,14 @@ export default function ChildTasksPage() {
   const [selectedDateTasks, setSelectedDateTasks] = useState<Task[]>([]);
 
   // TODO: Implement proper child authentication to get child_id
-  const { data: allTasks, isLoading } = useTasksByChild(selectedChildId || "");
+  const { data: allTasks, isLoading } = useTasksByChild(
+    selectedChildId || "",
+    undefined, // status
+    undefined, // startDate
+    undefined, // endDate
+    undefined, // includeDeleted
+    false      // includeTemplates - child portal doesn't need to see templates
+  );
   const { data: overdueData } = useOverdueTasks(selectedChildId || ""); // Grouped format for recurring
   const { data: overdueTasksFlat } = useOverdueTasksFlat(selectedChildId || ""); // Flat for one-off
   const startTaskMutation = useStartTask();
