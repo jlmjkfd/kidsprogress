@@ -425,6 +425,7 @@ export default function ChildTasksPage() {
           onClose={() => setEditingOccurrence(null)}
           onSubmit={handleUpdateTask}
           task={editingOccurrence}
+          templateTask={tasks?.find((t) => t._id === editingOccurrence.source_recurring_task_id && t.is_recurring && !t.is_virtual)}
           childId={childId || ""}
           isRecurringOccurrence={true}
           occurrenceDate={editingOccurrence.scheduled_date?.split("T")[0]}

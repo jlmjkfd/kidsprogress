@@ -26,6 +26,7 @@ type EditScope = "single" | "all";
 interface UnifiedTaskModalProps {
   childId: string;
   task?: Task;
+  templateTask?: Task; // The recurring template (when editing occurrence)
   onClose: () => void;
   onSubmit: (data: TaskCreate | TaskUpdate) => Promise<void>;
   // For editing recurring task occurrences
@@ -37,6 +38,7 @@ interface UnifiedTaskModalProps {
 export function UnifiedTaskModal({
   childId,
   task,
+  templateTask,
   onClose,
   onSubmit,
   isRecurringOccurrence = false,
@@ -161,6 +163,17 @@ export function UnifiedTaskModal({
       }
     }
   }, [formData.is_informational, informationalCollection, defaultCollection, formData.collection_id]);
+
+  // Update recurrence fields when switching to "all" scope for recurring occurrences
+  useEffect(() => {
+    if (isRecurringOccurrence && editScope === "all" && templateTask) {
+      setFormData((prev) => ({
+        ...prev,
+        is_recurring: templateTask.is_recurring || false,
+        recurrence_pattern: templateTask.recurrence_pattern || "",
+      }));
+    }
+  }, [editScope, isRecurringOccurrence, templateTask]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
