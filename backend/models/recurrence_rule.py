@@ -22,6 +22,7 @@ class RecurrenceRule(BaseModel):
     pattern: str  # RRULE string (e.g., "FREQ=DAILY;INTERVAL=2")
     effective_from: date  # When this rule becomes active
     effective_until: Optional[date] = None  # When this rule ends (None = current/active)
+    timezone: Optional[str] = None  # IANA timezone for the recurrence (e.g., "Pacific/Auckland")
 
     # Tracking
     created_at: datetime = Field(default_factory=utcnow)
@@ -48,6 +49,7 @@ class RecurrenceRuleCreate(BaseModel):
     task_template_id: str
     pattern: str
     effective_from: date
+    timezone: Optional[str] = None  # IANA timezone
     reason: Optional[str] = None
 
 
@@ -55,4 +57,5 @@ class RecurrenceRuleUpdate(BaseModel):
     """Request model for updating a recurrence rule (creates new rule)."""
     pattern: str
     effective_from: date  # New rule starts from this date
+    timezone: Optional[str] = None  # IANA timezone
     reason: Optional[str] = None

@@ -27,6 +27,7 @@ class RecurrenceRuleService:
         pattern: str,
         effective_from: date,
         created_by: PyObjectId,
+        timezone: Optional[str] = None,
         reason: Optional[str] = None,
     ) -> RecurrenceRule:
         """
@@ -37,6 +38,7 @@ class RecurrenceRuleService:
             pattern: RRULE string (e.g., "FREQ=DAILY")
             effective_from: Date when this rule becomes active
             created_by: Parent ID who created the rule
+            timezone: Optional IANA timezone (e.g., "Pacific/Auckland")
             reason: Optional reason for the pattern change
 
         Returns:
@@ -48,6 +50,7 @@ class RecurrenceRuleService:
             "pattern": pattern,
             "effective_from": datetime.combine(effective_from, datetime.min.time()),
             "effective_until": None,  # Active rule
+            "timezone": timezone,  # Store timezone with rule
             "created_at": utcnow(),
             "created_by": created_by,
             "reason": reason,

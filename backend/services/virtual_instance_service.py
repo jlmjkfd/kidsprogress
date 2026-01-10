@@ -49,7 +49,17 @@ class VirtualInstanceService:
             return []
 
         # Use template's scheduled_date as the recurrence start date
-        recurrence_start = template.scheduled_date.date() if template.scheduled_date else start_date
+        # Handle both old format (datetime) and new format (string)
+        if template.scheduled_date:
+            if isinstance(template.scheduled_date, str):
+                # New format: string date like "2026-01-11"
+                from datetime import datetime as dt
+                recurrence_start = dt.strptime(template.scheduled_date, "%Y-%m-%d").date()
+            else:
+                # Old format: datetime object (backwards compat)
+                recurrence_start = template.scheduled_date.date()
+        else:
+            recurrence_start = start_date
 
         # Only generate instances from recurrence_start onwards
         effective_start = max(recurrence_start, start_date)
@@ -221,20 +231,40 @@ class VirtualInstanceService:
         if instance_data.get("task_source") not in ["one_time", "routine", "activity"]:
             instance_data["task_source"] = "one_time"
 
-        # Set scheduled date for this occurrence (timezone-aware UTC)
-        instance_data["scheduled_date"] = datetime.combine(
-            occurrence_date, datetime.min.time()
-        ).replace(tzinfo=timezone.utc)
+        # Set scheduled date/time based on floating vs fixed time
+        if template.is_floating_time:
+            # Floating time: Use date and time components
+            instance_data["scheduled_date"] = occurrence_date.isoformat()  # "2026-01-11"
 
-        # If has fixed_time_slot, combine with occurrence date
-        if template.fixed_time_slot:
-            # Keep the time from template, but use occurrence date
-            time_parts = template.fixed_time_slot.start.split(":")
-            hour = int(time_parts[0])
-            minute = int(time_parts[1])
-            instance_data["scheduled_date"] = datetime.combine(
-                occurrence_date, datetime.min.time()
-            ).replace(hour=hour, minute=minute, tzinfo=timezone.utc)
+            # If template has scheduled_time, copy it
+            if template.scheduled_time:
+                instance_data["scheduled_time"] = template.scheduled_time
+            # Otherwise, check if fixed_time_slot exists (backwards compat)
+            elif template.fixed_time_slot:
+                instance_data["scheduled_time"] = template.fixed_time_slot.start
+
+            # Keep floating time flag
+            instance_data["is_floating_time"] = True
+
+        else:
+            # Fixed time: Combine occurrence date with template's timezone and time
+            # This is rare for recurring tasks, but supported
+            if template.scheduled_timezone and template.fixed_time_slot:
+                from backend.models.timezone_info import TimezoneInfo
+                tz_info = TimezoneInfo(timezone=template.scheduled_timezone)
+
+                # Combine date with time from template
+                local_dt = tz_info.combine_local_datetime(
+                    occurrence_date,
+                    template.fixed_time_slot.start
+                )
+
+                # Convert to UTC for storage
+                utc_dt = tz_info.to_utc(local_dt)
+                instance_data["scheduled_datetime"] = utc_dt
+                instance_data["scheduled_timezone"] = template.scheduled_timezone
+
+            instance_data["is_floating_time"] = False
 
         # Apply exception overrides if present
         if exception and exception.overrides:

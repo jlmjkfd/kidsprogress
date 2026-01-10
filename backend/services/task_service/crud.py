@@ -75,6 +75,10 @@ class TaskCRUD:
         if not collection:
             raise ValueError("Collection not found or doesn't belong to parent/child")
 
+        # Get user's timezone from request context
+        from backend.utils.timezone_context import get_request_timezone
+        user_timezone = get_request_timezone()
+
         task_doc = {
             "collection_id": collection_id_obj,
             "child_id": child_id_obj,
@@ -86,7 +90,19 @@ class TaskCRUD:
 
             # Scheduling fields (Unified Model)
             "scheduling_type": task_data.scheduling_type.value if task_data.scheduling_type else "flexible",
+
+            # Timezone handling (new fields)
+            "is_floating_time": task_data.is_floating_time,
+            "created_timezone": user_timezone,
+
+            # Floating time fields
             "scheduled_date": task_data.scheduled_date,
+            "scheduled_time": task_data.scheduled_time,
+
+            # Fixed time fields
+            "scheduled_datetime": task_data.scheduled_datetime,
+            "scheduled_timezone": task_data.scheduled_timezone,
+
             "fixed_time_slot": task_data.fixed_time_slot.model_dump() if task_data.fixed_time_slot else None,
             "preferred_time_slot": task_data.preferred_time_slot.model_dump() if task_data.preferred_time_slot else None,
             "preferred_time_window": task_data.preferred_time_window.model_dump() if task_data.preferred_time_window else None,
@@ -145,20 +161,31 @@ class TaskCRUD:
 
         # Create recurrence rule if this is a recurring task
         if task_data.is_recurring and task_data.recurrence_pattern:
-            # Use local date from user's timezone, not UTC date
-            # If scheduled_date is set, convert to user's local timezone before extracting date
-            if task_data.scheduled_date:
-                from backend.utils.timezone_context import convert_to_local
-                local_dt = convert_to_local(task_data.scheduled_date)
-                effective_from = local_dt.date()
+            # Determine effective_from date based on floating/fixed time
+            if task_data.is_floating_time:
+                # Floating time: Use scheduled_date directly (it's already a local date string)
+                if task_data.scheduled_date:
+                    from datetime import datetime as dt
+                    effective_from = dt.strptime(task_data.scheduled_date, "%Y-%m-%d").date()
+                else:
+                    from backend.utils.timezone_context import get_local_today
+                    effective_from = get_local_today()
             else:
-                from backend.utils.timezone_context import get_local_today
-                effective_from = get_local_today()
+                # Fixed time: Convert scheduled_datetime to local date in user's timezone
+                if task_data.scheduled_datetime and task_data.scheduled_timezone:
+                    from backend.models.timezone_info import TimezoneInfo
+                    tz_info = TimezoneInfo(timezone=task_data.scheduled_timezone)
+                    effective_from = tz_info.get_local_date(task_data.scheduled_datetime)
+                else:
+                    from backend.utils.timezone_context import get_local_today
+                    effective_from = get_local_today()
+
             rule = await self.recurrence_rule_service.create_rule(
                 task_template_id=result.inserted_id,
                 pattern=task_data.recurrence_pattern,
                 effective_from=effective_from,
                 created_by=parent_id_obj,
+                timezone=user_timezone,  # Store user's timezone with recurrence rule
                 reason="Initial task creation"
             )
             # Update task with rule reference
@@ -462,28 +489,54 @@ class TaskCRUD:
                 template_dict["is_virtual"] = False
                 tasks.append(template_dict)
 
-        # Sort by scheduled_date
+        # Sort by scheduled_date (handles both floating and fixed time)
         # All items are now dicts (both templates and virtual instances)
         def get_scheduled_date(t):
-            date_val = t.get("scheduled_date")
-            if not date_val:
-                return datetime.max.replace(tzinfo=timezone.utc)
-            # Handle both datetime objects and ISO strings
-            if isinstance(date_val, str):
-                try:
-                    dt = datetime.fromisoformat(date_val.replace('Z', '+00:00'))
-                    # Ensure parsed datetime is timezone-aware (assume UTC if naive)
-                    if dt.tzinfo is None:
-                        dt = dt.replace(tzinfo=timezone.utc)
-                    return dt
-                except (ValueError, AttributeError):
+            # Check if floating time (new format)
+            if t.get("is_floating_time", True):  # Default to True for backwards compat
+                date_val = t.get("scheduled_date")
+                if not date_val:
                     return datetime.max.replace(tzinfo=timezone.utc)
-            # Ensure datetime object is timezone-aware (assume UTC if naive)
-            if isinstance(date_val, datetime):
-                if date_val.tzinfo is None:
-                    return date_val.replace(tzinfo=timezone.utc)
-                return date_val
-            # Fallback for unexpected types
+
+                if isinstance(date_val, str):
+                    try:
+                        # New format: "2026-01-11" (date string)
+                        # If it looks like a date (YYYY-MM-DD), parse it
+                        if len(date_val) == 10 and date_val[4] == '-' and date_val[7] == '-':
+                            dt = datetime.strptime(date_val, "%Y-%m-%d")
+                            return dt.replace(tzinfo=timezone.utc)
+                        # Old format: ISO datetime string
+                        else:
+                            dt = datetime.fromisoformat(date_val.replace('Z', '+00:00'))
+                            if dt.tzinfo is None:
+                                dt = dt.replace(tzinfo=timezone.utc)
+                            return dt
+                    except (ValueError, AttributeError):
+                        return datetime.max.replace(tzinfo=timezone.utc)
+                # Old format: datetime object
+                elif isinstance(date_val, datetime):
+                    if date_val.tzinfo is None:
+                        return date_val.replace(tzinfo=timezone.utc)
+                    return date_val
+            else:
+                # Fixed time: use scheduled_datetime
+                dt_val = t.get("scheduled_datetime")
+                if not dt_val:
+                    return datetime.max.replace(tzinfo=timezone.utc)
+
+                if isinstance(dt_val, str):
+                    try:
+                        dt = datetime.fromisoformat(dt_val.replace('Z', '+00:00'))
+                        if dt.tzinfo is None:
+                            dt = dt.replace(tzinfo=timezone.utc)
+                        return dt
+                    except (ValueError, AttributeError):
+                        return datetime.max.replace(tzinfo=timezone.utc)
+                elif isinstance(dt_val, datetime):
+                    if dt_val.tzinfo is None:
+                        return dt_val.replace(tzinfo=timezone.utc)
+                    return dt_val
+
             return datetime.max.replace(tzinfo=timezone.utc)
 
         tasks.sort(key=get_scheduled_date)
