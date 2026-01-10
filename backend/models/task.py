@@ -1,5 +1,5 @@
 """Task models with comprehensive lifecycle and evaluation support."""
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 from enum import Enum
@@ -169,7 +169,24 @@ class Task(BaseModel):
 
     # Scheduling (Enhanced - Unified Model)
     scheduling_type: SchedulingType = SchedulingType.FLEXIBLE
-    scheduled_date: Optional[datetime] = None  # Date for this task
+
+    # Timezone handling: Floating vs Fixed time
+    # Floating time (default): Task time follows user's current timezone (e.g., "3 PM" stays "3 PM" wherever you are)
+    # Fixed time: Task time stays in specific timezone (e.g., "3 PM PST" converts to local equivalent)
+    is_floating_time: bool = True  # Default: floating (location-dependent)
+    created_timezone: Optional[str] = None  # IANA timezone when task was created (for reference)
+
+    # For floating time tasks (95% of tasks):
+    scheduled_date: Optional[str] = None  # Date only in YYYY-MM-DD format (e.g., "2026-01-11")
+    scheduled_time: Optional[str] = None  # Time in HH:MM format (e.g., "15:00"), optional
+
+    # For fixed time tasks (special cases like video calls):
+    scheduled_datetime: Optional[datetime] = None  # Full datetime with timezone (stored as UTC)
+    scheduled_timezone: Optional[str] = None  # IANA timezone (e.g., "America/New_York")
+
+    # DEPRECATED: Old format for backwards compatibility
+    # Will be removed after migration - kept to read old data
+    # scheduled_date used to be: Optional[datetime]
 
     # Time attributes (different for each scheduling_type)
     fixed_time_slot: Optional[TimeSlot] = None  # For FIXED_TIME
@@ -296,7 +313,17 @@ class TaskCreate(BaseModel):
 
     # Scheduling fields (Unified Model)
     scheduling_type: Optional[SchedulingType] = SchedulingType.FLEXIBLE
-    scheduled_date: Optional[datetime] = None
+
+    # Timezone handling: Floating vs Fixed time
+    is_floating_time: bool = True  # Default: floating time (location-dependent)
+
+    # For floating time (default):
+    scheduled_date: Optional[str] = None  # Date in YYYY-MM-DD format
+    scheduled_time: Optional[str] = None  # Time in HH:MM format (optional)
+
+    # For fixed time:
+    scheduled_datetime: Optional[datetime] = None  # Full datetime with timezone
+    scheduled_timezone: Optional[str] = None  # IANA timezone
 
     # Time attributes
     fixed_time_slot: Optional[TimeSlot] = None
@@ -336,6 +363,60 @@ class TaskCreate(BaseModel):
     tools: List[ToolUsage] = []
     subtasks: List[Subtask] = []
 
+    @model_validator(mode='after')
+    def validate_time_fields(self) -> 'TaskCreate':
+        """Validate that either floating or fixed time fields are provided correctly."""
+        if self.is_floating_time:
+            # Floating time: should have scheduled_date, optionally scheduled_time
+            # Should NOT have scheduled_datetime or scheduled_timezone
+            if self.scheduled_datetime is not None or self.scheduled_timezone is not None:
+                raise ValueError(
+                    "Floating time tasks should not have scheduled_datetime or scheduled_timezone. "
+                    "Use scheduled_date and scheduled_time instead."
+                )
+        else:
+            # Fixed time: should have scheduled_datetime and scheduled_timezone
+            # Should NOT have scheduled_date or scheduled_time
+            if self.scheduled_datetime is None:
+                raise ValueError(
+                    "Fixed time tasks must have scheduled_datetime"
+                )
+            if self.scheduled_timezone is None:
+                raise ValueError(
+                    "Fixed time tasks must have scheduled_timezone"
+                )
+            if self.scheduled_date is not None or self.scheduled_time is not None:
+                raise ValueError(
+                    "Fixed time tasks should not have scheduled_date or scheduled_time. "
+                    "Use scheduled_datetime and scheduled_timezone instead."
+                )
+
+        # Validate date format for floating time
+        if self.is_floating_time and self.scheduled_date is not None:
+            try:
+                from datetime import datetime as dt
+                dt.strptime(self.scheduled_date, "%Y-%m-%d")
+            except ValueError:
+                raise ValueError(f"scheduled_date must be in YYYY-MM-DD format, got: {self.scheduled_date}")
+
+        # Validate time format for floating time
+        if self.is_floating_time and self.scheduled_time is not None:
+            try:
+                from datetime import datetime as dt
+                dt.strptime(self.scheduled_time, "%H:%M")
+            except ValueError:
+                raise ValueError(f"scheduled_time must be in HH:MM format, got: {self.scheduled_time}")
+
+        # Validate timezone for fixed time
+        if not self.is_floating_time and self.scheduled_timezone is not None:
+            try:
+                from zoneinfo import ZoneInfo
+                ZoneInfo(self.scheduled_timezone)
+            except Exception:
+                raise ValueError(f"Invalid timezone: {self.scheduled_timezone}")
+
+        return self
+
 
 class TaskUpdate(BaseModel):
     """Request model for updating a task - Unified Model."""
@@ -345,7 +426,17 @@ class TaskUpdate(BaseModel):
 
     # Scheduling fields (Unified Model)
     scheduling_type: Optional[SchedulingType] = None
-    scheduled_date: Optional[datetime] = None
+
+    # Timezone handling
+    is_floating_time: Optional[bool] = None
+
+    # Floating time fields
+    scheduled_date: Optional[str] = None  # Date in YYYY-MM-DD format
+    scheduled_time: Optional[str] = None  # Time in HH:MM format
+
+    # Fixed time fields
+    scheduled_datetime: Optional[datetime] = None
+    scheduled_timezone: Optional[str] = None
 
     # Time attributes
     fixed_time_slot: Optional[TimeSlot] = None
