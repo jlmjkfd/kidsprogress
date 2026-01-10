@@ -30,7 +30,7 @@ import { TaskCalendar } from "@/components/calendar";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { QuickCaptureModal } from "@/components/QuickCaptureModal";
 import { PlanAheadModal } from "@/components/PlanAheadModal";
-import { isToday, formatLocalDate } from "@/utils/timezone";
+import { isToday, formatLocalDate, utcToLocalDate } from "@/utils/timezone";
 import { CollapsibleSection } from "@/components/CollapsibleSection";
 import { FloatingActionButton } from "@/components/FloatingActionButton";
 import { OverdueTaskCard } from "@/components/OverdueTaskCard";
@@ -84,7 +84,8 @@ export default function ChildTasksPage() {
   useEffect(() => {
     if (allTasks) {
       const tasksForDate = allTasks.filter((t) => {
-        const taskDate = t.scheduled_date?.split("T")[0];
+        if (!t.scheduled_date) return false;
+        const taskDate = utcToLocalDate(t.scheduled_date);
         return taskDate === selectedDate;
       });
       setSelectedDateTasks(tasksForDate);
@@ -94,8 +95,9 @@ export default function ChildTasksPage() {
   // Filter tasks for today only
   const tasks =
     allTasks?.filter((task) => {
+      if (!task.scheduled_date) return false;
       const today = getLocalDateString();
-      const taskDate = task.scheduled_date?.split("T")[0];
+      const taskDate = utcToLocalDate(task.scheduled_date);
       // Only show tasks scheduled for today (removed || task.status === "in_progress"
       // because virtual instances inherit in_progress status from recurring task)
       return taskDate === today;
@@ -170,7 +172,8 @@ export default function ChildTasksPage() {
   const completedToday =
     allTasks?.filter((t) => {
       const today = getLocalDateString();
-      const completedDate = t.completed_at?.split("T")[0];
+      // Convert UTC completed_at to local date before comparing
+      const completedDate = t.completed_at ? utcToLocalDate(t.completed_at) : null;
       return completedDate === today && t.status === "completed";
     }) || [];
 
@@ -598,8 +601,13 @@ export default function ChildTasksPage() {
                     }
 
                     // Regular task - use TaskCard
+                    // Allow start if: (1) pending OR (2) completed but more attempts allowed
+                    const maxAttempts = task.max_completions_per_period;
+                    const currentAttempts = task.completion_count || 0;
+                    const canStartMore = maxAttempts === undefined || maxAttempts === 0 || currentAttempts < maxAttempts;
                     const canStart =
-                      task.status === "pending" && !isInformationalTask(task);
+                      (task.status === "pending" || (task.status === "completed" && canStartMore)) &&
+                      !isInformationalTask(task);
                     return (
                       <TaskCard
                         key={task._id}
@@ -618,7 +626,7 @@ export default function ChildTasksPage() {
                             : undefined
                         }
                         onViewResult={
-                          task.status === "completed" && task.template_id
+                          task.status === "completed" && !task.template_id
                             ? () => handleViewResult(task._id)
                             : undefined
                         }
@@ -811,20 +819,31 @@ export default function ChildTasksPage() {
                   variant="default"
                   defaultExpanded={false}
                 >
-                  {completedToday.map((task) => (
-                    <TaskCard
-                      key={task._id}
-                      task={task}
-                      isCompact={true}
-                      onViewResult={
-                        task.template_id
-                          ? () => handleViewResult(task._id)
-                          : undefined
-                      }
-                      onViewAttempts={() => handleViewAttempts(task._id)}
-                      showScheduledDate={true}
-                    />
-                  ))}
+                  {completedToday.map((task) => {
+                    // Allow start if more attempts allowed
+                    const maxAttempts = task.max_completions_per_period;
+                    const currentAttempts = task.completion_count || 0;
+                    const canStartMore = maxAttempts === undefined || maxAttempts === 0 || currentAttempts < maxAttempts;
+                    const canStart = canStartMore && !isInformationalTask(task);
+
+                    return (
+                      <TaskCard
+                        key={task._id}
+                        task={task}
+                        isCompact={true}
+                        onStart={
+                          canStart ? () => handleStartTask(task._id) : undefined
+                        }
+                        onViewResult={
+                          !task.template_id
+                            ? () => handleViewResult(task._id)
+                            : undefined
+                        }
+                        onViewAttempts={() => handleViewAttempts(task._id)}
+                        showScheduledDate={true}
+                      />
+                    );
+                  })}
                 </CollapsibleSection>
               )}
 
@@ -891,28 +910,41 @@ export default function ChildTasksPage() {
                   ))}
 
                   {/* One-off tasks - use regular TaskCard (with Start/Resume buttons) */}
-                  {overdueOneOffTasks.map((task) => (
-                    <TaskCard
-                      key={task._id}
-                      task={task}
-                      isCompact={true}
-                      showScheduledDate={true}
-                      onStart={
-                        task.status === "pending" && !isInformationalTask(task)
-                          ? () => handleStartTask(task._id)
-                          : undefined
-                      }
-                      onResume={
-                        task.status === "in_progress" && !isInformationalTask(task)
-                          ? () =>
-                              navigate(
-                                `/child-portal/${childId}/tasks/execute/${task._id}`
-                              )
-                          : undefined
-                      }
-                      onViewAttempts={() => handleViewAttempts(task._id)}
-                    />
-                  ))}
+                  {overdueOneOffTasks.map((task) => {
+                    // Allow start if: (1) pending OR (2) completed but more attempts allowed
+                    const maxAttempts = task.max_completions_per_period;
+                    const currentAttempts = task.completion_count || 0;
+                    const canStartMore = maxAttempts === undefined || maxAttempts === 0 || currentAttempts < maxAttempts;
+                    const canStart =
+                      (task.status === "pending" || (task.status === "completed" && canStartMore)) &&
+                      !isInformationalTask(task);
+
+                    return (
+                      <TaskCard
+                        key={task._id}
+                        task={task}
+                        isCompact={true}
+                        showScheduledDate={true}
+                        onStart={
+                          canStart ? () => handleStartTask(task._id) : undefined
+                        }
+                        onResume={
+                          task.status === "in_progress" && !isInformationalTask(task)
+                            ? () =>
+                                navigate(
+                                  `/child-portal/${childId}/tasks/execute/${task._id}`
+                                )
+                            : undefined
+                        }
+                        onViewResult={
+                          task.status === "completed" && !task.template_id
+                            ? () => handleViewResult(task._id)
+                            : undefined
+                        }
+                        onViewAttempts={() => handleViewAttempts(task._id)}
+                      />
+                    );
+                  })}
                 </div>
               )}
             </div>

@@ -193,3 +193,27 @@ export function getLocalTimeInMinutes(isoString: string): number {
 
   return localHours * 60 + localMinutes;
 }
+
+/**
+ * Convert UTC datetime string to local date string (YYYY-MM-DD)
+ *
+ * @param utcDateTimeString - ISO datetime string in UTC (e.g., "2026-01-08T12:45:00Z")
+ * @returns Local date string in YYYY-MM-DD format
+ * @example
+ * // In NZ timezone (UTC+13 in summer):
+ * utcToLocalDate("2026-01-08T12:45:00Z") // "2026-01-09" (1:45 AM next day)
+ * utcToLocalDate("2026-01-08T10:00:00Z") // "2026-01-08" (11:00 PM same day)
+ */
+export function utcToLocalDate(utcDateTimeString: string): string {
+  // Ensure the timestamp is treated as UTC if no timezone info is present
+  let dateString = utcDateTimeString;
+  if (!dateString.endsWith('Z') && !dateString.match(/[+-]\d{2}:\d{2}$/)) {
+    dateString = dateString + 'Z';
+  }
+
+  // Parse UTC timestamp - Date constructor automatically converts to local timezone
+  const date = new Date(dateString);
+
+  // Extract local date components
+  return formatDateForAPI(date);
+}

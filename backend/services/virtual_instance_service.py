@@ -221,10 +221,10 @@ class VirtualInstanceService:
         if instance_data.get("task_source") not in ["one_time", "routine", "activity"]:
             instance_data["task_source"] = "one_time"
 
-        # Set scheduled date for this occurrence
+        # Set scheduled date for this occurrence (timezone-aware UTC)
         instance_data["scheduled_date"] = datetime.combine(
             occurrence_date, datetime.min.time()
-        )
+        ).replace(tzinfo=timezone.utc)
 
         # If has fixed_time_slot, combine with occurrence date
         if template.fixed_time_slot:
@@ -234,7 +234,7 @@ class VirtualInstanceService:
             minute = int(time_parts[1])
             instance_data["scheduled_date"] = datetime.combine(
                 occurrence_date, datetime.min.time()
-            ).replace(hour=hour, minute=minute)
+            ).replace(hour=hour, minute=minute, tzinfo=timezone.utc)
 
         # Apply exception overrides if present
         if exception and exception.overrides:

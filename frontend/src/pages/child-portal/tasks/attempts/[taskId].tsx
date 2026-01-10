@@ -13,7 +13,7 @@ import LoadingSpinner from "@/components/LoadingSpinner";
 import { TaskCompletion } from "@/types/template";
 import { AttemptSidebar } from "./components/AttemptSidebar";
 import { getPlugin } from "@/templates/registry";
-import { formatLocalDate, formatLocalTime } from "@/utils/timezone";
+import { formatLocalDate, formatLocalTime, utcToLocalDate } from "@/utils/timezone";
 import { ScrollPositionManager } from "@/utils/ScrollAnchor";
 
 export default function AttemptDetailPage() {
@@ -43,12 +43,14 @@ export default function AttemptDetailPage() {
   const urlCompletionId = searchParams.get("completionId");
   const [selectedCompletionId, setSelectedCompletionId] = useState<string | null>(urlCompletionId);
 
-  // Parse virtual task ID (format: templateId_date)
-  const isVirtualTask = taskId?.includes("_");
-  const scheduledDate = isVirtualTask ? taskId?.split("_")[1] : null;
-
-  // Fetch task and completions
+  // Fetch task first to get scheduled_date
   const { data: task, isLoading: taskLoading } = useTask(taskId || "");
+
+  // Parse virtual task ID (format: templateId_date) or get scheduled_date from materialized task
+  const isVirtualTask = taskId?.includes("_");
+  const scheduledDate = isVirtualTask
+    ? taskId?.split("_")[1]
+    : task?.scheduled_date ? utcToLocalDate(task.scheduled_date) : undefined; // Convert UTC to local date (YYYY-MM-DD)
 
   // Pass task_id (virtual or real) - backend will handle parsing virtual IDs
   const { data: completionsData, isLoading: completionsLoading } = useCompletions({
@@ -57,11 +59,10 @@ export default function AttemptDetailPage() {
     limit: 100,
   });
 
-  // Filter completions by scheduled_date if this is a virtual task
+  // Backend already filters by scheduled_date, so no need to filter again
+  // Just use all completions returned
   const allCompletions = completionsData?.completions || [];
-  let completions = scheduledDate
-    ? allCompletions.filter(c => c.scheduled_date === scheduledDate)
-    : allCompletions;
+  let completions = allCompletions;
 
   // Add in-progress attempt from progress_state if it exists
   // This shows saved work even if not submitted yet

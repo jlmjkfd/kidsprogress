@@ -2,7 +2,7 @@
 from typing import List, Optional, Dict, Any
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from bson import ObjectId
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
 
 from backend.models.task import Task, TaskCreate, TaskUpdate, TaskStatus
 from backend.utils.datetime_utils import utcnow
@@ -145,7 +145,15 @@ class TaskCRUD:
 
         # Create recurrence rule if this is a recurring task
         if task_data.is_recurring and task_data.recurrence_pattern:
-            effective_from = task_data.scheduled_date.date() if task_data.scheduled_date else date.today()
+            # Use local date from user's timezone, not UTC date
+            # If scheduled_date is set, convert to user's local timezone before extracting date
+            if task_data.scheduled_date:
+                from backend.utils.timezone_context import convert_to_local
+                local_dt = convert_to_local(task_data.scheduled_date)
+                effective_from = local_dt.date()
+            else:
+                from backend.utils.timezone_context import get_local_today
+                effective_from = get_local_today()
             rule = await self.recurrence_rule_service.create_rule(
                 task_template_id=result.inserted_id,
                 pattern=task_data.recurrence_pattern,
@@ -459,14 +467,24 @@ class TaskCRUD:
         def get_scheduled_date(t):
             date_val = t.get("scheduled_date")
             if not date_val:
-                return datetime.max
+                return datetime.max.replace(tzinfo=timezone.utc)
             # Handle both datetime objects and ISO strings
             if isinstance(date_val, str):
                 try:
-                    return datetime.fromisoformat(date_val.replace('Z', '+00:00'))
+                    dt = datetime.fromisoformat(date_val.replace('Z', '+00:00'))
+                    # Ensure parsed datetime is timezone-aware (assume UTC if naive)
+                    if dt.tzinfo is None:
+                        dt = dt.replace(tzinfo=timezone.utc)
+                    return dt
                 except (ValueError, AttributeError):
-                    return datetime.max
-            return date_val
+                    return datetime.max.replace(tzinfo=timezone.utc)
+            # Ensure datetime object is timezone-aware (assume UTC if naive)
+            if isinstance(date_val, datetime):
+                if date_val.tzinfo is None:
+                    return date_val.replace(tzinfo=timezone.utc)
+                return date_val
+            # Fallback for unexpected types
+            return datetime.max.replace(tzinfo=timezone.utc)
 
         tasks.sort(key=get_scheduled_date)
 
