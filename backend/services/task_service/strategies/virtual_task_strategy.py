@@ -12,6 +12,14 @@ from backend.utils.validators import validate_object_id
 class VirtualTaskStrategy(TaskStrategy):
     """Strategy for virtual task instances (generated from recurring templates)."""
 
+    def __init__(self, db, collections):
+        """Initialize strategy with database access and services."""
+        super().__init__(db, collections)
+        # Import here to avoid circular dependency
+        from backend.services.recurrence_rule_service import RecurrenceRuleService
+        recurrence_service = RecurrenceRuleService(db)
+        self.virtual_instance_service = VirtualInstanceService(recurrence_service)
+
     async def get_task(
         self, identifier: TaskIdentifier, parent_id: str
     ) -> Optional[Task]:
@@ -59,7 +67,7 @@ class VirtualTaskStrategy(TaskStrategy):
         # No materialized task - generate virtual instance from template
         print(f"[VirtualTaskStrategy] No materialized task, generating virtual instance for {identifier.raw_id}")
         template = Task(**template_doc)
-        virtual_instance = VirtualInstanceService._create_virtual_instance(
+        virtual_instance = self.virtual_instance_service._create_virtual_instance(
             template, identifier.occurrence_date
         )
 

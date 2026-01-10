@@ -286,7 +286,21 @@ async def submit_task_completion(
     try:
         # Use TaskIdentifier to handle virtual vs real task IDs
         from backend.models.task_identifier import TaskIdentifier
-        identifier = TaskIdentifier(raw_id=task_id)
+
+        # CRITICAL FIX: If frontend passes materialized task ID instead of virtual ID (template_id_date),
+        # we need to construct the proper virtual ID to ensure completions are stored with template_id
+        if hasattr(task_obj, 'source_recurring_task_id') and task_obj.source_recurring_task_id:
+            # This is a materialized instance - reconstruct virtual ID
+            template_id = str(task_obj.source_recurring_task_id)
+            date_str = task_obj.scheduled_date.strftime('%Y-%m-%d') if task_obj.scheduled_date else None
+            if date_str:
+                virtual_id = f"{template_id}_{date_str}"
+                identifier = TaskIdentifier(raw_id=virtual_id)
+                print(f"[submit] Materialized task {task_id} -> virtual ID {virtual_id} (template: {template_id})")
+            else:
+                identifier = TaskIdentifier(raw_id=task_id)
+        else:
+            identifier = TaskIdentifier(raw_id=task_id)
 
         # Calculate session number for this completion
         # Count actual completions for this specific date to get accurate attempt number
@@ -297,23 +311,41 @@ async def submit_task_completion(
         if identifier.is_virtual:
             template_id_obj = ObjectId(identifier.template_id)
             actual_task_id = template_id_obj
+
+            # CRITICAL FIX: Completions are stored with task_id as STRING (identifier.template_id)
+            # But we were querying with ObjectId, causing 0 results!
+            # Must query for both string and ObjectId to handle all cases
+            count_query = {
+                "scheduled_date": scheduled_date,
+                "$or": [
+                    {"task_id": identifier.template_id},  # String format (how it's actually stored)
+                    {"task_id": template_id_obj}  # ObjectId format (for compatibility)
+                ]
+            }
+            print(f"[submit] DEBUG count_query: {count_query}")
+
+            # Get actual completions to debug
+            existing_completions = await completions_collection.find(count_query).to_list(None)
+            print(f"[submit] DEBUG found {len(existing_completions)} completions with query")
+            for comp in existing_completions:
+                print(f"[submit] DEBUG completion: _id={comp.get('_id')}, task_id={comp.get('task_id')} (type: {type(comp.get('task_id'))}), scheduled_date={comp.get('scheduled_date')}, session_number={comp.get('session_number')}")
+
             # Count completions for this specific date
-            session_count = await completions_collection.count_documents({
-                "task_id": template_id_obj,
-                "scheduled_date": scheduled_date
-            })
+            session_count = await completions_collection.count_documents(count_query)
         else:
             actual_task_id = ObjectId(task_id)
             # Count completions for this task (may or may not have scheduled_date)
             if scheduled_date:
-                session_count = await completions_collection.count_documents({
+                count_query = {
                     "task_id": actual_task_id,
                     "scheduled_date": scheduled_date
-                })
+                }
+                print(f"[submit] DEBUG count_query (non-virtual): {count_query}")
+                session_count = await completions_collection.count_documents(count_query)
             else:
-                session_count = await completions_collection.count_documents({
-                    "task_id": actual_task_id
-                })
+                count_query = {"task_id": actual_task_id}
+                print(f"[submit] DEBUG count_query (no date): {count_query}")
+                session_count = await completions_collection.count_documents(count_query)
 
         session_number = session_count + 1
         print(f"[submit] Calculated session_number: {session_number} (found {session_count} existing completions for date {scheduled_date})")
@@ -407,7 +439,7 @@ async def submit_task_completion(
         # Check if this is a multi-completion task (field is set, regardless of value)
         is_multi_completion = hasattr(task_obj, 'max_completions_per_period') and task_obj.max_completions_per_period is not None
 
-        # For virtual tasks, clear progress_state from materialized instance
+        # For virtual tasks, clear progress_state and update completion_count on materialized instance
         if identifier.is_virtual:
             # Find the materialized instance for this virtual task occurrence
             from datetime import timedelta
@@ -422,12 +454,28 @@ async def submit_task_completion(
                         "$lt": datetime.fromisoformat(occurrence_date_str) + timedelta(days=1)
                     }
                 }
-                # Clear progress_state from materialized instance
-                await tasks_collection.update_one(
-                    materialized_query,
-                    {"$set": {"progress_state": None, "updated_at": utcnow()}}
-                )
-                print(f"[submit] Cleared progress_state from materialized virtual task for date {occurrence_date_str}")
+
+                # Check if task should auto-complete (handler says required_attempts reached)
+                # If so, mark materialized task as completed
+                if should_complete:
+                    await tasks_collection.update_one(
+                        materialized_query,
+                        {"$set": {
+                            "progress_state": None,
+                            "completion_count": session_number,
+                            "status": "completed",
+                            "completed_at": utcnow(),
+                            "updated_at": utcnow()
+                        }}
+                    )
+                    print(f"[submit] Task goal reached! Marked materialized task as completed (session_number={session_number}) for date {occurrence_date_str}")
+                else:
+                    # More attempts needed - reset status to 'pending' so button shows "Start New Attempt"
+                    await tasks_collection.update_one(
+                        materialized_query,
+                        {"$set": {"progress_state": None, "completion_count": session_number, "status": "pending", "updated_at": utcnow()}}
+                    )
+                    print(f"[submit] Cleared progress_state, updated completion_count={session_number}, reset status to pending on materialized task for date {occurrence_date_str}")
 
         # Only update task status if NOT a virtual task (virtual tasks don't modify template status)
         if not identifier.is_virtual and actual_task_id and is_multi_completion:
@@ -520,7 +568,34 @@ async def get_completions(
     if task_id:
         # Use TaskIdentifier to handle virtual vs real task IDs
         from backend.models.task_identifier import TaskIdentifier
-        identifier = TaskIdentifier(raw_id=task_id)
+        from backend.dependencies.database import get_db
+
+        # CRITICAL FIX: Check if this is a materialized task ID
+        # Frontend might pass materialized task ID instead of virtual ID
+        database = db.get_database()
+        tasks_collection = database["tasks"]
+
+        try:
+            task_doc = await tasks_collection.find_one({"_id": ObjectId(task_id)})
+            if task_doc and task_doc.get('source_recurring_task_id'):
+                # This is a materialized task - construct virtual ID
+                task_template_id = str(task_doc['source_recurring_task_id'])
+                scheduled_date_val = task_doc.get('scheduled_date')
+                if scheduled_date_val:
+                    from datetime import datetime
+                    if isinstance(scheduled_date_val, datetime):
+                        date_str = scheduled_date_val.strftime('%Y-%m-%d')
+                    else:
+                        date_str = str(scheduled_date_val)[:10]
+                    virtual_id = f"{task_template_id}_{date_str}"
+                    identifier = TaskIdentifier(raw_id=virtual_id)
+                    print(f"[get_completions] Materialized task {task_id} -> virtual ID {virtual_id}")
+                else:
+                    identifier = TaskIdentifier(raw_id=task_id)
+            else:
+                identifier = TaskIdentifier(raw_id=task_id)
+        except:
+            identifier = TaskIdentifier(raw_id=task_id)
 
         print(f"[get_completions] task_id={task_id}, is_virtual={identifier.is_virtual}")
 
@@ -529,7 +604,11 @@ async def get_completions(
             # Virtual task - query by template ID
             template_id_obj = ObjectId(identifier.template_id)
             query["$or"] = [{"task_id": template_id_obj}, {"task_id": identifier.template_id}]
-            print(f"[get_completions] Virtual task - querying by template_id: {identifier.template_id}")
+            # Also filter by scheduled_date to get completions for this specific occurrence
+            scheduled_date = identifier.occurrence_date.strftime('%Y-%m-%d') if identifier.occurrence_date else None
+            if scheduled_date:
+                query["scheduled_date"] = scheduled_date
+            print(f"[get_completions] Virtual task - querying by template_id: {identifier.template_id}, date: {scheduled_date}")
         else:
             # Regular task ID - handle both ObjectId and string formats
             try:
@@ -561,6 +640,11 @@ async def get_completions(
     # Execute query
     cursor = collection.find(query).sort("completed_at", -1).limit(limit)
     completions = await cursor.to_list(length=limit)
+
+    print(f"[get_completions] Query: {query}")
+    print(f"[get_completions] Found {len(completions)} completions")
+    if completions:
+        print(f"[get_completions] First completion: task_id={completions[0].get('task_id')}, scheduled_date={completions[0].get('scheduled_date')}, completion_id={completions[0].get('completion_id')}")
 
     return {
         "completions": [TaskCompletion(**c) for c in completions],

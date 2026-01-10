@@ -42,6 +42,7 @@ class TaskStateMachine:
         },
         TaskStatus.COMPLETED: {
             TaskStatus.PENDING,      # Uncomplete
+            TaskStatus.IN_PROGRESS,  # Start again (multi-attempt tasks)
             TaskStatus.ARCHIVED,     # Archive completed task
         },
         TaskStatus.SKIPPED: {
@@ -145,6 +146,7 @@ class TaskStateMachine:
             (TaskStatus.PENDING, TaskStatus.ARCHIVED): "Archive task",
             (TaskStatus.IN_PROGRESS, TaskStatus.COMPLETED): "Complete task",
             (TaskStatus.COMPLETED, TaskStatus.PENDING): "Uncomplete task",
+            (TaskStatus.COMPLETED, TaskStatus.IN_PROGRESS): "Start again (multi-attempt)",
             (TaskStatus.COMPLETED, TaskStatus.ARCHIVED): "Archive completed task",
             (TaskStatus.SKIPPED, TaskStatus.PENDING): "Restore skipped task",
             (TaskStatus.SKIPPED, TaskStatus.ARCHIVED): "Archive skipped task",
