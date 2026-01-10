@@ -217,3 +217,97 @@ export function utcToLocalDate(utcDateTimeString: string): string {
   // Extract local date components
   return formatDateForAPI(date);
 }
+
+/**
+ * Get local date string in YYYY-MM-DD format
+ */
+export function getLocalDateString(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+// ==================== Floating vs Fixed Time Helpers ====================
+
+/**
+ * Get display date for a task (handles both floating and fixed time)
+ */
+export function getTaskDisplayDate(task: {
+  is_floating_time?: boolean;
+  scheduled_date?: string;
+  scheduled_datetime?: string;
+}): string {
+  if (task.is_floating_time !== false) {
+    // Floating time: scheduled_date is already the correct local date
+    return task.scheduled_date || "";
+  } else {
+    // Fixed time: Convert scheduled_datetime to local date
+    if (task.scheduled_datetime) {
+      return utcToLocalDate(task.scheduled_datetime);
+    }
+    return "";
+  }
+}
+
+/**
+ * Get display time for a task (handles both floating and fixed time)
+ */
+export function getTaskDisplayTime(task: {
+  is_floating_time?: boolean;
+  scheduled_time?: string;
+  scheduled_datetime?: string;
+  scheduled_timezone?: string;
+  fixed_time_slot?: { start: string; end: string };
+}): string {
+  if (task.is_floating_time !== false) {
+    // Floating time: Use scheduled_time or fixed_time_slot.start
+    return task.scheduled_time || task.fixed_time_slot?.start || "";
+  } else {
+    // Fixed time: Show both local time and origin timezone
+    if (task.scheduled_datetime) {
+      const localTime = formatLocalTime(task.scheduled_datetime);
+      if (task.scheduled_timezone) {
+        return `${localTime} (${task.scheduled_timezone})`;
+      }
+      return localTime;
+    }
+    return "";
+  }
+}
+
+/**
+ * Get full display datetime string (date + time)
+ */
+export function getTaskDisplayDateTime(task: {
+  is_floating_time?: boolean;
+  scheduled_date?: string;
+  scheduled_time?: string;
+  scheduled_datetime?: string;
+  scheduled_timezone?: string;
+  fixed_time_slot?: { start: string; end: string };
+}): string {
+  const date = getTaskDisplayDate(task);
+  const time = getTaskDisplayTime(task);
+
+  if (date && time) {
+    return `${date} ${time}`;
+  } else if (date) {
+    return date;
+  }
+  return "";
+}
+
+/**
+ * Check if a task is scheduled for today (handles both floating and fixed time)
+ */
+export function isTaskToday(task: {
+  is_floating_time?: boolean;
+  scheduled_date?: string;
+  scheduled_datetime?: string;
+}): boolean {
+  const today = getLocalDateString();
+  const taskDate = getTaskDisplayDate(task);
+  return taskDate === today;
+}

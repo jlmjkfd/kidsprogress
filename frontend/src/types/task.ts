@@ -246,7 +246,18 @@ export interface Task {
 
   // Scheduling (Enhanced - Unified Model)
   scheduling_type: SchedulingType;
-  scheduled_date?: string;
+
+  // Timezone handling: Floating vs Fixed time
+  is_floating_time: boolean; // Default: true (location-dependent)
+  created_timezone?: string; // IANA timezone when created
+
+  // Floating time fields (95% of tasks)
+  scheduled_date?: string; // Date in YYYY-MM-DD format
+  scheduled_time?: string; // Time in HH:MM format
+
+  // Fixed time fields (special cases)
+  scheduled_datetime?: string; // ISO datetime with timezone
+  scheduled_timezone?: string; // IANA timezone
 
   // Time attributes (different for each scheduling_type)
   fixed_time_slot?: TimeSlot; // For FIXED_TIME
