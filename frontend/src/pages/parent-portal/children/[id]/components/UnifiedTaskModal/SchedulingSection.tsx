@@ -26,6 +26,9 @@ export interface TimeFieldsData {
   pool_max_times: number | null;
   pool_max_duration: number | null;
   pool_cooldown: number | null;
+  scheduled_time: string;
+  scheduled_datetime: string;
+  scheduled_timezone: string;
 }
 
 interface SchedulingSectionProps {
@@ -33,11 +36,13 @@ interface SchedulingSectionProps {
   scheduledDate: string;
   estimatedDuration: number | null;
   isInformational: boolean;
+  isFloatingTime: boolean;
   timeFieldsData: TimeFieldsData;
   onSchedulingTypeChange: (type: SchedulingType) => void;
   onScheduledDateChange: (date: string) => void;
   onTimeFieldsChange: (updates: Partial<TimeFieldsData>) => void;
   onEstimatedDurationChange: (duration: number | null) => void;
+  onFloatingTimeChange: (isFloating: boolean) => void;
 }
 
 export function SchedulingSection({
@@ -45,11 +50,13 @@ export function SchedulingSection({
   scheduledDate,
   estimatedDuration,
   isInformational,
+  isFloatingTime,
   timeFieldsData,
   onSchedulingTypeChange,
   onScheduledDateChange,
   onTimeFieldsChange,
   onEstimatedDurationChange,
+  onFloatingTimeChange,
 }: SchedulingSectionProps) {
   const { t } = useTranslation(["tasks"]);
 
@@ -141,6 +148,101 @@ export function SchedulingSection({
           className="w-full rounded-lg border border-gray-300 px-3 py-2"
         />
       </div>
+
+      {/* Floating vs Fixed Time Toggle */}
+      <div className="space-y-2 rounded-lg border border-blue-200 bg-blue-50 p-4">
+        <label className="text-sm font-medium text-gray-900">
+          {t("tasks:time_type")}
+        </label>
+        <div className="flex gap-4">
+          <label className="flex cursor-pointer items-center gap-2">
+            <input
+              type="radio"
+              checked={isFloatingTime}
+              onChange={() => onFloatingTimeChange(true)}
+              className="h-4 w-4 text-blue-600"
+            />
+            <span className="text-sm">{t("tasks:floating_time")}</span>
+          </label>
+          <label className="flex cursor-pointer items-center gap-2">
+            <input
+              type="radio"
+              checked={!isFloatingTime}
+              onChange={() => onFloatingTimeChange(false)}
+              className="h-4 w-4 text-blue-600"
+            />
+            <span className="text-sm">{t("tasks:fixed_time")}</span>
+          </label>
+        </div>
+        <p className="text-xs text-gray-600">
+          {isFloatingTime
+            ? t("tasks:floating_time_desc")
+            : t("tasks:fixed_time_desc")}
+        </p>
+      </div>
+
+      {/* Floating Time: Scheduled Time Input */}
+      {isFloatingTime && (
+        <div>
+          <label
+            htmlFor="scheduled_time"
+            className="mb-2 block text-sm font-medium text-gray-700"
+          >
+            {t("tasks:scheduled_time")} {t("common:optional")}
+          </label>
+          <input
+            type="time"
+            id="scheduled_time"
+            value={timeFieldsData.scheduled_time}
+            onChange={(e) => onTimeFieldsChange({ scheduled_time: e.target.value })}
+            className="w-full rounded-lg border border-gray-300 px-3 py-2"
+          />
+        </div>
+      )}
+
+      {/* Fixed Time: Datetime + Timezone */}
+      {!isFloatingTime && (
+        <>
+          <div>
+            <label
+              htmlFor="scheduled_datetime"
+              className="mb-2 block text-sm font-medium text-gray-700"
+            >
+              {t("tasks:scheduled_datetime")}
+            </label>
+            <input
+              type="datetime-local"
+              id="scheduled_datetime"
+              value={timeFieldsData.scheduled_datetime}
+              onChange={(e) => onTimeFieldsChange({ scheduled_datetime: e.target.value })}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2"
+            />
+          </div>
+          <div>
+            <label
+              htmlFor="scheduled_timezone"
+              className="mb-2 block text-sm font-medium text-gray-700"
+            >
+              {t("tasks:timezone")}
+            </label>
+            <select
+              id="scheduled_timezone"
+              value={timeFieldsData.scheduled_timezone}
+              onChange={(e) => onTimeFieldsChange({ scheduled_timezone: e.target.value })}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2"
+            >
+              <option value="Pacific/Auckland">Pacific/Auckland (NZ)</option>
+              <option value="America/New_York">America/New_York (EST/EDT)</option>
+              <option value="America/Los_Angeles">America/Los_Angeles (PST/PDT)</option>
+              <option value="Europe/London">Europe/London (GMT/BST)</option>
+              <option value="Europe/Paris">Europe/Paris (CET/CEST)</option>
+              <option value="Asia/Tokyo">Asia/Tokyo (JST)</option>
+              <option value="Asia/Shanghai">Asia/Shanghai (CST)</option>
+              <option value="Australia/Sydney">Australia/Sydney (AEDT/AEST)</option>
+            </select>
+          </div>
+        </>
+      )}
 
       {/* Time Fields (dynamic based on scheduling type) */}
       <TaskSchedulingTimeFields

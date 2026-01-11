@@ -81,6 +81,11 @@ export function UnifiedTaskModal({
   const oneHourLaterTime = `${String(oneHourLater.getHours()).padStart(2, '0')}:${String(oneHourLater.getMinutes()).padStart(2, '0')}`;
   const todayDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
+  // Floating vs Fixed Time state
+  const [isFloatingTime, setIsFloatingTime] = useState(
+    task?.is_floating_time !== false // Default to floating time
+  );
+
   const [formData, setFormData] = useState({
     // Basic Info
     title: task?.title || "",
@@ -92,7 +97,16 @@ export function UnifiedTaskModal({
 
     // Scheduling Type
     scheduling_type: task?.scheduling_type || SchedulingType.FLEXIBLE,
-    scheduled_date: task?.scheduled_date?.split("T")[0] || todayDate,
+    scheduled_date: task?.scheduled_date || todayDate,
+
+    // Floating time fields
+    scheduled_time: task?.scheduled_time || "",
+
+    // Fixed time fields
+    scheduled_datetime: task?.scheduled_datetime
+      ? new Date(task.scheduled_datetime).toISOString().slice(0, 16) // Format for datetime-local
+      : "",
+    scheduled_timezone: task?.scheduled_timezone || "Pacific/Auckland",
 
     // Time attributes (different for each type)
     fixed_start: task?.fixed_time_slot?.start || currentTime,
@@ -214,12 +228,12 @@ export function UnifiedTaskModal({
         description: formData.description.trim() || undefined,
         task_type_code: formData.task_type_code,
         scheduling_type: formData.scheduling_type,
-        scheduled_date: formData.scheduled_date
-          ? new Date(formData.scheduled_date).toISOString()
-          : undefined,
         obligation_level: formData.obligation_level,
         priority_boost: formData.priority_boost,
         estimated_duration_minutes: formData.estimated_duration || undefined,
+
+        // Floating vs Fixed Time
+        is_floating_time: isFloatingTime,
 
         // Recurrence
         is_recurring: formData.is_recurring,
@@ -234,6 +248,18 @@ export function UnifiedTaskModal({
         // Pool
         is_in_pool: formData.is_in_pool,
       };
+
+      // Add floating time fields
+      if (isFloatingTime) {
+        baseData.scheduled_date = formData.scheduled_date; // "2026-01-11" (string, not ISO)
+        baseData.scheduled_time = formData.scheduled_time || undefined;
+      } else {
+        // Add fixed time fields
+        if (formData.scheduled_datetime) {
+          baseData.scheduled_datetime = new Date(formData.scheduled_datetime).toISOString();
+        }
+        baseData.scheduled_timezone = formData.scheduled_timezone;
+      }
 
       // Add time attributes based on scheduling type
       if (
@@ -597,6 +623,7 @@ export function UnifiedTaskModal({
               scheduledDate={formData.scheduled_date}
               estimatedDuration={formData.estimated_duration}
               isInformational={formData.is_informational}
+              isFloatingTime={isFloatingTime}
               timeFieldsData={{
                 fixed_start: formData.fixed_start,
                 fixed_end: formData.fixed_end,
@@ -611,11 +638,15 @@ export function UnifiedTaskModal({
                 pool_max_times: formData.pool_max_times,
                 pool_max_duration: formData.pool_max_duration,
                 pool_cooldown: formData.pool_cooldown,
+                scheduled_time: formData.scheduled_time,
+                scheduled_datetime: formData.scheduled_datetime,
+                scheduled_timezone: formData.scheduled_timezone,
               }}
               onSchedulingTypeChange={(type) => setFormData({ ...formData, scheduling_type: type })}
               onScheduledDateChange={(date) => setFormData({ ...formData, scheduled_date: date })}
               onTimeFieldsChange={(updates) => setFormData({ ...formData, ...updates })}
               onEstimatedDurationChange={(duration) => setFormData({ ...formData, estimated_duration: duration })}
+              onFloatingTimeChange={setIsFloatingTime}
             />
 
             {/* Obligation & Priority Section */}

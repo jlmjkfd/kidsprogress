@@ -337,7 +337,17 @@ export interface TaskCreate {
 
   // Scheduling fields (Unified Model)
   scheduling_type?: SchedulingType;
-  scheduled_date?: string; // ISO datetime
+
+  // Floating vs Fixed Time
+  is_floating_time?: boolean;
+
+  // Floating time fields
+  scheduled_date?: string; // "2026-01-11" (YYYY-MM-DD string, not ISO)
+  scheduled_time?: string; // "15:00" (HH:MM)
+
+  // Fixed time fields
+  scheduled_datetime?: string; // ISO datetime
+  scheduled_timezone?: string; // IANA timezone
 
   // Time attributes
   fixed_time_slot?: TimeSlot;
@@ -381,7 +391,17 @@ export interface TaskUpdate {
 
   // Scheduling fields (Unified Model)
   scheduling_type?: SchedulingType;
-  scheduled_date?: string; // ISO datetime
+
+  // Floating vs Fixed Time
+  is_floating_time?: boolean;
+
+  // Floating time fields
+  scheduled_date?: string; // "2026-01-11" (YYYY-MM-DD string, not ISO)
+  scheduled_time?: string; // "15:00" (HH:MM)
+
+  // Fixed time fields
+  scheduled_datetime?: string; // ISO datetime
+  scheduled_timezone?: string; // IANA timezone
 
   // Time attributes
   fixed_time_slot?: TimeSlot;
