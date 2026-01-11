@@ -19,6 +19,7 @@ import {
   IconHistory,
   IconPlayerPlay,
 } from "@tabler/icons-react";
+import { getTaskDisplayDate } from "@/utils/timezone";
 import { OverdueTask } from "@/types/task";
 
 interface OverdueTaskCardProps {
@@ -79,9 +80,8 @@ export function OverdueTaskCard({
   const hasInProgressAttemptByDate: Record<string, boolean> = {};
   if (materializedTasks) {
     for (const t of materializedTasks) {
-      if (t.scheduled_date) {
-        // Extract just the date part (YYYY-MM-DD) from ISO datetime string
-        const dateStr = t.scheduled_date.split('T')[0];
+      const dateStr = getTaskDisplayDate(t);
+      if (dateStr) {
         taskStatusByDate[dateStr] = t.status;
         // Check if there's an in-progress attempt (saved progress state with data)
         hasInProgressAttemptByDate[dateStr] = !!(t.progress_state && Object.keys(t.progress_state).length > 0);
@@ -172,7 +172,7 @@ export function OverdueTaskCard({
         {/* Scheduled Info */}
         <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600">
           <span>
-            {t("tasks:overdue_view.scheduled_for")} {task.scheduled_date}
+            {t("tasks:overdue_view.scheduled_for")} {task.scheduled_date} {/* Already formatted as YYYY-MM-DD from backend */}
           </span>
           <span className="font-semibold text-orange-600">({daysText})</span>
         </div>

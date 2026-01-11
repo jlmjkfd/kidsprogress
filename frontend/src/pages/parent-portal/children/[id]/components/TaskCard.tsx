@@ -20,6 +20,7 @@ import {
 } from "@tabler/icons-react";
 import { Task, SchedulingType, ObligationLevel } from "@/types/task";
 import { ScrollPositionManager } from "@/utils/ScrollAnchor";
+import { getTaskDisplayDate, formatLocalDate } from "@/utils/timezone";
 
 interface TaskCardProps {
   task: Task;
@@ -58,7 +59,7 @@ export function TaskCard({
 
   // If this is a deleted occurrence, show restore UI
   if (task.is_deleted && task.source_recurring_task_id && task.scheduled_date) {
-    const occurrenceDate = task.scheduled_date.split("T")[0];
+    const occurrenceDate = getTaskDisplayDate(task);
     return (
       <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-4 opacity-60">
         <div className="flex-1">
@@ -219,7 +220,7 @@ export function TaskCard({
           <div className="flex items-center gap-1">
             <IconCalendar size={16} />
             <span>
-              {new Date(task.scheduled_date).toLocaleDateString()}
+              {formatLocalDate(getTaskDisplayDate(task))}
             </span>
           </div>
         )}
@@ -336,15 +337,15 @@ export function TaskCard({
 
                     if (task.source_recurring_task_id && task.scheduled_date) {
                       // This is a materialized instance - use virtual ID format
-                      const dateStr = task.scheduled_date.split('T')[0];
+                      const dateStr = getTaskDisplayDate(task);
                       attemptTaskId = `${task.source_recurring_task_id}_${dateStr}`;
                       taskScheduledDate = dateStr;
                     } else if (task.is_virtual) {
                       // Already virtual - use as-is
                       attemptTaskId = task._id;
-                      taskScheduledDate = task.scheduled_date?.split('T')[0];
+                      taskScheduledDate = getTaskDisplayDate(task);
                     } else {
-                      taskScheduledDate = task.scheduled_date?.split('T')[0];
+                      taskScheduledDate = getTaskDisplayDate(task);
                     }
 
                     // Save scroll position (index + exact scrollTop) for accurate restoration

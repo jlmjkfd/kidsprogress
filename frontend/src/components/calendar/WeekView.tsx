@@ -7,7 +7,7 @@ import { IconCircle, IconCheck, IconChevronRight } from "@tabler/icons-react";
 import { Task, TaskStatus, ObligationLevel } from "@/types/task";
 import { DayType } from "@/types/schoolCalendar";
 import { WeekSelector } from "./WeekSelector";
-import { getLocalTimeInMinutes } from "@/utils/timezone";
+import { getLocalTimeInMinutes, getTaskDisplayDate } from "@/utils/timezone";
 
 interface WeekViewProps {
   startDate: string; // YYYY-MM-DD of week start (Sunday or Monday)
@@ -65,7 +65,7 @@ export function WeekView({
   weekDays.forEach((day) => tasksByDate.set(day.date, []));
 
   visibleTasks.forEach((task) => {
-    const taskDate = task.scheduled_date?.split("T")[0];
+    const taskDate = getTaskDisplayDate(task);
     if (taskDate && tasksByDate.has(taskDate)) {
       tasksByDate.get(taskDate)!.push(task);
     }
