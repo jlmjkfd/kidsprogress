@@ -13,7 +13,7 @@ import LoadingSpinner from "@/components/LoadingSpinner";
 import { TaskCompletion } from "@/types/template";
 import { AttemptSidebar } from "./components/AttemptSidebar";
 import { getPlugin } from "@/templates/registry";
-import { formatLocalDate, formatLocalTime, utcToLocalDate } from "@/utils/timezone";
+import { formatLocalDate, formatLocalTime, getTaskDisplayDate } from "@/utils/timezone";
 import { ScrollPositionManager } from "@/utils/ScrollAnchor";
 
 export default function AttemptDetailPage() {
@@ -50,7 +50,7 @@ export default function AttemptDetailPage() {
   const isVirtualTask = taskId?.includes("_");
   const scheduledDate = isVirtualTask
     ? taskId?.split("_")[1]
-    : task?.scheduled_date ? utcToLocalDate(task.scheduled_date) : undefined; // Convert UTC to local date (YYYY-MM-DD)
+    : task ? getTaskDisplayDate(task) : undefined; // Get display date (handles both floating and fixed time)
 
   // Pass task_id (virtual or real) - backend will handle parsing virtual IDs
   const { data: completionsData, isLoading: completionsLoading } = useCompletions({

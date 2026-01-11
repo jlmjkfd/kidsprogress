@@ -30,7 +30,7 @@ import { TaskCalendar } from "@/components/calendar";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { QuickCaptureModal } from "@/components/QuickCaptureModal";
 import { PlanAheadModal } from "@/components/PlanAheadModal";
-import { isToday, formatLocalDate, utcToLocalDate } from "@/utils/timezone";
+import { isToday, formatLocalDate, getTaskDisplayDate, isTaskToday } from "@/utils/timezone";
 import { CollapsibleSection } from "@/components/CollapsibleSection";
 import { FloatingActionButton } from "@/components/FloatingActionButton";
 import { OverdueTaskCard } from "@/components/OverdueTaskCard";
@@ -84,8 +84,7 @@ export default function ChildTasksPage() {
   useEffect(() => {
     if (allTasks) {
       const tasksForDate = allTasks.filter((t) => {
-        if (!t.scheduled_date) return false;
-        const taskDate = utcToLocalDate(t.scheduled_date);
+        const taskDate = getTaskDisplayDate(t);
         return taskDate === selectedDate;
       });
       setSelectedDateTasks(tasksForDate);
@@ -95,12 +94,9 @@ export default function ChildTasksPage() {
   // Filter tasks for today only
   const tasks =
     allTasks?.filter((task) => {
-      if (!task.scheduled_date) return false;
-      const today = getLocalDateString();
-      const taskDate = utcToLocalDate(task.scheduled_date);
       // Only show tasks scheduled for today (removed || task.status === "in_progress"
       // because virtual instances inherit in_progress status from recurring task)
-      return taskDate === today;
+      return isTaskToday(task);
     }) || [];
 
   // Get current time for informational task categorization
@@ -122,7 +118,7 @@ export default function ChildTasksPage() {
 
     // If viewing a specific date (calendar view)
     if (forDate) {
-      const taskDate = task.scheduled_date?.split("T")[0];
+      const taskDate = getTaskDisplayDate(task);
 
       // If task is not on the selected date, shouldn't happen but return null
       if (taskDate !== forDate) {
@@ -173,7 +169,7 @@ export default function ChildTasksPage() {
     allTasks?.filter((t) => {
       const today = getLocalDateString();
       // Convert UTC completed_at to local date before comparing
-      const completedDate = t.completed_at ? utcToLocalDate(t.completed_at) : null;
+      const completedDate = t.completed_at ? getTaskDisplayDate({ scheduled_datetime: t.completed_at, is_floating_time: false }) : null;
       return completedDate === today && t.status === "completed";
     }) || [];
 
@@ -243,17 +239,17 @@ export default function ChildTasksPage() {
       // For materialized instances, construct virtual task ID for attempts page
       if (task?.source_recurring_task_id && task.scheduled_date) {
         // This is a materialized instance - use virtual ID format
-        const dateStr = task.scheduled_date.split('T')[0];
+        const dateStr = getTaskDisplayDate(task);
         attemptTaskId = `${task.source_recurring_task_id}_${dateStr}`;
         taskScheduledDate = dateStr;
         templateId = task.source_recurring_task_id;
       } else if (task?.is_virtual) {
         // Already virtual - use as-is
         attemptTaskId = taskId;
-        taskScheduledDate = task.scheduled_date?.split('T')[0];
+        taskScheduledDate = getTaskDisplayDate(task);
         templateId = task.template_id;
       } else {
-        taskScheduledDate = task?.scheduled_date?.split('T')[0];
+        taskScheduledDate = task ? getTaskDisplayDate(task) : undefined;
         templateId = task?.template_id;
       }
     }
