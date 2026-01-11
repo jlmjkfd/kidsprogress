@@ -1040,14 +1040,24 @@ class TaskCRUD:
                 if not existing_rules:
                     # Create new rule
                     if updated_task.scheduled_date:
-                        effective_from = updated_task.scheduled_date.date() if hasattr(updated_task.scheduled_date, 'date') else updated_task.scheduled_date
+                        # Handle both string format ("2026-01-11") and datetime format
+                        if isinstance(updated_task.scheduled_date, str):
+                            effective_from = datetime.strptime(updated_task.scheduled_date, "%Y-%m-%d").date()
+                        else:
+                            effective_from = updated_task.scheduled_date.date()
                     else:
                         effective_from = date.today()
+
+                    # Get timezone from request context
+                    from backend.utils.timezone_context import get_request_timezone
+                    user_timezone = get_request_timezone()
+
                     await self.recurrence_rule_service.create_rule(
                         task_template_id=task_id_obj,
                         pattern=updated_task.recurrence_pattern,
                         effective_from=effective_from,
                         created_by=parent_id_obj,
+                        timezone=user_timezone,
                         reason="Task converted to recurring"
                     )
                 elif existing_rules[0].pattern != updated_task.recurrence_pattern:
