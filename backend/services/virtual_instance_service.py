@@ -86,11 +86,23 @@ class VirtualInstanceService:
                 continue
 
             # Get occurrence dates from RRULE for this rule's period
+            # Convert scheduled_date to datetime for dtstart (handles both string and datetime)
+            dtstart_for_rrule = None
+            if template.scheduled_date:
+                if isinstance(template.scheduled_date, str):
+                    # New format: "2026-01-11" string
+                    from datetime import datetime as dt
+                    parsed_date = dt.strptime(template.scheduled_date, "%Y-%m-%d").date()
+                    dtstart_for_rrule = datetime.combine(parsed_date, datetime.min.time())
+                else:
+                    # Old format: datetime object
+                    dtstart_for_rrule = template.scheduled_date
+
             occurrence_dates = await self._expand_rrule(
                 rule.pattern,
                 rule_start,
                 rule_end,
-                template.scheduled_date,
+                dtstart_for_rrule,
                 school_calendar_service,
                 str(template.child_id) if template.child_id else None,
             )

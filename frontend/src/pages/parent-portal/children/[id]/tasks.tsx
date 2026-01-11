@@ -80,8 +80,8 @@ export default function ChildTasksPage() {
   const [selectedDate, setSelectedDate] = useState<string>(navigationState?.selectedDate || "");
   const [selectedDateTasks, setSelectedDateTasks] = useState<Task[]>([]);
 
-  // Data fetching - include deleted occurrences for parent portal
-  const { data: tasks, isLoading } = useTasksByChild(childId || "", undefined, undefined, undefined, true);
+  // Data fetching - include deleted occurrences and templates for parent portal
+  const { data: tasks, isLoading } = useTasksByChild(childId || "", undefined, undefined, undefined, true, true);
 
   // Mutations
   const createTaskMutation = useCreateTask();
