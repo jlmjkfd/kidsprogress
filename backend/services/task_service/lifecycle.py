@@ -291,20 +291,38 @@ class TaskLifecycle:
             assert self.crud is not None, "CRUD component not set"
             all_tasks = await self.crud.get_tasks_by_child(child_id, parent_id)
 
-            # Find the virtual task
-            virtual_task = None
+            # Find the task (could be virtual or materialized with virtual ID)
+            target_task = None
             for task in all_tasks:
-                if task.get("_id") == task_id and task.get("is_virtual"):
-                    virtual_task = task
+                if task.get("_id") == task_id:
+                    target_task = task
                     break
 
-            if not virtual_task:
-                raise ValueError(f"Virtual task not found: {task_id}")
+            if not target_task:
+                raise ValueError(f"Task not found: {task_id}")
 
-            # Materialize the virtual task
-            assert self.virtualizer is not None, "Virtualizer not set"
-            materialized = await self.virtualizer.materialize_virtual_task(task_id, virtual_task)
-            task_id = str(materialized.id)  # Use new ObjectId for subsequent operations
+            # If it's already materialized (is_virtual=False), use the real ObjectId
+            if not target_task.get("is_virtual"):
+                # This is a materialized task with virtual ID format
+                # Extract the real ObjectId from the materialized task
+                # Since get_tasks_by_child returns it with virtual ID, we need to find the real one
+                if identifier.occurrence_date:
+                    materialized = await self.tasks_collection.find_one({
+                        "source_recurring_task_id": ObjectId(identifier.template_id),
+                        "scheduled_date": identifier.occurrence_date.isoformat(),
+                        "is_virtual": False
+                    })
+                    if materialized:
+                        task_id = str(materialized["_id"])
+                    else:
+                        raise ValueError(f"Materialized task not found for: {task_id}")
+                else:
+                    raise ValueError(f"Invalid virtual task ID format: {task_id}")
+            else:
+                # True virtual task - needs materialization
+                assert self.virtualizer is not None, "Virtualizer not set"
+                materialized = await self.virtualizer.materialize_virtual_task(task_id, target_task)
+                task_id = str(materialized.id)  # Use new ObjectId for subsequent operations
 
         task_id_obj = validate_object_id(task_id, "task_id", raise_http_exception=False)
         child_id_obj = validate_object_id(child_id, "child_id", raise_http_exception=False)
@@ -742,7 +760,12 @@ class TaskLifecycle:
             child_id=ObjectId(child_id),
             template_id="",  # Empty string for standard tasks
             session_number=existing_count + 1,
-            scheduled_date=task_data.get("scheduled_date").strftime("%Y-%m-%d") if task_data.get("scheduled_date") else None,
+            scheduled_date=(
+                task_data.get("scheduled_date").strftime("%Y-%m-%d")  # type: ignore
+                if (task_data.get("scheduled_date") and
+                    isinstance(task_data.get("scheduled_date"), datetime))
+                else task_data.get("scheduled_date")  # Already a string or None
+            ),
             started_at=started_at or completed_at,
             completed_at=completed_at,
             detailed_data=progress_state or {},
