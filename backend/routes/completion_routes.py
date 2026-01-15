@@ -149,12 +149,14 @@ async def save_task_progress(
         print(f"[save-progress] Assigned session_number: {session_number}")
 
     # Store progress in task document (temporary storage)
+    # Also mark task as in_progress so frontend shows Resume button
     result = await tasks_collection.update_one(
         {"_id": actual_task_id},
         {
             "$set": {
                 "progress_state": progress_data,
-                "progress_saved_at": utcnow()
+                "progress_saved_at": utcnow(),
+                "status": "in_progress"
             }
         }
     )

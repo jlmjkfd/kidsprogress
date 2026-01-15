@@ -159,12 +159,29 @@ class DateRangeSpec(QuerySpecification):
         self.end_date = datetime.combine(end_date, datetime.max.time())
 
     def to_query(self):
-        """Convert to MongoDB query."""
+        """Convert to MongoDB query that handles both string and datetime formats."""
+        # For floating time tasks, scheduled_date is string "YYYY-MM-DD"
+        # For legacy fixed time tasks, scheduled_date is datetime
+        start_date_str = self.start_date.strftime("%Y-%m-%d")
+        end_date_str = self.end_date.strftime("%Y-%m-%d")
+
         return {
-            "scheduled_date": {
-                "$gte": self.start_date,
-                "$lte": self.end_date
-            }
+            "$or": [
+                # String format (floating time) - simple string comparison
+                {
+                    "scheduled_date": {
+                        "$gte": start_date_str,
+                        "$lte": end_date_str
+                    }
+                },
+                # Datetime format (legacy fixed time)
+                {
+                    "scheduled_date": {
+                        "$gte": self.start_date,
+                        "$lte": self.end_date
+                    }
+                }
+            ]
         }
 
 

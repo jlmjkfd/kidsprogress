@@ -377,11 +377,23 @@ class TaskCRUD:
             # Convert to dict immediately for consistency
             task_obj = Task(**doc)
             task_dict = task_obj.model_dump(mode='json', by_alias=True)
-            # Ensure _id is a string
-            if "_id" in task_dict and not isinstance(task_dict["_id"], str):
-                task_dict["_id"] = str(task_dict["_id"])
-            # Mark as not virtual (one-time tasks are real tasks, not virtual instances)
-            task_dict["is_virtual"] = False
+
+            # For materialized recurring tasks, use virtual ID format (template_id_date)
+            # This allows frontend to match virtual instances with their materialized versions
+            if task_obj.source_recurring_task_id and task_obj.scheduled_date:
+                if isinstance(task_obj.scheduled_date, str):
+                    date_str = task_obj.scheduled_date
+                else:
+                    date_str = task_obj.scheduled_date.strftime("%Y-%m-%d")
+                virtual_id = f"{task_obj.source_recurring_task_id}_{date_str}"
+                task_dict["_id"] = virtual_id
+                task_dict["is_virtual"] = False  # It's materialized, not virtual
+            else:
+                # Regular one-time task
+                if "_id" in task_dict and not isinstance(task_dict["_id"], str):
+                    task_dict["_id"] = str(task_dict["_id"])
+                task_dict["is_virtual"] = False
+
             tasks.append(task_dict)
 
         # Get recurring task templates (no date filter, no status filter)

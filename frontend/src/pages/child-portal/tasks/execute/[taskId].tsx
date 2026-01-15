@@ -5,7 +5,7 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/api/client";
 import { useSubmitCompletion } from "@/api/mutations/useCompletionMutations";
 import { getPlugin } from "@/templates/registry";
@@ -16,6 +16,7 @@ import UnifiedExecutionPage from "@/components/execution/UnifiedExecutionPage";
 export default function TaskExecutePage() {
   const { taskId, childId } = useParams<{ taskId: string; childId: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { t } = useTranslation(["tasks", "common", "errors"]);
   const [isComplete, setIsComplete] = useState(false);
 
@@ -48,7 +49,9 @@ export default function TaskExecutePage() {
     navigate(`/child-portal/${childId}/tasks`, { replace: true });
   };
 
-  const handleCancel = () => {
+  const handleCancel = async () => {
+    // Invalidate queries to refresh task list with updated status
+    await queryClient.invalidateQueries({ queryKey: ["tasks"] });
     navigate(-1);
   };
 
