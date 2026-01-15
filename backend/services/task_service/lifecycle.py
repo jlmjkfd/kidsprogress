@@ -114,16 +114,48 @@ class TaskLifecycle:
             occurrence_date = identifier.occurrence_date.isoformat()
 
             # Look for already materialized task
-            # Note: child_id may be stored as string or ObjectId
-            existing_materialized = await self.tasks_collection.find_one({
-                "source_recurring_task_id": template_id,
-                "$or": [{"child_id": ObjectId(child_id)}, {"child_id": child_id}],
+            # Handle both string (floating time) and datetime (legacy) formats for scheduled_date
+            occurrence_date_dt = datetime.fromisoformat(occurrence_date)
+            query = {
                 "is_virtual": False,
-                "scheduled_date": {
-                    "$gte": datetime.fromisoformat(occurrence_date),
-                    "$lt": datetime.fromisoformat(occurrence_date) + timedelta(days=1)
-                }
+                "$and": [
+                    # Match source_recurring_task_id (handle both string and ObjectId)
+                    {"$or": [{"source_recurring_task_id": ObjectId(template_id)}, {"source_recurring_task_id": template_id}]},
+                    # Match child_id (handle both string and ObjectId)
+                    {"$or": [{"child_id": ObjectId(child_id)}, {"child_id": child_id}]},
+                    # Match scheduled_date (handle both string and datetime formats)
+                    {
+                        "$or": [
+                            {"scheduled_date": occurrence_date},  # String format (floating time)
+                            {  # Datetime format (legacy fixed time)
+                                "scheduled_date": {
+                                    "$gte": occurrence_date_dt,
+                                    "$lt": occurrence_date_dt + timedelta(days=1)
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+            print(f"[start_task] Looking for materialized task: template={template_id}, date={occurrence_date}, child={child_id}")
+            print(f"[start_task] Query: {query}")
+            existing_materialized = await self.tasks_collection.find_one(query)
+            print(f"[start_task] Found materialized: {existing_materialized is not None}")
+
+            # Debug: Check if task exists with relaxed query
+            debug_task = await self.tasks_collection.find_one({
+                "$or": [
+                    {"source_recurring_task_id": ObjectId(template_id)},
+                    {"source_recurring_task_id": template_id}
+                ],
+                "scheduled_date": occurrence_date
             })
+            print(f"[start_task] Debug - task exists with template+date: {debug_task is not None}")
+            if debug_task:
+                print(f"[start_task] Debug - task details: _id={debug_task['_id']}, child_id={debug_task.get('child_id')}, is_virtual={debug_task.get('is_virtual')}, source_type={type(debug_task.get('source_recurring_task_id'))}")
+
+            if existing_materialized:
+                print(f"[start_task] Materialized task ID: {existing_materialized['_id']}, status: {existing_materialized.get('status')}")
 
             if existing_materialized:
                 # Use the already materialized task

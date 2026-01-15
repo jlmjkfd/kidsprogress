@@ -66,8 +66,11 @@ class VirtualTaskStrategy(TaskStrategy):
 
         if materialized_task:
             # Return materialized task (has progress_state if saved)
+            # But preserve the virtual ID so frontend can match it
             print(f"[VirtualTaskStrategy] Found materialized task for {identifier.raw_id}")
-            return Task(**materialized_task)
+            task_data = dict(materialized_task)
+            task_data["_id"] = identifier.raw_id  # Use virtual ID format
+            return Task.model_construct(**task_data)
 
         # No materialized task - generate virtual instance from template
         print(f"[VirtualTaskStrategy] No materialized task, generating virtual instance for {identifier.raw_id}")

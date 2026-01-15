@@ -73,7 +73,7 @@ export default function AttemptDetailPage() {
       task_id: taskId || '',
       child_id: task.child_id || '',
       template_id: task.template_id || '',
-      session_number: (completions.length || 0) + 1,
+      session_number: task.progress_state.session_number || (completions.length || 0) + 1,
       scheduled_date: scheduledDate || undefined,
       started_at: task.started_at || new Date().toISOString(),
       completed_at: '', // Not completed yet

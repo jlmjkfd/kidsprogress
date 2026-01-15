@@ -137,6 +137,16 @@ async def save_task_progress(
                     {"task_id": ObjectId(identifier.template_id)}
                 ]
             }
+        elif task_obj.source_recurring_task_id:
+            # This is a materialized recurring task - count by template_id, not materialized task_id
+            template_id_str = str(task_obj.source_recurring_task_id)
+            count_query = {
+                "scheduled_date": scheduled_date,
+                "$or": [
+                    {"task_id": template_id_str},
+                    {"task_id": task_obj.source_recurring_task_id}
+                ]
+            }
         else:
             if scheduled_date:
                 count_query = {"task_id": actual_task_id, "scheduled_date": scheduled_date}
@@ -146,7 +156,8 @@ async def save_task_progress(
         session_count = await completions_collection.count_documents(count_query)
         session_number = session_count + 1
         progress_data['session_number'] = session_number
-        print(f"[save-progress] Assigned session_number: {session_number}")
+        print(f"[save-progress] count_query: {count_query}")
+        print(f"[save-progress] Found {session_count} existing completions, assigned session_number: {session_number}")
 
     # Store progress in task document (temporary storage)
     # Also mark task as in_progress so frontend shows Resume button

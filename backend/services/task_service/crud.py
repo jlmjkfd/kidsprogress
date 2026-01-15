@@ -386,6 +386,7 @@ class TaskCRUD:
                 else:
                     date_str = task_obj.scheduled_date.strftime("%Y-%m-%d")
                 virtual_id = f"{task_obj.source_recurring_task_id}_{date_str}"
+                print(f"[get_tasks_by_child] Converting materialized task: real_id={task_dict.get('_id')} -> virtual_id={virtual_id}, status={task_dict.get('status')}, has_progress={bool(task_dict.get('progress_state'))}")
                 task_dict["_id"] = virtual_id
                 task_dict["is_virtual"] = False  # It's materialized, not virtual
             else:
