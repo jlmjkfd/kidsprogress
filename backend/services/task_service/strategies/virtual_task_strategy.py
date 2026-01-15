@@ -50,11 +50,16 @@ class VirtualTaskStrategy(TaskStrategy):
         # Check if a materialized task exists for this date
         # If user previously clicked Start and saved progress, a materialized task exists with progress_state
         from datetime import datetime
-        scheduled_date = datetime.combine(identifier.occurrence_date, datetime.min.time())
+
+        # Handle both datetime and string formats for scheduled_date
+        # For floating time tasks, scheduled_date is string "YYYY-MM-DD"
+        # For legacy tasks, scheduled_date might be datetime
+        scheduled_date_str = identifier.occurrence_date.isoformat()  # "2026-01-12"
+        scheduled_date_dt = datetime.combine(identifier.occurrence_date, datetime.min.time())
 
         materialized_task = await self.tasks_collection.find_one({
             "source_recurring_task_id": template_id_obj,
-            "scheduled_date": scheduled_date,
+            "scheduled_date": {"$in": [scheduled_date_str, scheduled_date_dt]},  # Match either format
             "is_virtual": {"$ne": True},
             "$or": [{"parent_id": parent_id_obj}, {"parent_id": parent_id}]
         })
