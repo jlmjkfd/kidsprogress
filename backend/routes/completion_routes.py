@@ -50,14 +50,20 @@ async def save_task_progress(
         occurrence_date_str = occurrence_date.isoformat()
 
         # Look for materialized task created when virtual task was started
-        # Use date range to handle timezone differences
+        # Handle both string and datetime formats for scheduled_date
+        occurrence_date_dt = datetime.fromisoformat(occurrence_date_str)
         query = {
             "source_recurring_task_id": ObjectId(template_id),
             "is_virtual": False,
-            "scheduled_date": {
-                "$gte": datetime.fromisoformat(occurrence_date_str),
-                "$lt": datetime.fromisoformat(occurrence_date_str) + timedelta(days=1)
-            }
+            "$or": [
+                {"scheduled_date": occurrence_date_str},  # String format (floating time)
+                {  # Datetime format (legacy fixed time)
+                    "scheduled_date": {
+                        "$gte": occurrence_date_dt,
+                        "$lt": occurrence_date_dt + timedelta(days=1)
+                    }
+                }
+            ]
         }
 
         print(f"[save-progress] Virtual task: {task_id} -> searching for materialized task with date {occurrence_date_str}")
@@ -104,6 +110,43 @@ async def save_task_progress(
     # Verify task belongs to user
     if str(task_obj.parent_id) != str(current_user.id):
         raise forbidden("Access denied")
+
+    # Calculate session_number for this save if not already set
+    # This ensures when we resume and complete, we use the same session number
+    if 'session_number' not in progress_data:
+        # Count existing completions for this task/date to determine session number
+        from backend.models.task_identifier import TaskIdentifier
+        identifier = TaskIdentifier(raw_id=task_id)
+
+        completions_collection = database["task_completions"]
+
+        # Handle both string and datetime formats for scheduled_date
+        if task_obj.scheduled_date:
+            if isinstance(task_obj.scheduled_date, str):
+                scheduled_date = task_obj.scheduled_date
+            else:
+                scheduled_date = task_obj.scheduled_date.strftime("%Y-%m-%d")
+        else:
+            scheduled_date = None
+
+        if identifier.is_virtual:
+            count_query = {
+                "scheduled_date": scheduled_date,
+                "$or": [
+                    {"task_id": identifier.template_id},
+                    {"task_id": ObjectId(identifier.template_id)}
+                ]
+            }
+        else:
+            if scheduled_date:
+                count_query = {"task_id": actual_task_id, "scheduled_date": scheduled_date}
+            else:
+                count_query = {"task_id": actual_task_id}
+
+        session_count = await completions_collection.count_documents(count_query)
+        session_number = session_count + 1
+        progress_data['session_number'] = session_number
+        print(f"[save-progress] Assigned session_number: {session_number}")
 
     # Store progress in task document (temporary storage)
     result = await tasks_collection.update_one(
@@ -368,8 +411,20 @@ async def submit_task_completion(
                 print(f"[submit] DEBUG count_query (no date): {count_query}")
                 session_count = await completions_collection.count_documents(count_query)
 
-        session_number = session_count + 1
-        print(f"[submit] Calculated session_number: {session_number} (found {session_count} existing completions for date {scheduled_date})")
+        # Check if this is resuming from saved progress
+        # If progress_state exists and has session_number, use that (resuming)
+        # Otherwise, this is a new session (session_count + 1)
+        if hasattr(task_obj, 'progress_state') and task_obj.progress_state:
+            saved_session_number = task_obj.progress_state.get('session_number')
+            if saved_session_number:
+                session_number = saved_session_number
+                print(f"[submit] Resuming saved session: session_number={session_number}")
+            else:
+                session_number = session_count + 1
+                print(f"[submit] New session (progress exists but no session_number): {session_number}")
+        else:
+            session_number = session_count + 1
+            print(f"[submit] New session: {session_number} (found {session_count} existing completions)")
 
         # Update task's completion_count to match actual count
         # This keeps the field in sync with reality
@@ -466,14 +521,22 @@ async def submit_task_completion(
             from datetime import timedelta
             occurrence_date = identifier.occurrence_date
             if occurrence_date:
-                occurrence_date_str = occurrence_date.isoformat()
+                occurrence_date_str = occurrence_date.isoformat()  # "2026-01-12"
+                occurrence_date_dt = datetime.fromisoformat(occurrence_date_str)
+
+                # Handle both string and datetime formats for scheduled_date
                 materialized_query = {
                     "source_recurring_task_id": ObjectId(identifier.template_id),
                     "is_virtual": False,
-                    "scheduled_date": {
-                        "$gte": datetime.fromisoformat(occurrence_date_str),
-                        "$lt": datetime.fromisoformat(occurrence_date_str) + timedelta(days=1)
-                    }
+                    "$or": [
+                        {"scheduled_date": occurrence_date_str},  # String format (floating time)
+                        {  # Datetime format (legacy fixed time)
+                            "scheduled_date": {
+                                "$gte": occurrence_date_dt,
+                                "$lt": occurrence_date_dt + timedelta(days=1)
+                            }
+                        }
+                    ]
                 }
 
                 # Check if task should auto-complete (handler says required_attempts reached)
