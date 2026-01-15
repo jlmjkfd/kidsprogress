@@ -69,11 +69,10 @@ class VirtualTaskMaterializer:
         if isinstance(materialized_data.get("collection_id"), str):
             materialized_data["collection_id"] = ObjectId(materialized_data["collection_id"])
 
-        # Convert string dates back to datetime if needed
-        if isinstance(materialized_data.get("scheduled_date"), str):
-            materialized_data["scheduled_date"] = datetime.fromisoformat(
-                materialized_data["scheduled_date"].replace("Z", "+00:00")
-            )
+        # Keep scheduled_date as string for floating time tasks
+        # For floating time (is_floating_time=True), scheduled_date should be string "YYYY-MM-DD"
+        # For fixed time (is_floating_time=False), scheduled_date would be datetime (legacy)
+        # No conversion needed - keep the format from virtual_task_data
 
         # Insert materialized task into database
         result = await self.tasks_collection.insert_one(materialized_data)

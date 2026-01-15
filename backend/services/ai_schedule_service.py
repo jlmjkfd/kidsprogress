@@ -844,6 +844,10 @@ class AIScheduleService:
                 # Can't move fixed-time tasks
                 continue
 
+            # Skip floating time tasks (string scheduled_date) - only replan old-style datetime tasks
+            if task.scheduled_date and isinstance(task.scheduled_date, str):
+                continue
+
             if task.scheduled_date:
                 old_time = task.scheduled_date.strftime("%H:%M")
                 new_scheduled_time = task.scheduled_date + timedelta(minutes=time_diff)

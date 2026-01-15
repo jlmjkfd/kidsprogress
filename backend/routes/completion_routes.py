@@ -207,7 +207,14 @@ async def prepare_task_execution(
                 print(f"Cleared stale progress_state")
 
     # Calculate session number for multi-completion tracking
-    scheduled_date = task_obj.scheduled_date.strftime("%Y-%m-%d") if task_obj.scheduled_date else None
+    # Handle both string format ("2026-01-11") and datetime format
+    if task_obj.scheduled_date:
+        if isinstance(task_obj.scheduled_date, str):
+            scheduled_date = task_obj.scheduled_date  # Already in YYYY-MM-DD format
+        else:
+            scheduled_date = task_obj.scheduled_date.strftime("%Y-%m-%d")  # datetime object
+    else:
+        scheduled_date = None
 
     # Use TaskIdentifier to handle virtual vs real task IDs
     from backend.models.task_identifier import TaskIdentifier
@@ -292,7 +299,14 @@ async def submit_task_completion(
         if hasattr(task_obj, 'source_recurring_task_id') and task_obj.source_recurring_task_id:
             # This is a materialized instance - reconstruct virtual ID
             template_id = str(task_obj.source_recurring_task_id)
-            date_str = task_obj.scheduled_date.strftime('%Y-%m-%d') if task_obj.scheduled_date else None
+            # Handle both string and datetime formats
+            if task_obj.scheduled_date:
+                if isinstance(task_obj.scheduled_date, str):
+                    date_str = task_obj.scheduled_date
+                else:
+                    date_str = task_obj.scheduled_date.strftime('%Y-%m-%d')
+            else:
+                date_str = None
             if date_str:
                 virtual_id = f"{template_id}_{date_str}"
                 identifier = TaskIdentifier(raw_id=virtual_id)
@@ -304,7 +318,14 @@ async def submit_task_completion(
 
         # Calculate session number for this completion
         # Count actual completions for this specific date to get accurate attempt number
-        scheduled_date = task_obj.scheduled_date.strftime("%Y-%m-%d") if task_obj.scheduled_date else None
+        # Handle both string and datetime formats
+        if task_obj.scheduled_date:
+            if isinstance(task_obj.scheduled_date, str):
+                scheduled_date = task_obj.scheduled_date
+            else:
+                scheduled_date = task_obj.scheduled_date.strftime("%Y-%m-%d")
+        else:
+            scheduled_date = None
 
         # For recurring tasks, count completions by scheduled_date + task_id
         # For one-off tasks, count completions by task_id only
