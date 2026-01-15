@@ -253,7 +253,16 @@ class TaskLifecycle:
         )
         await get_event_bus().publish(event)
 
-        return {"task": Task(**result), "concurrent_tasks": concurrent_warnings}
+        # If this was a virtual task that got materialized, return with virtual ID
+        # so frontend can use it for navigation and matching
+        task_to_return = Task(**result)
+        if identifier.is_virtual:
+            # Return task with virtual ID format for frontend
+            task_dict = result.copy()
+            task_dict["_id"] = identifier.raw_id  # Use virtual ID format
+            task_to_return = Task.model_construct(**task_dict)
+
+        return {"task": task_to_return, "concurrent_tasks": concurrent_warnings}
 
     async def complete_task(self, task_id: str, child_id: str) -> Optional[Task]:
         """Complete a task (IN_PROGRESS -> COMPLETED).
