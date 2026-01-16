@@ -1,9 +1,9 @@
 /**
  * Writing TaskExecutor - Writing interface with title and content inputs
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { IconSend, IconLoader } from "@tabler/icons-react";
+import { IconSend, IconLoader, IconDeviceFloppy } from "@tabler/icons-react";
 import type { TaskExecutorProps } from "@/templates/_shared/types/plugin-interface";
 import type { WritingExecution, WritingCompletion } from '../types';
 
@@ -12,14 +12,17 @@ export default function TaskExecutor({
   onComplete,
   onCancel,
   setIsComplete,
+  onSaveProgress,
+  savedProgress,
 }: TaskExecutorProps<WritingExecution, WritingCompletion>) {
   const { t } = useTranslation(["tasks", "common"]);
 
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
+  const [title, setTitle] = useState(savedProgress?.title || "");
+  const [content, setContent] = useState(savedProgress?.content || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
-  const [startedAt] = useState(new Date().toISOString());
+  const [startedAt] = useState(savedProgress?.started_at || new Date().toISOString());
 
   const contentType = executionData.content_type || "writing";
   const minLength = executionData.min_length;
@@ -27,6 +30,29 @@ export default function TaskExecutor({
   const prompts = executionData.prompts || [];
 
   const wordCount = content.trim().split(/\s+/).filter(Boolean).length;
+
+  // Auto-save every 60 seconds
+  useEffect(() => {
+    if (!onSaveProgress) return;
+
+    const interval = setInterval(async () => {
+      // Only auto-save if there's content
+      if (title.trim() || content.trim()) {
+        try {
+          await onSaveProgress({
+            title: title.trim(),
+            content: content.trim(),
+            started_at: startedAt,
+            content_type: contentType,
+          });
+        } catch (error) {
+          console.error("Auto-save failed:", error);
+        }
+      }
+    }, 60000); // 60 seconds
+
+    return () => clearInterval(interval);
+  }, [title, content, startedAt, contentType, onSaveProgress]);
 
   const validate = (): boolean => {
     setError("");
@@ -49,6 +75,24 @@ export default function TaskExecutor({
     }
 
     return true;
+  };
+
+  const handleSaveAndExit = async () => {
+    if (!onSaveProgress) return;
+
+    setIsSaving(true);
+    try {
+      await onSaveProgress({
+        title: title.trim(),
+        content: content.trim(),
+        started_at: startedAt,
+        content_type: contentType,
+      });
+      onCancel(); // Navigate back after saving
+    } catch {
+      setError(t("tasks:execution.save_failed"));
+      setIsSaving(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -147,16 +191,36 @@ export default function TaskExecutor({
           <button
             type="button"
             onClick={onCancel}
-            disabled={isSubmitting}
+            disabled={isSubmitting || isSaving}
             className="w-full sm:flex-1 px-4 md:px-6 py-2 md:py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 font-medium text-sm md:text-base"
           >
             {t("common:cancel")}
           </button>
+          {onSaveProgress && (
+            <button
+              type="button"
+              onClick={handleSaveAndExit}
+              disabled={isSubmitting || isSaving}
+              className="w-full sm:flex-1 px-4 md:px-6 py-2 md:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium flex items-center justify-center gap-2 text-sm md:text-base"
+            >
+              {isSaving ? (
+                <>
+                  <IconLoader size={20} className="animate-spin" />
+                  <span>{t("tasks:execution.saving")}</span>
+                </>
+              ) : (
+                <>
+                  <IconDeviceFloppy size={20} />
+                  <span>{t("tasks:save_and_exit")}</span>
+                </>
+              )}
+            </button>
+          )}
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={isSubmitting}
-            className="w-full sm:flex-1 px-4 md:px-6 py-2 md:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium flex items-center justify-center gap-2 text-sm md:text-base"
+            disabled={isSubmitting || isSaving}
+            className="w-full sm:flex-1 px-4 md:px-6 py-2 md:py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 font-medium flex items-center justify-center gap-2 text-sm md:text-base"
           >
             {isSubmitting ? (
               <>

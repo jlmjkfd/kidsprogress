@@ -5,7 +5,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { IconArrowLeft, IconTrophy, IconClock, IconCalendar } from "@tabler/icons-react";
+import { IconArrowLeft, IconTrophy, IconClock, IconCalendar, IconSparkles } from "@tabler/icons-react";
 import { useTask } from "@/api/queries/useTasks";
 import { useCompletions } from "@/api/queries/useCompletions";
 import { useAppSelector } from "@/store/hooks";
@@ -186,60 +186,80 @@ export default function AttemptDetailPage() {
       }
     }
 
-    // Standard tasks - show tool data
+    // Standard tasks - show tool data and AI feedback
     const toolData = selectedCompletion.detailed_data?.tools;
-    if (toolData && typeof toolData === 'object' && Object.keys(toolData).length > 0) {
-      return (
-        <div className="space-y-4">
-          {Object.entries(toolData).map(([toolId, toolState]: [string, any]) => (
-            <div key={toolId} className="rounded-2xl bg-white p-6 shadow-lg">
-              <div className="mb-4 flex items-center gap-2">
-                <div className="rounded-lg bg-purple-100 p-2">
-                  {toolId === 'note' && <span className="text-2xl">📝</span>}
-                  {toolId === 'timer' && <span className="text-2xl">⏱️</span>}
-                  {toolId === 'calculator' && <span className="text-2xl">🔢</span>}
-                  {!['note', 'timer', 'calculator'].includes(toolId) && <span className="text-2xl">🔧</span>}
-                </div>
-                <h3 className="text-xl font-bold capitalize text-gray-900">{toolId}</h3>
-              </div>
+    const aiAnalysis = selectedCompletion.llm_analysis;
 
-              {toolId === 'note' && toolState.state?.content && (
-                <div className="whitespace-pre-wrap rounded-lg bg-gray-50 p-4 text-gray-800">
-                  {toolState.state.content}
-                </div>
-              )}
-
-              {toolId === 'timer' && toolState.state?.elapsedSeconds !== undefined && (
-                <div className="text-lg text-gray-800">
-                  <span className="font-semibold">{t("tasks:duration")}:</span>{' '}
-                  {Math.floor(toolState.state.elapsedSeconds / 60)} {t("common:minutes")} {toolState.state.elapsedSeconds % 60} {t("common:seconds")}
-                </div>
-              )}
-
-              {toolId === 'calculator' && (
-                <div className="rounded-lg bg-gray-50 p-4 text-sm text-gray-600">
-                  {t("tasks:calculator_used")}
-                </div>
-              )}
-
-              {toolState.lastUpdated && (
-                <p className="mt-2 text-xs text-gray-500">
-                  {t("common:last_updated")}: {new Date(toolState.lastUpdated).toLocaleString(locale)}
-                </p>
-              )}
-            </div>
-          ))}
-        </div>
-      );
-    }
-
-    // Fallback - no tool data
     return (
-      <div className="rounded-2xl bg-white p-6 shadow-lg">
-        <h3 className="mb-4 text-xl font-bold text-gray-900">
-          {t("tasks:completion_details")}
-        </h3>
-        <p className="text-gray-600">{t("tasks:no_details_available")}</p>
+      <div className="space-y-4">
+        {/* Tool Data */}
+        {toolData && typeof toolData === 'object' && Object.keys(toolData).length > 0 && (
+          <>
+            {Object.entries(toolData).map(([toolId, toolState]: [string, any]) => (
+              <div key={toolId} className="rounded-2xl bg-white p-6 shadow-lg">
+                <div className="mb-4 flex items-center gap-2">
+                  <div className="rounded-lg bg-purple-100 p-2">
+                    {toolId === 'note' && <span className="text-2xl">📝</span>}
+                    {toolId === 'timer' && <span className="text-2xl">⏱️</span>}
+                    {toolId === 'calculator' && <span className="text-2xl">🔢</span>}
+                    {!['note', 'timer', 'calculator'].includes(toolId) && <span className="text-2xl">🔧</span>}
+                  </div>
+                  <h3 className="text-xl font-bold capitalize text-gray-900">{toolId}</h3>
+                </div>
+
+                {toolId === 'note' && toolState.state?.content && (
+                  <div className="whitespace-pre-wrap rounded-lg bg-gray-50 p-4 text-gray-800">
+                    {toolState.state.content}
+                  </div>
+                )}
+
+                {toolId === 'timer' && toolState.state?.elapsedSeconds !== undefined && (
+                  <div className="text-lg text-gray-800">
+                    <span className="font-semibold">{t("tasks:duration")}:</span>{' '}
+                    {Math.floor(toolState.state.elapsedSeconds / 60)} {t("common:minutes")} {toolState.state.elapsedSeconds % 60} {t("common:seconds")}
+                  </div>
+                )}
+
+                {toolId === 'calculator' && (
+                  <div className="rounded-lg bg-gray-50 p-4 text-sm text-gray-600">
+                    {t("tasks:calculator_used")}
+                  </div>
+                )}
+
+                {toolState.lastUpdated && (
+                  <p className="mt-2 text-xs text-gray-500">
+                    {t("common:last_updated")}: {new Date(toolState.lastUpdated).toLocaleString(locale)}
+                  </p>
+                )}
+              </div>
+            ))}
+          </>
+        )}
+
+        {/* AI Feedback */}
+        {aiAnalysis && (
+          <div className="rounded-2xl bg-gradient-to-br from-purple-50 to-blue-50 p-6 shadow-lg">
+            <div className="mb-4 flex items-center gap-2">
+              <div className="rounded-lg bg-purple-100 p-2">
+                <IconSparkles className="text-purple-600" size={24} />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900">{t("tasks:ai_feedback")}</h3>
+            </div>
+            <div className="whitespace-pre-wrap rounded-lg bg-white p-4 text-gray-800">
+              {String(aiAnalysis)}
+            </div>
+          </div>
+        )}
+
+        {/* Fallback - no tool data and no AI feedback */}
+        {!toolData && !aiAnalysis && (
+          <div className="rounded-2xl bg-white p-6 shadow-lg">
+            <h3 className="mb-4 text-xl font-bold text-gray-900">
+              {t("tasks:completion_details")}
+            </h3>
+            <p className="text-gray-600">{t("tasks:no_details_available")}</p>
+          </div>
+        )}
       </div>
     );
   };

@@ -79,6 +79,24 @@ export default function TaskExecutePage() {
     }
   };
 
+  // For template tasks, handle save progress
+  const handleTemplateSaveProgress = async (progressData: unknown) => {
+    if (!taskId) return;
+
+    try {
+      await apiClient.post(`/api/completions/${taskId}/save-progress`, {
+        template_data: progressData,
+        saved_at: new Date().toISOString(),
+      });
+
+      // Invalidate queries to refresh task list with updated status
+      await queryClient.invalidateQueries({ queryKey: ["tasks"] });
+    } catch (error) {
+      console.error("Failed to save progress:", error);
+      throw error; // Re-throw so the template can handle it
+    }
+  };
+
   // Loading state
   if (taskLoading || (task?.template_id && executionLoading)) {
     return <LoadingSpinner fullScreen size="lg" />;
@@ -144,6 +162,8 @@ export default function TaskExecutePage() {
         onComplete={handleTemplateComplete}
         onCancel={handleCancel}
         setIsComplete={setIsComplete}
+        onSaveProgress={handleTemplateSaveProgress}
+        savedProgress={task.progress_state?.template_data}
       />
     );
   }

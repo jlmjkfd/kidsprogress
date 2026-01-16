@@ -221,14 +221,17 @@ async def prepare_task_execution(
             print(f"  total_time_seconds: {progress_state.get('total_time_seconds')}")
 
     # Check if this is actually a valid resume state or just leftover from previous attempt
-    # Valid resume state must have questions
+    # Valid resume state must have either:
+    # 1. questions (for math templates with question-based structure)
+    # 2. template_data (for templates using the new save/resume pattern)
     is_resuming = False
     if progress_state and isinstance(progress_state, dict):
         # Check if this progress is from an in-progress session
         has_questions = progress_state.get('questions') is not None
-        # Resume if there are questions - allow resume regardless of task status
+        has_template_data = progress_state.get('template_data') is not None
+        # Resume if there are questions OR template_data
         # This allows users to save and resume at any time
-        is_resuming = has_questions
+        is_resuming = has_questions or has_template_data
 
     print(f"Is resuming: {is_resuming}")
 

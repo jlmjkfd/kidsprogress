@@ -5,7 +5,7 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
-import { IconArrowLeft, IconCheck, IconX } from "@tabler/icons-react";
+import { IconArrowLeft, IconCheck, IconX, IconDeviceFloppy } from "@tabler/icons-react";
 import { getSystemTools } from "@/tools";
 import type { ToolData, ExecutionSession } from "@/tools/types";
 import type { Task } from "@/types/task";
@@ -111,6 +111,24 @@ export default function UnifiedExecutionPage({
         lastUpdated: new Date().toISOString(),
       },
     }));
+  };
+
+  const handleSaveAndExit = async () => {
+    try {
+      // Save progress to database
+      await apiClient.post(`/api/completions/${taskId}/save-progress`, {
+        tools: toolStates,
+        saved_at: new Date().toISOString(),
+      });
+
+      // Invalidate queries to refresh task list with updated status
+      await queryClient.invalidateQueries({ queryKey: ["tasks"] });
+
+      onCancel();
+    } catch (error) {
+      console.error("Failed to save progress:", error);
+      alert(t("errors:save_failed"));
+    }
   };
 
   const handleComplete = async () => {
@@ -259,7 +277,7 @@ export default function UnifiedExecutionPage({
         </div>
       </div>
 
-      {/* Floating Complete Button - Only for standard tasks */}
+      {/* Floating Action Buttons - Only for standard tasks */}
       {!isTemplateTask && (
         <>
           <div className="fixed right-0 bottom-0 left-0 border-t border-gray-200 bg-white p-4 shadow-lg md:left-64">
@@ -270,6 +288,13 @@ export default function UnifiedExecutionPage({
               >
                 <IconCheck size={24} />
                 {t("tasks:complete_task")}
+              </button>
+              <button
+                onClick={handleSaveAndExit}
+                className="flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-4 font-semibold text-white transition-colors hover:bg-blue-700"
+              >
+                <IconDeviceFloppy size={20} />
+                {t("tasks:save_and_exit")}
               </button>
               <button
                 onClick={onCancel}

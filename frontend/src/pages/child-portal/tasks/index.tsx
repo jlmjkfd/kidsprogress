@@ -210,10 +210,6 @@ export default function ChildTasksPage() {
     );
   };
 
-  const handleViewResult = (taskId: string) => {
-    navigate(`/child-portal/${childId}/tasks/result/${taskId}`);
-  };
-
   const handleViewAttempts = (taskId: string, fromOverdueCard?: boolean) => {
     // Check if this is a virtual task ID (format: template_id_YYYY-MM-DD)
     const isVirtualId = taskId.includes('_') && taskId.split('_').length >= 2;
@@ -621,11 +617,6 @@ export default function ChildTasksPage() {
                                 )
                             : undefined
                         }
-                        onViewResult={
-                          task.status === "completed" && !task.template_id
-                            ? () => handleViewResult(task._id)
-                            : undefined
-                        }
                         onViewAttempts={() => handleViewAttempts(task._id)}
                       />
                     );
@@ -830,11 +821,6 @@ export default function ChildTasksPage() {
                         onStart={
                           canStart ? () => handleStartTask(task._id) : undefined
                         }
-                        onViewResult={
-                          !task.template_id
-                            ? () => handleViewResult(task._id)
-                            : undefined
-                        }
                         onViewAttempts={() => handleViewAttempts(task._id)}
                         showScheduledDate={true}
                       />
@@ -930,11 +916,6 @@ export default function ChildTasksPage() {
                                 navigate(
                                   `/child-portal/${childId}/tasks/execute/${task._id}`
                                 )
-                            : undefined
-                        }
-                        onViewResult={
-                          task.status === "completed" && !task.template_id
-                            ? () => handleViewResult(task._id)
                             : undefined
                         }
                         onViewAttempts={() => handleViewAttempts(task._id)}

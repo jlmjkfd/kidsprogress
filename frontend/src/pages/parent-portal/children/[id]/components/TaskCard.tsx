@@ -322,7 +322,11 @@ export function TaskCard({
               } else {
                 // Standard tasks: show if completed (completion record saved with tool data)
                 // or has attachments from execution
-                if (task.status !== "completed" && (!task.attachments || task.attachments.length === 0)) {
+                // or has saved progress (in-progress attempt)
+                const hasCompletions = task.status === "completed";
+                const hasAttachments = task.attachments && task.attachments.length > 0;
+                const hasSavedProgress = task.progress_state && Object.keys(task.progress_state).length > 0;
+                if (!hasCompletions && !hasAttachments && !hasSavedProgress) {
                   return null;
                 }
               }

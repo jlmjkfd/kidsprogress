@@ -78,6 +78,18 @@ export interface TaskExecutorProps<TExecution = unknown, TCompletion = unknown> 
    * Host system will automatically mark task as completed.
    */
   setIsComplete: (completed: boolean) => void;
+
+  /**
+   * Save current progress without completing the task.
+   * Plugin should call this with partial data to enable resume later.
+   */
+  onSaveProgress?: (data: Partial<TCompletion>) => Promise<void>;
+
+  /**
+   * Previously saved progress data (if any).
+   * Plugin should initialize state from this when resuming.
+   */
+  savedProgress?: Partial<TCompletion>;
 }
 
 /**
