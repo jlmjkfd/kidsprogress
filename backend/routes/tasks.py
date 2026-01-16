@@ -142,16 +142,11 @@ async def get_overdue_tasks(
                 if scheduled_date and scheduled_date < today:
                     if must_do_only and t.get("obligation_level") != "must_do":
                         continue
-                    # Convert _id to string for Task model
+                    # Convert _id to string (for both real and virtual IDs)
                     if "_id" in t and not isinstance(t["_id"], str):
                         t["_id"] = str(t["_id"])
-                    try:
-                        overdue.append(Task(**t))
-                    except Exception as e:
-                        print(f"Error creating Task from dict: {e}")
-                        print(f"Task dict: {t}")
-                        # Skip invalid tasks instead of failing entire request
-                        continue
+                    # Return dict directly - Task model can't handle virtual IDs
+                    overdue.append(t)
 
             return overdue
         else:
