@@ -640,6 +640,13 @@
     "editing": "编辑中",
     "this_occurrence": "仅此次",
     "all_occurrences": "所有重复",
-    "title_cannot_change_hint": "标题无法为单次编辑修改。切换至\"所有重复\"以编辑标题。"
+    "title_cannot_change_hint": "标题无法为单次编辑修改。切换至\"所有重复\"以编辑标题。",
+    "improved_version": "改进版本",
+    "key_improvements": "关键改进",
+    "original": "原文",
+    "improved": "改进后",
+    "why": "原因",
+    "hide": "隐藏",
+    "show": "显示"
   }
 }

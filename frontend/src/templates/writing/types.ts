@@ -70,6 +70,34 @@ export interface WritingMeasuredData {
 }
 
 /**
+ * Improvement suggestion with examples
+ */
+export interface ImprovementSuggestion {
+  aspect: string;
+  suggestion: string;
+  example: string;
+  improved_example: string;
+}
+
+/**
+ * Key change in improved version
+ */
+export interface KeyChange {
+  original: string;
+  improved: string;
+  why: string;
+}
+
+/**
+ * Improved version of the writing
+ */
+export interface ImprovedVersion {
+  title: string;
+  content: string;
+  key_changes: KeyChange[];
+}
+
+/**
  * LLM Analysis data
  */
 export interface WritingLLMAnalysis {
@@ -77,19 +105,22 @@ export interface WritingLLMAnalysis {
   overall_score?: number;
   /** Brief feedback summary */
   feedback_summary?: string;
-  /** List of writing strengths */
+  /** List of writing strengths with examples */
   strengths?: string[];
-  /** Areas for improvement */
-  improvements?: string[];
+  /** Areas for improvement with concrete examples */
+  improvements?: (string | ImprovementSuggestion)[];
   /** Notable phrases or sentences */
   highlighted_phrases?: string[];
   /** Detailed scores */
   scores?: {
     grammar?: number;
+    vocabulary?: number;
     creativity?: number;
     structure?: number;
     relevance?: number;
   };
+  /** Improved version showing how the writing could be better */
+  improved_version?: ImprovedVersion;
 }
 
 /**

@@ -640,6 +640,13 @@
     "editing": "Editing",
     "this_occurrence": "This occurrence",
     "all_occurrences": "All occurrences",
-    "title_cannot_change_hint": "Title cannot be changed for single occurrence. Switch to 'All occurrences' to edit the title."
+    "title_cannot_change_hint": "Title cannot be changed for single occurrence. Switch to 'All occurrences' to edit the title.",
+    "improved_version": "Improved Version",
+    "key_improvements": "Key Improvements",
+    "original": "Original",
+    "improved": "Improved",
+    "why": "Why",
+    "hide": "Hide",
+    "show": "Show"
   }
 }

@@ -5,7 +5,10 @@ Provider selection is handled by the unified interface based on configuration.
 """
 from typing import Dict, Any, List, Optional
 import json
+from datetime import date
+from bson import ObjectId
 from backend.services.llm_interface import call_llm
+from backend.database import db
 
 
 async def evaluate_writing(
@@ -26,52 +29,109 @@ async def evaluate_writing(
         grade_level: Optional grade level for age-appropriate feedback
 
     Returns:
-        Dict with scores and feedback
+        Dict with scores, feedback, and improved version
     """
+    # Get child's age for age-appropriate feedback
+    child_age = None
+    try:
+        database = db.get_database()
+        children_collection = database["children"]
+        child = await children_collection.find_one({"_id": ObjectId(child_id)})
+        if child and "date_of_birth" in child:
+            dob = child["date_of_birth"]
+            today = date.today()
+            child_age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+    except Exception as e:
+        print(f"Error getting child age: {e}")
+
     prompt_text = "\n".join(prompts) if prompts else "Free writing"
 
-    system_prompt = """You are a friendly and encouraging English writing tutor for children.
-Your task is to evaluate a child's writing and provide constructive feedback.
+    # Build age context for prompt
+    age_context = f"This writing is by a {child_age}-year-old child." if child_age else "This is a child's writing."
 
-Always be positive and encouraging while providing helpful suggestions for improvement.
-Keep feedback age-appropriate and easy to understand.
+    system_prompt = f"""You are a friendly and encouraging English writing tutor for children.
+Your task is to evaluate a child's writing and provide detailed, actionable feedback with concrete examples.
+
+{age_context}
+
+Guidelines:
+1. Be positive and encouraging while providing specific, helpful suggestions
+2. Keep feedback age-appropriate and easy to understand
+3. Provide CONCRETE EXAMPLES for each improvement suggestion
+4. Create an improved version that shows what good writing looks like
+5. Explain specific improvements with before/after comparisons
 
 Respond in JSON format only with the following structure:
-{
+{{
     "overall_score": <number 1-10>,
-    "scores": {
+    "scores": {{
         "grammar": <number 1-10>,
         "vocabulary": <number 1-10>,
         "creativity": <number 1-10>,
         "structure": <number 1-10>,
         "relevance": <number 1-10>
-    },
-    "strengths": ["<strength 1>", "<strength 2>", ...],
-    "improvements": ["<suggestion 1>", "<suggestion 2>", ...],
+    }},
+    "strengths": ["<specific strength with example>", ...],
+    "improvements": [
+        {{
+            "aspect": "<what to improve>",
+            "suggestion": "<specific actionable suggestion>",
+            "example": "<concrete example from their writing>",
+            "improved_example": "<how to improve that specific example>"
+        }},
+        ...
+    ],
     "feedback_summary": "<2-3 sentences of encouraging overall feedback>",
-    "highlighted_phrases": ["<good phrase 1>", "<good phrase 2>", ...]
-}"""
+    "highlighted_phrases": ["<good phrase 1>", "<good phrase 2>", ...],
+    "improved_version": {{
+        "title": "<improved title if needed, or original>",
+        "content": "<rewritten content showing improvements while maintaining child's voice and ideas>",
+        "key_changes": [
+            {{
+                "original": "<original sentence/phrase>",
+                "improved": "<improved version>",
+                "why": "<explanation of why this is better>"
+            }},
+            ...
+        ]
+    }}
+}}
+
+IMPORTANT for improved_version:
+- Keep the child's original ideas and creativity intact
+- Maintain their voice and style
+- Only fix grammar, enhance vocabulary, and improve structure
+- Show 3-5 key changes with before/after comparisons
+- Make it educational - the child should learn from seeing the differences"""
 
     user_prompt = f"""Please evaluate the following writing:
 
-Writing Prompt: {prompt_text}
+**Writing Prompt Given:** {prompt_text}
 
-Title: {title}
+**Title:** {title}
 
-Content:
+**Content:**
 {content}
 
-Provide your evaluation in JSON format."""
+**Instructions:**
+1. Evaluate the writing using the scoring criteria
+2. Identify specific strengths with examples from the text
+3. Provide 3-5 improvement suggestions with concrete examples
+4. Create an improved version that demonstrates better writing
+5. Explain key changes between original and improved version
+
+Provide your complete evaluation in JSON format."""
 
     try:
         # Call unified LLM interface (returns parsed JSON)
+        # Increased max_tokens to 3000 to accommodate improved version
         evaluation = await call_llm(
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
             temperature=0.3,  # More consistent evaluations
-            max_tokens=1000,
+            max_tokens=3000,  # Increased for improved version with examples
             service="content_creation",
             feature="writing_evaluation",
             child_id=child_id,
@@ -94,6 +154,19 @@ Provide your evaluation in JSON format."""
         evaluation.setdefault("improvements", [])
         evaluation.setdefault("feedback_summary", "Good effort! Keep writing!")
         evaluation.setdefault("highlighted_phrases", [])
+
+        # Validate improved_version structure
+        if "improved_version" not in evaluation:
+            evaluation["improved_version"] = {
+                "title": title,
+                "content": content,
+                "key_changes": []
+            }
+        else:
+            # Ensure all fields exist
+            evaluation["improved_version"].setdefault("title", title)
+            evaluation["improved_version"].setdefault("content", content)
+            evaluation["improved_version"].setdefault("key_changes", [])
 
         return evaluation
 
