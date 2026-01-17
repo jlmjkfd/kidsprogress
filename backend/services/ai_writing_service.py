@@ -8,7 +8,7 @@ import json
 from datetime import date
 from bson import ObjectId
 from backend.services.llm_interface import call_llm
-from backend.database import db
+from backend.dependencies.database import get_db
 
 
 async def evaluate_writing(
@@ -34,8 +34,8 @@ async def evaluate_writing(
     # Get child's age for age-appropriate feedback
     child_age = None
     try:
-        database = db.get_database()
-        children_collection = database["children"]
+        db = await get_db()
+        children_collection = db["children"]
         child = await children_collection.find_one({"_id": ObjectId(child_id)})
         if child and "date_of_birth" in child:
             dob = child["date_of_birth"]
