@@ -3,6 +3,7 @@
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from typing import Optional
 import os
+import certifi
 from dotenv import load_dotenv
 from pathlib import Path
 
@@ -21,7 +22,18 @@ class Database:
         mongo_uri = os.getenv("MONGO_URI", "mongodb://localhost:27017")
         db_name = os.getenv("DB_NAME", "kidsprogress")
 
-        cls.client = AsyncIOMotorClient(mongo_uri)
+        # Configure SSL/TLS for MongoDB Atlas or other cloud providers
+        # This is required for Python 3.13+ with stricter SSL requirements
+        connection_kwargs = {}
+
+        # If using MongoDB Atlas (connection string contains mongodb.net or mongodb+srv)
+        if "mongodb.net" in mongo_uri or "mongodb+srv" in mongo_uri:
+            connection_kwargs["tls"] = True
+            connection_kwargs["tlsAllowInvalidCertificates"] = False
+            # Use certifi CA bundle for proper SSL certificate verification
+            connection_kwargs["tlsCAFile"] = certifi.where()
+
+        cls.client = AsyncIOMotorClient(mongo_uri, **connection_kwargs)
         cls.database = cls.client[db_name]
 
         # Test connection
