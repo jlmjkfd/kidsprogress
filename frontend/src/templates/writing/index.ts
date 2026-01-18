@@ -59,8 +59,8 @@ const configSchema = {
 /**
  * Default configuration values
  */
-const defaultConfig = {
-  content_type: 'writing',
+const defaultConfig: WritingConfig = {
+  content_type: 'writing' as const,
   prompts: [],
   min_length: 50,
   max_length: 2000,

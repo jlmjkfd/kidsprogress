@@ -161,7 +161,6 @@ export function isWritingLLMAnalysis(
   data: unknown
 ): data is WritingLLMAnalysis {
   if (typeof data !== 'object' || data === null) return false;
-  const d = data as Record<string, unknown>;
   // LLM analysis is optional, so we just check it's an object if present
   return true;
 }

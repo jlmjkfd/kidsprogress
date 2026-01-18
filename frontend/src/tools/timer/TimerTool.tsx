@@ -13,7 +13,7 @@ interface TimerState {
   startedAt?: string;
 }
 
-export default function TimerTool({ state, onChange, isActive }: ToolProps) {
+export default function TimerTool({ state, onChange }: ToolProps) {
   const { t } = useTranslation(['common']);
   const timerState = state as TimerState;
 
