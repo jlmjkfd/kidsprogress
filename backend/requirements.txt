@@ -7,8 +7,10 @@ pydantic-settings==2.7.0
 email-validator==2.1.1  # Required by pydantic for EmailStr validation
 
 # Database (Motor for async MongoDB)
+# Updated versions for better Python 3.13 compatibility
+pymongo==4.10.1  # Explicit version with Python 3.13 support
 motor==3.7.0
-certifi==2024.12.14  # SSL certificates for MongoDB Atlas on Python 3.13+
+certifi==2024.12.14  # SSL certificates for MongoDB Atlas
 
 # Authentication
 python-jose[cryptography]==3.3.0

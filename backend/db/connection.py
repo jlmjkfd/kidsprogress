@@ -23,15 +23,26 @@ class Database:
         db_name = os.getenv("DB_NAME", "kidsprogress")
 
         # Configure SSL/TLS for MongoDB Atlas or other cloud providers
-        # This is required for Python 3.13+ with stricter SSL requirements
-        connection_kwargs = {}
+        # Python 3.13 has stricter SSL requirements, need special handling
+        connection_kwargs = {
+            "serverSelectionTimeoutMS": 5000,  # Fail faster for debugging
+        }
 
         # If using MongoDB Atlas (connection string contains mongodb.net or mongodb+srv)
         if "mongodb.net" in mongo_uri or "mongodb+srv" in mongo_uri:
+            # For Python 3.13 with OpenSSL 3.x compatibility issues
+            # We need to allow TLSv1.2 explicitly
+            import ssl
+            ssl_context = ssl.create_default_context(cafile=certifi.where())
+            ssl_context.check_hostname = True
+            ssl_context.verify_mode = ssl.CERT_REQUIRED
+            # Allow TLSv1.2 for compatibility with some MongoDB Atlas configurations
+            ssl_context.minimum_version = ssl.TLSVersion.TLSv1_2
+
             connection_kwargs["tls"] = True
-            connection_kwargs["tlsAllowInvalidCertificates"] = False
-            # Use certifi CA bundle for proper SSL certificate verification
             connection_kwargs["tlsCAFile"] = certifi.where()
+            # Pass the SSL context instead of individual parameters
+            connection_kwargs["ssl_context"] = ssl_context
 
         cls.client = AsyncIOMotorClient(mongo_uri, **connection_kwargs)
         cls.database = cls.client[db_name]
