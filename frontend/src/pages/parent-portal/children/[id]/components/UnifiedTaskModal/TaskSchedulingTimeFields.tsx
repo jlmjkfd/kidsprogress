@@ -3,7 +3,7 @@
  */
 import { useTranslation } from "react-i18next";
 import { IconClock } from "@tabler/icons-react";
-import { SchedulingType } from "@/types/task";
+import { SchedulingType, DeadlineType } from "@/types/task";
 import type { TimeFieldsData } from "./SchedulingSection";
 
 interface TaskSchedulingTimeFieldsProps {

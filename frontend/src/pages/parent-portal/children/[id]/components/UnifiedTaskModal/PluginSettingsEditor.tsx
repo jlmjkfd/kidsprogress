@@ -34,14 +34,14 @@ export function PluginSettingsEditor({
 
   // Merge config with default values
   const mergedConfig = {
-    ...plugin.defaultConfig,
+    ...(plugin.defaultConfig as Record<string, any>),
     ...template.execution_config,
     ...config,
   };
 
   return (
     <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-      <SettingsEditor config={mergedConfig} onChange={onChange} />
+      <SettingsEditor config={mergedConfig as any} onChange={onChange as any} />
     </div>
   );
 }

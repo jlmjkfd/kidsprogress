@@ -38,10 +38,6 @@ export default function CreateTaskModal({
       child_id: childId,
       title: title.trim(),
       description: description.trim() || undefined,
-      metrics: [],
-      quality_aspects: [],
-      tools: [],
-      subtasks: [],
     };
 
     try {

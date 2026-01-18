@@ -26,7 +26,7 @@ interface TaskCardProps {
   task: Task;
   isOverdue: boolean;
   virtualIndex?: number; // The index in the flat virtual list (for scroll restoration)
-  scrollContainerRef?: React.RefObject<HTMLDivElement>; // Reference to scroll container for saving scroll position
+  scrollContainerRef?: React.RefObject<HTMLDivElement | null>; // Reference to scroll container for saving scroll position
   onComplete?: (task: Task) => void; // Parent complete with time modal
   onUncomplete?: (taskId: string) => void;
   onSkip?: (taskId: string) => void;

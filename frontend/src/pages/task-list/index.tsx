@@ -133,12 +133,6 @@ export default function TaskListPage() {
                       <p className="text-gray-600 text-sm mb-2">{task.description}</p>
                     )}
                     <div className="flex items-center gap-4 text-sm text-gray-500">
-                      {task.metrics && task.metrics.length > 0 && (
-                        <span className="flex items-center gap-1">
-                          <IconChecklist size={16} />
-                          {task.metrics.length} {t("tasks:metrics")}
-                        </span>
-                      )}
                       {task.subtasks && task.subtasks.length > 0 && (
                         <span>
                           {task.subtasks.filter((s) => s.completed).length}/

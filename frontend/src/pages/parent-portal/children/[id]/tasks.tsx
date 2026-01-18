@@ -245,19 +245,8 @@ export default function ChildTasksPage() {
     }
   };
 
-  const handleEditTemplate = async (templateId: string) => {
-    // Close the occurrence modal first
-    setEditingOccurrence(null);
-
-    // Find the template in the tasks list by _id
-    const template = tasks?.find(
-      (t) => t._id === templateId && t.is_recurring && !t.is_virtual
-    );
-
-    if (template) {
-      setEditingTask(template);
-    }
-  };
+  // handleEditTemplate is not used anymore - this functionality is now handled in handleTaskEdit
+  // Keeping this comment to document the removal
 
   const handleDayClick = (date: string, dayTasks: Task[]) => {
     // Filter out recurring templates (only show virtual instances)
