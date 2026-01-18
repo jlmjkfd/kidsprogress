@@ -1,4 +1,15 @@
 """FastAPI application entry point."""
+import sys
+from pathlib import Path
+
+# Add parent directory to Python path for imports to work both locally and on Render
+# Local: /path/to/kidsprogress/backend/main.py -> add /path/to/kidsprogress
+# Render: /opt/render/project/src/backend/main.py -> add /opt/render/project/src
+backend_dir = Path(__file__).parent
+project_root = backend_dir.parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
@@ -6,10 +17,9 @@ from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 import os
 from dotenv import load_dotenv
-from pathlib import Path
 
 # Load environment variables from backend/.env
-env_path = Path(__file__).parent / ".env"
+env_path = backend_dir / ".env"
 load_dotenv(env_path)
 
 from backend.db.connection import db
