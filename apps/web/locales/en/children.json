@@ -1,0 +1,14 @@
+{
+  "title": "Children",
+  "empty": "No children yet. Add your first one to get started.",
+  "add": "Add child",
+  "create_title": "Add a child",
+  "display_name": "Display name",
+  "birth_date": "Birth date (optional)",
+  "grade": "Grade (optional)",
+  "pin": "Child PIN (optional, 4–6 digits)",
+  "save": "Save",
+  "cancel": "Cancel",
+  "delete": "Delete",
+  "confirm_delete": "Delete this child? This cannot be undone."
+}

@@ -1,0 +1,14 @@
+{
+  "title": "孩子",
+  "empty": "还没有添加孩子。添加第一个开始使用。",
+  "add": "添加孩子",
+  "create_title": "添加一个孩子",
+  "display_name": "显示名称",
+  "birth_date": "出生日期（可选）",
+  "grade": "年级（可选）",
+  "pin": "孩子 PIN 码（可选，4–6 位数字）",
+  "save": "保存",
+  "cancel": "取消",
+  "delete": "删除",
+  "confirm_delete": "确认删除该孩子？此操作不可撤销。"
+}

@@ -17,6 +17,7 @@ import { errorHandlerPlugin } from './plugins/error-handler.js';
 import { registerHealthRoutes } from './modules/health/health.routes.js';
 import { authRoutes } from './modules/auth/auth.routes.js';
 import { childrenRoutes } from './modules/children/children.routes.js';
+import { devicesRoutes } from './modules/devices/devices.routes.js';
 
 export interface AppDeps {
   config: AppConfig;
@@ -59,6 +60,7 @@ export async function buildApp(deps: AppDeps) {
   await registerHealthRoutes(app, { db });
   await app.register(authRoutes, { db, config });
   await app.register(childrenRoutes, { db, config });
+  await app.register(devicesRoutes, { db, config });
 
   return app;
 }
