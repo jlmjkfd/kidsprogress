@@ -1,7 +1,9 @@
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { v7 as uuidv7 } from 'uuid';
 import {
+  completeTaskRequestSchema,
   createTaskRequestSchema,
+  skipTaskRequestSchema,
   taskListQuerySchema,
   taskParamsSchema,
   updateTaskRequestSchema,
@@ -13,6 +15,7 @@ import type {
   TaskRow,
 } from '@kidsprogress/db';
 import { createTasksRepo } from './tasks.repo.js';
+import { createTasksLifecycle, TaskLifecycleError } from './tasks.lifecycle.js';
 
 function toDto(row: TaskRow): Task {
   return {
@@ -38,6 +41,14 @@ function toDto(row: TaskRow): Task {
 
 export const tasksRoutes: FastifyPluginAsyncZod<{ db: Database_ }> = async function (app, opts) {
   const repo = createTasksRepo(opts.db);
+  const lifecycle = createTasksLifecycle(opts.db);
+
+  function mapLifecycleError(err: TaskLifecycleError): { status: number; body: unknown } {
+    if (err.code === 'NotFound') return { status: 404, body: { error: 'NotFound' } };
+    if (err.code === 'RecurringNeedsOccurrence')
+      return { status: 400, body: { error: 'RecurringNeedsOccurrence' } };
+    return { status: 409, body: { error: err.code } };
+  }
 
   // ── GET /api/tasks ─────────────────────────────────────────────────────
   app.get('/api/tasks', { schema: { querystring: taskListQuerySchema } }, async (request, reply) => {
@@ -136,6 +147,70 @@ export const tasksRoutes: FastifyPluginAsyncZod<{ db: Database_ }> = async funct
       const ok = await repo.delete(request.params.taskId, user.id);
       if (!ok) return reply.code(404).send({ error: 'NotFound' });
       return reply.code(204).send();
+    },
+  );
+
+  // ── POST /api/tasks/:taskId/start ──────────────────────────────────────
+  app.post(
+    '/api/tasks/:taskId/start',
+    { schema: { params: taskParamsSchema } },
+    async (request, reply) => {
+      const user = request.currentUser;
+      if (!user) return reply.code(401).send({ error: 'Unauthorized' });
+      try {
+        const updated = await lifecycle.start(request.params.taskId, user.id);
+        return toDto(updated);
+      } catch (err) {
+        if (err instanceof TaskLifecycleError) {
+          const { status, body } = mapLifecycleError(err);
+          return reply.code(status).send(body);
+        }
+        throw err;
+      }
+    },
+  );
+
+  // ── POST /api/tasks/:taskId/complete ───────────────────────────────────
+  app.post(
+    '/api/tasks/:taskId/complete',
+    { schema: { params: taskParamsSchema, body: completeTaskRequestSchema } },
+    async (request, reply) => {
+      const user = request.currentUser;
+      if (!user) return reply.code(401).send({ error: 'Unauthorized' });
+      try {
+        const { task: updated, completionId } = await lifecycle.complete(
+          request.params.taskId,
+          user.id,
+          request.body,
+        );
+        return { task: toDto(updated), completionId };
+      } catch (err) {
+        if (err instanceof TaskLifecycleError) {
+          const { status, body } = mapLifecycleError(err);
+          return reply.code(status).send(body);
+        }
+        throw err;
+      }
+    },
+  );
+
+  // ── POST /api/tasks/:taskId/skip ───────────────────────────────────────
+  app.post(
+    '/api/tasks/:taskId/skip',
+    { schema: { params: taskParamsSchema, body: skipTaskRequestSchema } },
+    async (request, reply) => {
+      const user = request.currentUser;
+      if (!user) return reply.code(401).send({ error: 'Unauthorized' });
+      try {
+        const updated = await lifecycle.skip(request.params.taskId, user.id, request.body);
+        return toDto(updated);
+      } catch (err) {
+        if (err instanceof TaskLifecycleError) {
+          const { status, body } = mapLifecycleError(err);
+          return reply.code(status).send(body);
+        }
+        throw err;
+      }
     },
   );
 };
