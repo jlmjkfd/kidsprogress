@@ -3,5 +3,7 @@ export * from './dto/auth.js';
 export * from './dto/health.js';
 export * from './dto/children.js';
 export * from './dto/devices.js';
+export * from './dto/tasks.js';
 export * from './domain/user.js';
 export * from './domain/child.js';
+export * from './domain/task.js';
