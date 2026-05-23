@@ -4,11 +4,15 @@ import {
   completeTaskRequestSchema,
   createTaskRequestSchema,
   skipTaskRequestSchema,
+  taskInstancesQuerySchema,
   taskListQuerySchema,
   taskParamsSchema,
   updateTaskRequestSchema,
   type Task,
 } from '@kidsprogress/shared';
+import { buildInstancesForChild } from './tasks.instances.js';
+import { and, eq } from 'drizzle-orm';
+import { children } from '@kidsprogress/db';
 import type {
   Database_,
   NewTaskRow,
@@ -49,6 +53,33 @@ export const tasksRoutes: FastifyPluginAsyncZod<{ db: Database_ }> = async funct
       return { status: 400, body: { error: 'RecurringNeedsOccurrence' } };
     return { status: 409, body: { error: err.code } };
   }
+
+  // ── GET /api/tasks/instances ───────────────────────────────────────────
+  // Returns virtual task instances (one-off + materialized recurring) for a
+  // child + date range. Used by both the parent week view and child portal.
+  app.get(
+    '/api/tasks/instances',
+    { schema: { querystring: taskInstancesQuerySchema } },
+    async (request, reply) => {
+      const user = request.currentUser;
+      if (!user) return reply.code(401).send({ error: 'Unauthorized' });
+      const { childId, fromDate, toDate } = request.query;
+
+      if (user.role === 'parent') {
+        const owns = await opts.db
+          .select({ id: children.id })
+          .from(children)
+          .where(and(eq(children.id, childId), eq(children.parentId, user.id)))
+          .limit(1);
+        if (owns.length === 0) return reply.code(404).send({ error: 'NotFound' });
+      } else if (user.id !== childId) {
+        return reply.code(404).send({ error: 'NotFound' });
+      }
+
+      const instances = await buildInstancesForChild(opts.db, childId, fromDate, toDate);
+      return { instances };
+    },
+  );
 
   // ── GET /api/tasks ─────────────────────────────────────────────────────
   app.get('/api/tasks', { schema: { querystring: taskListQuerySchema } }, async (request, reply) => {
