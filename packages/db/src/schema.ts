@@ -141,3 +141,173 @@ export const auditLogs = sqliteTable(
 );
 export type AuditLogRow = typeof auditLogs.$inferSelect;
 export type NewAuditLogRow = typeof auditLogs.$inferInsert;
+
+// ── task_collections ─────────────────────────────────────────────────────
+// Optional groupings for tasks (Math practice, Reading, Chores). Owned by a parent.
+export const taskCollections = sqliteTable(
+  'task_collections',
+  {
+    id: text('id').primaryKey(),
+    parentId: text('parent_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    color: text('color'),
+    position: integer('position').notNull().default(0),
+    createdAt: text('created_at')
+      .notNull()
+      .default(sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`),
+    updatedAt: text('updated_at')
+      .notNull()
+      .default(sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`),
+  },
+  (table) => ({
+    parentIdIdx: index('task_collections_parent_id_idx').on(table.parentId),
+  }),
+);
+export type TaskCollectionRow = typeof taskCollections.$inferSelect;
+export type NewTaskCollectionRow = typeof taskCollections.$inferInsert;
+
+// ── tasks ────────────────────────────────────────────────────────────────
+// A task is either:
+//   - A one-off scheduled task (is_recurring=false, scheduled_date set, status drives lifecycle)
+//   - A recurring template (is_recurring=true, recurrence_rule set, no status)
+// Recurring INSTANCES are materialized lazily ("virtual") for a given date
+// range; they reference the template via parent_task_id when persisted on
+// completion or override.
+export const tasks = sqliteTable(
+  'tasks',
+  {
+    id: text('id').primaryKey(),
+    parentId: text('parent_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    childId: text('child_id')
+      .notNull()
+      .references(() => children.id, { onDelete: 'cascade' }),
+    collectionId: text('collection_id').references(() => taskCollections.id, {
+      onDelete: 'set null',
+    }),
+
+    title: text('title').notNull(),
+    description: text('description'),
+    kind: text('kind', { enum: ['generic', 'addition-subtraction', 'writing'] })
+      .notNull()
+      .default('generic'),
+    // Kind-specific settings (JSON). Schema validation done at the route layer.
+    settings: text('settings', { mode: 'json' }).$type<Record<string, unknown> | null>(),
+
+    // For one-off tasks. ISO date (YYYY-MM-DD).
+    scheduledDate: text('scheduled_date'),
+    durationMinutes: integer('duration_minutes'),
+
+    // Recurrence: rrule-like JSON. When recurring, scheduledDate/status are unused
+    // and lifecycle moves to materialized completion rows.
+    isRecurring: integer('is_recurring', { mode: 'boolean' }).notNull().default(false),
+    recurrenceRule: text('recurrence_rule', { mode: 'json' }).$type<Record<string, unknown> | null>(),
+
+    // For materialized one-off tasks only.
+    status: text('status', {
+      enum: ['pending', 'in_progress', 'completed', 'skipped', 'abandoned'],
+    })
+      .notNull()
+      .default('pending'),
+    startedAt: text('started_at'),
+    completedAt: text('completed_at'),
+
+    createdAt: text('created_at')
+      .notNull()
+      .default(sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`),
+    updatedAt: text('updated_at')
+      .notNull()
+      .default(sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`),
+  },
+  (table) => ({
+    parentChildIdx: index('tasks_parent_child_idx').on(table.parentId, table.childId),
+    childScheduledIdx: index('tasks_child_scheduled_idx').on(table.childId, table.scheduledDate),
+    isRecurringIdx: index('tasks_is_recurring_idx').on(table.isRecurring),
+    collectionIdx: index('tasks_collection_idx').on(table.collectionId),
+  }),
+);
+export type TaskRow = typeof tasks.$inferSelect;
+export type NewTaskRow = typeof tasks.$inferInsert;
+
+// ── subtasks ─────────────────────────────────────────────────────────────
+export const subtasks = sqliteTable(
+  'subtasks',
+  {
+    id: text('id').primaryKey(),
+    taskId: text('task_id')
+      .notNull()
+      .references(() => tasks.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    position: integer('position').notNull().default(0),
+    isDone: integer('is_done', { mode: 'boolean' }).notNull().default(false),
+    createdAt: text('created_at')
+      .notNull()
+      .default(sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`),
+    updatedAt: text('updated_at')
+      .notNull()
+      .default(sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`),
+  },
+  (table) => ({
+    taskIdIdx: index('subtasks_task_id_idx').on(table.taskId),
+  }),
+);
+export type SubtaskRow = typeof subtasks.$inferSelect;
+export type NewSubtaskRow = typeof subtasks.$inferInsert;
+
+// ── completions ──────────────────────────────────────────────────────────
+// One row per completion event. For recurring tasks the templateTaskId is the
+// recurring task id and occurrenceDate is the date the instance was for.
+export const completions = sqliteTable(
+  'completions',
+  {
+    id: text('id').primaryKey(),
+    taskId: text('task_id')
+      .notNull()
+      .references(() => tasks.id, { onDelete: 'cascade' }),
+    childId: text('child_id')
+      .notNull()
+      .references(() => children.id, { onDelete: 'cascade' }),
+    occurrenceDate: text('occurrence_date'), // YYYY-MM-DD; for recurring instances
+    completedAt: text('completed_at')
+      .notNull()
+      .default(sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`),
+    durationMinutes: integer('duration_minutes'),
+    score: integer('score'),
+    attempts: integer('attempts').notNull().default(1),
+    notes: text('notes'),
+    meta: text('meta', { mode: 'json' }).$type<Record<string, unknown> | null>(),
+  },
+  (table) => ({
+    taskIdIdx: index('completions_task_id_idx').on(table.taskId),
+    childIdIdx: index('completions_child_id_idx').on(table.childId),
+    occurrenceIdx: index('completions_occurrence_idx').on(table.taskId, table.occurrenceDate),
+  }),
+);
+export type CompletionRow = typeof completions.$inferSelect;
+export type NewCompletionRow = typeof completions.$inferInsert;
+
+// ── recurrence_exceptions ────────────────────────────────────────────────
+// Skip a date or override fields for a single occurrence of a recurring task.
+export const recurrenceExceptions = sqliteTable(
+  'recurrence_exceptions',
+  {
+    id: text('id').primaryKey(),
+    taskId: text('task_id')
+      .notNull()
+      .references(() => tasks.id, { onDelete: 'cascade' }),
+    occurrenceDate: text('occurrence_date').notNull(),
+    action: text('action', { enum: ['skip', 'override'] }).notNull(),
+    overrides: text('overrides', { mode: 'json' }).$type<Record<string, unknown> | null>(),
+    createdAt: text('created_at')
+      .notNull()
+      .default(sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`),
+  },
+  (table) => ({
+    taskDateIdx: index('recurrence_exceptions_task_date_idx').on(table.taskId, table.occurrenceDate),
+  }),
+);
+export type RecurrenceExceptionRow = typeof recurrenceExceptions.$inferSelect;
+export type NewRecurrenceExceptionRow = typeof recurrenceExceptions.$inferInsert;
