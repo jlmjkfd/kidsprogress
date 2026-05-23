@@ -3,6 +3,7 @@ import { LoginPage } from '@/features/auth/pages/LoginPage';
 import { RegisterPage } from '@/features/auth/pages/RegisterPage';
 import { RequireAuth } from '@/features/auth/RequireAuth';
 import { ChildrenPage } from '@/features/children/pages/ChildrenPage';
+import { TasksPage } from '@/features/tasks/pages/TasksPage';
 import { ParentLayout } from './layouts/ParentLayout';
 
 export function AppRouter() {
@@ -17,6 +18,16 @@ export function AppRouter() {
             <RequireAuth>
               <ParentLayout>
                 <ChildrenPage />
+              </ParentLayout>
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/tasks"
+          element={
+            <RequireAuth>
+              <ParentLayout>
+                <TasksPage />
               </ParentLayout>
             </RequireAuth>
           }

@@ -1,0 +1,43 @@
+{
+  "title": "Tasks",
+  "empty": "No tasks yet. Add one to get started.",
+  "add": "Add task",
+  "create_title": "Add a task",
+  "task_title": "Title",
+  "description": "Description",
+  "child": "Child",
+  "scheduled_date": "Scheduled date",
+  "duration_minutes": "Duration (minutes)",
+  "recurring": "Recurring",
+  "frequency": "Frequency",
+  "freq_daily": "Daily",
+  "freq_weekly": "Weekly",
+  "freq_monthly": "Monthly",
+  "interval": "Interval",
+  "by_weekday": "Days of week",
+  "weekdays": {
+    "MO": "Mon",
+    "TU": "Tue",
+    "WE": "Wed",
+    "TH": "Thu",
+    "FR": "Fri",
+    "SA": "Sat",
+    "SU": "Sun"
+  },
+  "save": "Save",
+  "cancel": "Cancel",
+  "delete": "Delete",
+  "confirm_delete": "Delete this task?",
+  "start": "Start",
+  "complete": "Complete",
+  "skip": "Skip",
+  "status": {
+    "pending": "Pending",
+    "in_progress": "In progress",
+    "completed": "Completed",
+    "skipped": "Skipped",
+    "abandoned": "Abandoned"
+  },
+  "no_child_selected": "Select a child first.",
+  "no_children_yet": "Add a child before creating tasks."
+}

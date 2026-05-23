@@ -1,0 +1,43 @@
+{
+  "title": "任务",
+  "empty": "还没有任务。添加第一个开始使用。",
+  "add": "添加任务",
+  "create_title": "添加任务",
+  "task_title": "标题",
+  "description": "描述",
+  "child": "孩子",
+  "scheduled_date": "计划日期",
+  "duration_minutes": "时长（分钟）",
+  "recurring": "重复",
+  "frequency": "频率",
+  "freq_daily": "每天",
+  "freq_weekly": "每周",
+  "freq_monthly": "每月",
+  "interval": "间隔",
+  "by_weekday": "重复星期",
+  "weekdays": {
+    "MO": "一",
+    "TU": "二",
+    "WE": "三",
+    "TH": "四",
+    "FR": "五",
+    "SA": "六",
+    "SU": "日"
+  },
+  "save": "保存",
+  "cancel": "取消",
+  "delete": "删除",
+  "confirm_delete": "确认删除该任务？",
+  "start": "开始",
+  "complete": "完成",
+  "skip": "跳过",
+  "status": {
+    "pending": "待处理",
+    "in_progress": "进行中",
+    "completed": "已完成",
+    "skipped": "已跳过",
+    "abandoned": "已放弃"
+  },
+  "no_child_selected": "请先选择孩子。",
+  "no_children_yet": "请先添加孩子再创建任务。"
+}

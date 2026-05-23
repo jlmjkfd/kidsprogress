@@ -13,4 +13,15 @@ export const queryKeys = {
   devices: {
     list: () => ['devices', 'list'] as const,
   },
+  tasks: {
+    all: () => ['tasks'] as const,
+    listByChild: (childId: string) => ['tasks', 'child', childId] as const,
+    byId: (id: string) => ['tasks', 'byId', id] as const,
+    instances: (childId: string, fromDate: string, toDate: string) =>
+      ['tasks', 'instances', childId, fromDate, toDate] as const,
+  },
+  completions: {
+    list: () => ['completions', 'list'] as const,
+    byChild: (childId: string) => ['completions', 'child', childId] as const,
+  },
 };

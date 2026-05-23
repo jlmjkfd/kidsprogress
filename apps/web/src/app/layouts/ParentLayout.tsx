@@ -33,6 +33,14 @@ export function ParentLayout({ children }: { children: ReactNode }) {
             >
               {t('children:title', { defaultValue: 'Children' })}
             </Link>
+            <Link
+              to="/tasks"
+              className={`min-h-[44px] inline-flex items-center px-2 text-sm ${
+                location.pathname === '/tasks' ? 'font-medium text-slate-900' : 'text-slate-600'
+              }`}
+            >
+              {t('tasks:title', { defaultValue: 'Tasks' })}
+            </Link>
             <span className="hidden text-sm text-slate-500 sm:inline">
               {me.data?.displayName}
             </span>
