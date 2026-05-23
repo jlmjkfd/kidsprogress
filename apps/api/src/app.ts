@@ -2,6 +2,7 @@ import Fastify from 'fastify';
 import fastifyCookie from '@fastify/cookie';
 import fastifyCors from '@fastify/cors';
 import fastifyHelmet from '@fastify/helmet';
+import fastifyMultipart from '@fastify/multipart';
 import fastifyRateLimit from '@fastify/rate-limit';
 import fastifySensible from '@fastify/sensible';
 import {
@@ -23,6 +24,7 @@ import { completionsRoutes } from './modules/completions/completions.routes.js';
 import { subtasksRoutes } from './modules/subtasks/subtasks.routes.js';
 import { collectionsRoutes } from './modules/collections/collections.routes.js';
 import { sessionsRoutes } from './modules/sessions/sessions.routes.js';
+import { attachmentsRoutes } from './modules/attachments/attachments.routes.js';
 
 export interface AppDeps {
   config: AppConfig;
@@ -60,6 +62,9 @@ export async function buildApp(deps: AppDeps) {
     timeWindow: '1 minute',
   });
   await app.register(fastifyCookie);
+  await app.register(fastifyMultipart, {
+    limits: { fileSize: config.UPLOAD_MAX_BYTES, files: 1 },
+  });
   await app.register(authPlugin, { config });
 
   await registerHealthRoutes(app, { db });
@@ -71,6 +76,7 @@ export async function buildApp(deps: AppDeps) {
   await app.register(subtasksRoutes, { db });
   await app.register(collectionsRoutes, { db });
   await app.register(sessionsRoutes, { db });
+  await app.register(attachmentsRoutes, { db, config });
 
   return app;
 }
