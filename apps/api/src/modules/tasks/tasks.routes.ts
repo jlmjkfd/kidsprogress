@@ -1,0 +1,141 @@
+import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
+import { v7 as uuidv7 } from 'uuid';
+import {
+  createTaskRequestSchema,
+  taskListQuerySchema,
+  taskParamsSchema,
+  updateTaskRequestSchema,
+  type Task,
+} from '@kidsprogress/shared';
+import type {
+  Database_,
+  NewTaskRow,
+  TaskRow,
+} from '@kidsprogress/db';
+import { createTasksRepo } from './tasks.repo.js';
+
+function toDto(row: TaskRow): Task {
+  return {
+    id: row.id,
+    parentId: row.parentId,
+    childId: row.childId,
+    collectionId: row.collectionId,
+    title: row.title,
+    description: row.description,
+    kind: row.kind,
+    settings: row.settings,
+    scheduledDate: row.scheduledDate,
+    durationMinutes: row.durationMinutes,
+    isRecurring: row.isRecurring,
+    recurrenceRule: (row.recurrenceRule as Task['recurrenceRule']) ?? null,
+    status: row.status,
+    startedAt: row.startedAt,
+    completedAt: row.completedAt,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  };
+}
+
+export const tasksRoutes: FastifyPluginAsyncZod<{ db: Database_ }> = async function (app, opts) {
+  const repo = createTasksRepo(opts.db);
+
+  // ── GET /api/tasks ─────────────────────────────────────────────────────
+  app.get('/api/tasks', { schema: { querystring: taskListQuerySchema } }, async (request, reply) => {
+    const user = request.currentUser;
+    if (!user) return reply.code(401).send({ error: 'Unauthorized' });
+
+    if (user.role === 'parent') {
+      const rows = await repo.listForParent(user.id, request.query);
+      return { tasks: rows.map(toDto) };
+    }
+    // Child role: ignore parent-scoped filters; only the child's own tasks.
+    const rows = await repo.listForChild(user.id, request.query);
+    return { tasks: rows.map(toDto) };
+  });
+
+  // ── POST /api/tasks (parent only) ──────────────────────────────────────
+  app.post(
+    '/api/tasks',
+    { schema: { body: createTaskRequestSchema } },
+    async (request, reply) => {
+      const user = request.currentUser;
+      if (!user || user.role !== 'parent') return reply.code(401).send({ error: 'Unauthorized' });
+
+      const body = request.body;
+      const owns = await repo.parentOwnsChild(user.id, body.childId);
+      if (!owns) return reply.code(404).send({ error: 'ChildNotFound' });
+
+      const row: NewTaskRow = {
+        id: uuidv7(),
+        parentId: user.id,
+        childId: body.childId,
+        title: body.title,
+        description: body.description ?? null,
+        kind: body.kind,
+        settings: body.settings ?? null,
+        collectionId: body.collectionId ?? null,
+        durationMinutes: body.durationMinutes ?? null,
+        scheduledDate: body.scheduledDate ?? null,
+        isRecurring: body.isRecurring,
+        recurrenceRule: body.recurrenceRule ?? null,
+        status: 'pending',
+      };
+      const inserted = await repo.insert(row);
+      return reply.code(201).send(toDto(inserted));
+    },
+  );
+
+  // ── GET /api/tasks/:taskId ─────────────────────────────────────────────
+  app.get(
+    '/api/tasks/:taskId',
+    { schema: { params: taskParamsSchema } },
+    async (request, reply) => {
+      const user = request.currentUser;
+      if (!user) return reply.code(401).send({ error: 'Unauthorized' });
+
+      const row =
+        user.role === 'parent'
+          ? await repo.findByIdForParent(request.params.taskId, user.id)
+          : await repo.findByIdForChild(request.params.taskId, user.id);
+      if (!row) return reply.code(404).send({ error: 'NotFound' });
+      return toDto(row);
+    },
+  );
+
+  // ── PATCH /api/tasks/:taskId (parent only) ─────────────────────────────
+  app.patch(
+    '/api/tasks/:taskId',
+    { schema: { params: taskParamsSchema, body: updateTaskRequestSchema } },
+    async (request, reply) => {
+      const user = request.currentUser;
+      if (!user || user.role !== 'parent') return reply.code(401).send({ error: 'Unauthorized' });
+
+      const body = request.body;
+      const patch: Partial<NewTaskRow> = {};
+      if (body.title !== undefined) patch.title = body.title;
+      if (body.description !== undefined) patch.description = body.description;
+      if (body.settings !== undefined) patch.settings = body.settings;
+      if (body.collectionId !== undefined) patch.collectionId = body.collectionId;
+      if (body.durationMinutes !== undefined) patch.durationMinutes = body.durationMinutes;
+      if (body.scheduledDate !== undefined) patch.scheduledDate = body.scheduledDate;
+      if (body.recurrenceRule !== undefined) patch.recurrenceRule = body.recurrenceRule;
+
+      const updated = await repo.update(request.params.taskId, user.id, patch);
+      if (!updated) return reply.code(404).send({ error: 'NotFound' });
+      return toDto(updated);
+    },
+  );
+
+  // ── DELETE /api/tasks/:taskId (parent only) ────────────────────────────
+  app.delete(
+    '/api/tasks/:taskId',
+    { schema: { params: taskParamsSchema } },
+    async (request, reply) => {
+      const user = request.currentUser;
+      if (!user || user.role !== 'parent') return reply.code(401).send({ error: 'Unauthorized' });
+      const ok = await repo.delete(request.params.taskId, user.id);
+      if (!ok) return reply.code(404).send({ error: 'NotFound' });
+      return reply.code(204).send();
+    },
+  );
+};

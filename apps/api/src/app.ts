@@ -18,6 +18,7 @@ import { registerHealthRoutes } from './modules/health/health.routes.js';
 import { authRoutes } from './modules/auth/auth.routes.js';
 import { childrenRoutes } from './modules/children/children.routes.js';
 import { devicesRoutes } from './modules/devices/devices.routes.js';
+import { tasksRoutes } from './modules/tasks/tasks.routes.js';
 
 export interface AppDeps {
   config: AppConfig;
@@ -61,6 +62,7 @@ export async function buildApp(deps: AppDeps) {
   await app.register(authRoutes, { db, config });
   await app.register(childrenRoutes, { db, config });
   await app.register(devicesRoutes, { db, config });
+  await app.register(tasksRoutes, { db });
 
   return app;
 }
