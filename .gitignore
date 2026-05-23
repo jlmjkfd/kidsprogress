@@ -1,38 +1,41 @@
-# Environment Variables
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+dist-ssr/
+build/
+out/
+*.tsbuildinfo
+.turbo/
+.next/
+.cache/
+.parcel-cache/
+
+# Test / coverage
+coverage/
+playwright-report/
+test-results/
+htmlcov/
+*.lcov
+.pytest_cache/
+
+# Environment & secrets
 .env
 .env.local
 .env.*.local
-*.env
 
-# Python
-.venv/
-venv/
-env/
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-*.egg-info/
-dist/
-build/
-pip-log.txt
-pip-delete-this-directory.txt
-.pytest_cache/
-.coverage
-htmlcov/
-*.cover
-
-# Node / Frontend
-node_modules/
-dist/
-dist-ssr/
-*.local
-.cache/
-.parcel-cache/
-.next/
-out/
-build/
+# Local DB files & user uploads
+data/
+uploads/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.db
+*.db-shm
+*.db-wal
+*.db-journal
 
 # Logs
 logs/
@@ -41,46 +44,35 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
-lerna-debug.log*
 
-# OS Files
+# Editor / OS
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
 .DS_Store
 Thumbs.db
 *.swp
 *.swo
 *~
 
-# IDEs
-.vscode/*
-!.vscode/extensions.json
-!.vscode/settings.json
-.idea/
-*.sublime-project
-*.sublime-workspace
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
+# Python (legacy/ keeps refs; ignore artifacts)
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+venv/
+.coverage
 
-# Database
-*.db
-*.sqlite
-*.sqlite3
-data/
-
-# Temporary Files
-temp/
-tmp/
+# Backup / temp / scratch
+*.bak
+*.backup
 *.tmp
 .temp/
 
-# others
-docs/features/**/context.md  # Don't track feature context files
+# Local secrets that lived at root in v1 — keep ignored
+config.ini
+
 *.md
 !/README.md
-!docs/api-registry.md  # Track API registry
-config.ini
-.*/
-*.backup
-*.sh
-*.bak

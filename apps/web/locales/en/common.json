@@ -1,0 +1,11 @@
+{
+  "app_title": "KidsProgress",
+  "phase0_placeholder": "v2 scaffold — Phase 0",
+  "api_status": "API status",
+  "loading": "Loading…",
+  "api_unreachable": "API unreachable",
+  "status": "Status",
+  "db": "Database",
+  "version": "Version",
+  "uptime_seconds": "Uptime (s)"
+}

@@ -1,0 +1,29 @@
+{
+  "name": "kidsprogress",
+  "version": "2.0.0-alpha.0",
+  "private": true,
+  "description": "KidsProgress v2 — children's progress tracker",
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "packageManager": "pnpm@9.1.2",
+  "scripts": {
+    "build": "pnpm -r run build",
+    "dev": "pnpm -r --parallel run dev",
+    "typecheck": "pnpm -r run typecheck",
+    "lint": "pnpm -r run lint",
+    "test": "pnpm -r run test",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md,css}\" --ignore-path .gitignore",
+    "db:generate": "pnpm --filter @kidsprogress/db run generate",
+    "db:migrate": "pnpm --filter @kidsprogress/db run migrate",
+    "db:seed": "pnpm --filter @kidsprogress/db run seed",
+    "api:dev": "pnpm --filter @kidsprogress/api run dev",
+    "web:dev": "pnpm --filter @kidsprogress/web run dev"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.3"
+  }
+}

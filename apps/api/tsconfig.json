@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "types": ["node"],
+    // Fastify v5 + pino instance typings conflict with exactOptionalPropertyTypes
+    // (Logger.msgPrefix required vs FastifyBaseLogger.msgPrefix optional).
+    // Disabled here only — every other workspace keeps it on.
+    "exactOptionalPropertyTypes": false
+  },
+  "include": ["src/**/*", "tests/**/*", "vitest.config.ts"]
+}

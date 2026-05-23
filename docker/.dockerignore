@@ -1,0 +1,29 @@
+**/node_modules
+**/dist
+**/build
+**/.turbo
+**/coverage
+**/playwright-report
+**/test-results
+**/.next
+
+# Always exclude legacy from the image
+legacy/
+
+# Local data
+data/
+uploads/
+*.sqlite*
+*.db*
+
+# Logs / env / scratch
+.env
+.env.*
+!.env.example
+*.log
+.git/
+.github/
+.vscode/
+.idea/
+*.bak
+*.backup

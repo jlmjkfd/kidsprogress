@@ -1,0 +1,35 @@
+# Synology Container Manager production overrides.
+#
+# Use with:
+#   docker compose -f docker-compose.yml -f docker-compose.synology.yml up -d
+#
+# Path on the NAS volume is the canonical one most Synology users have:
+# /volume1/docker/kidsprogress/data — adjust for your unit.
+
+services:
+  api:
+    image: ghcr.io/your-org/kidsprogress:latest  # set after first `docker push`
+    pull_policy: always
+    environment:
+      NODE_ENV: production
+      LOG_LEVEL: info
+      # SECRETS — load via a .env file next to the compose file, NOT committed:
+      # JWT_SECRET=...
+      # GEMINI_API_KEY=...
+      # CORS_ORIGINS=https://kidsprogress.yourdomain.com
+    volumes:
+      - /volume1/docker/kidsprogress/data:/data
+    ports:
+      - "127.0.0.1:8000:8000"  # NAS reverse proxy fronts this with TLS
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"

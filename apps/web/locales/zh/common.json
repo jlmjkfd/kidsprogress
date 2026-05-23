@@ -1,0 +1,11 @@
+{
+  "app_title": "KidsProgress",
+  "phase0_placeholder": "v2 脚手架 — 阶段 0",
+  "api_status": "API 状态",
+  "loading": "加载中…",
+  "api_unreachable": "API 不可达",
+  "status": "状态",
+  "db": "数据库",
+  "version": "版本",
+  "uptime_seconds": "运行时长（秒）"
+}
