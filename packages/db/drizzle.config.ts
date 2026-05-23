@@ -6,7 +6,7 @@ const config = (() => {
   if (driver === 'sqlite') {
     return defineConfig({
       dialect: 'sqlite',
-      schema: './src/schema/index.ts',
+      schema: './src/schema.ts',
       out: './src/migrations',
       dbCredentials: {
         url: process.env.SQLITE_PATH ?? './data/kidsprogress.sqlite',
@@ -16,7 +16,7 @@ const config = (() => {
   if (driver === 'postgres') {
     return defineConfig({
       dialect: 'postgresql',
-      schema: './src/schema/index.ts',
+      schema: './src/schema.ts',
       out: './src/migrations',
       dbCredentials: {
         url: process.env.DATABASE_URL ?? '',
@@ -26,7 +26,7 @@ const config = (() => {
   if (driver === 'turso') {
     return defineConfig({
       dialect: 'turso',
-      schema: './src/schema/index.ts',
+      schema: './src/schema.ts',
       out: './src/migrations',
       dbCredentials: {
         url: process.env.TURSO_DATABASE_URL ?? '',

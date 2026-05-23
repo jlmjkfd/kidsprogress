@@ -34,3 +34,26 @@ export const authTokensSchema = z.object({
   expiresAt: z.string().datetime(),
 });
 export type AuthTokens = z.infer<typeof authTokensSchema>;
+
+export const meResponseSchema = z.object({
+  id: z.string().uuid(),
+  email: z.string().email(),
+  displayName: z.string(),
+  role: z.enum(['parent', 'child']),
+  hasPin: z.boolean(),
+});
+export type MeResponse = z.infer<typeof meResponseSchema>;
+
+export const refreshResponseSchema = authTokensSchema;
+export type RefreshResponse = z.infer<typeof refreshResponseSchema>;
+
+export const loginResponseSchema = z.object({
+  user: meResponseSchema,
+  tokens: authTokensSchema,
+});
+export type LoginResponse = z.infer<typeof loginResponseSchema>;
+
+export const setPinRequestSchema = z.object({
+  pin: pinSchema,
+});
+export type SetPinRequest = z.infer<typeof setPinRequestSchema>;

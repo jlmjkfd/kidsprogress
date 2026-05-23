@@ -1,4 +1,5 @@
 import Fastify from 'fastify';
+import fastifyCookie from '@fastify/cookie';
 import fastifyCors from '@fastify/cors';
 import fastifyHelmet from '@fastify/helmet';
 import fastifyRateLimit from '@fastify/rate-limit';
@@ -14,6 +15,8 @@ import { getLoggerOptions } from './lib/logger.js';
 import { authPlugin } from './plugins/auth.js';
 import { errorHandlerPlugin } from './plugins/error-handler.js';
 import { registerHealthRoutes } from './modules/health/health.routes.js';
+import { authRoutes } from './modules/auth/auth.routes.js';
+import { childrenRoutes } from './modules/children/children.routes.js';
 
 export interface AppDeps {
   config: AppConfig;
@@ -50,9 +53,12 @@ export async function buildApp(deps: AppDeps) {
     max: 200,
     timeWindow: '1 minute',
   });
+  await app.register(fastifyCookie);
   await app.register(authPlugin, { config });
 
   await registerHealthRoutes(app, { db });
+  await app.register(authRoutes, { db, config });
+  await app.register(childrenRoutes, { db, config });
 
   return app;
 }

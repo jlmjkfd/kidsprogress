@@ -1,10 +1,21 @@
 import Database from 'better-sqlite3';
 import { drizzle as drizzleSqlite } from 'drizzle-orm/better-sqlite3';
 import { mkdirSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
-import * as schema from './schema/index.js';
+import { dirname, isAbsolute } from 'node:path';
+import * as schema from './schema.js';
+import { resolveFromRepoRoot } from './paths.js';
 
 export type Database_ = ReturnType<typeof createDb>;
+
+/**
+ * Resolve a SQLite path consistently regardless of cwd. Relative paths are
+ * resolved against the repo root (NOT the script's cwd) so `pnpm db:migrate`
+ * and `pnpm api:dev` both find the same DB file.
+ */
+function resolveSqlitePath(raw: string): string {
+  if (raw === ':memory:') return raw;
+  return isAbsolute(raw) ? raw : resolveFromRepoRoot(raw);
+}
 
 /**
  * Create the Drizzle DB client. Driver is selected by env so the same code
@@ -17,9 +28,8 @@ export function createDb() {
   const driver = process.env.DB_DRIVER ?? 'sqlite';
 
   if (driver === 'sqlite') {
-    const raw = process.env.SQLITE_PATH ?? './data/kidsprogress.sqlite';
-    const isInMemory = raw === ':memory:';
-    const path = isInMemory ? ':memory:' : resolve(raw);
+    const path = resolveSqlitePath(process.env.SQLITE_PATH ?? './data/kidsprogress.sqlite');
+    const isInMemory = path === ':memory:';
     if (!isInMemory) {
       mkdirSync(dirname(path), { recursive: true });
     }

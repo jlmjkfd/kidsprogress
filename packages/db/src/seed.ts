@@ -1,6 +1,6 @@
 import { v7 as uuidv7 } from 'uuid';
 import { createDb } from './client.js';
-import { users, children } from './schema/index.js';
+import { users, children } from './schema.js';
 
 async function main() {
   const db = createDb();
