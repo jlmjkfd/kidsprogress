@@ -83,10 +83,12 @@ See [`docs/deployment-synology.md`](docs/deployment-synology.md) (to be written 
 
 | Phase | Status |
 |---|---|
-| 0 — Foundations | in progress |
-| 1 — Auth + Children | pending |
-| 2 — Tasks | pending |
-| 3 — Attachments / Sessions / Subtasks | pending |
-| 4 — AI features | pending |
-| 5 — Data migration + cutover | pending |
-| 6 — Deploy + harden | pending |
+| 0 — Foundations | ✅ done |
+| 1 — Auth + Children + Devices | ✅ done (22 tests) |
+| 2 — Tasks (CRUD, lifecycle, recurrence, subtasks, collections, completions) | ✅ done (29 more tests) |
+| 3 — Sessions + file upload + attachments | ✅ done (9 more tests) |
+| 4 — Gemini wrapper (PII scrub + token cap + mock provider) | ✅ done (4 more tests) — chat/recommendation modules deferred |
+| 5 — Data migration v1 MongoDB → v2 SQLite | ⏳ blocked: needs MongoDB source |
+| 6 — Synology deploy docs + runbook | ✅ done — see [docs/deployment-synology.md](docs/deployment-synology.md), [docs/runbook.md](docs/runbook.md) |
+
+Backend test count: **64 passing**. Frontend tested manually via `pnpm dev`.
