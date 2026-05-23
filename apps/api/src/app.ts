@@ -22,6 +22,7 @@ import { tasksRoutes } from './modules/tasks/tasks.routes.js';
 import { completionsRoutes } from './modules/completions/completions.routes.js';
 import { subtasksRoutes } from './modules/subtasks/subtasks.routes.js';
 import { collectionsRoutes } from './modules/collections/collections.routes.js';
+import { sessionsRoutes } from './modules/sessions/sessions.routes.js';
 
 export interface AppDeps {
   config: AppConfig;
@@ -69,6 +70,7 @@ export async function buildApp(deps: AppDeps) {
   await app.register(completionsRoutes, { db });
   await app.register(subtasksRoutes, { db });
   await app.register(collectionsRoutes, { db });
+  await app.register(sessionsRoutes, { db });
 
   return app;
 }

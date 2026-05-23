@@ -15,6 +15,13 @@
       "when": 1779543457045,
       "tag": "0001_furry_black_tarantula",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1779544315851,
+      "tag": "0002_perpetual_deadpool",
+      "breakpoints": true
     }
   ]
 }

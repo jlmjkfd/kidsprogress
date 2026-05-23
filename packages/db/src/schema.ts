@@ -311,3 +311,69 @@ export const recurrenceExceptions = sqliteTable(
 );
 export type RecurrenceExceptionRow = typeof recurrenceExceptions.$inferSelect;
 export type NewRecurrenceExceptionRow = typeof recurrenceExceptions.$inferInsert;
+
+// ── task_sessions ────────────────────────────────────────────────────────
+// In-progress work that can be saved + resumed. Payload is kind-specific JSON
+// (e.g. writing text so far, or partially-answered math problems).
+export const taskSessions = sqliteTable(
+  'task_sessions',
+  {
+    id: text('id').primaryKey(),
+    taskId: text('task_id')
+      .notNull()
+      .references(() => tasks.id, { onDelete: 'cascade' }),
+    childId: text('child_id')
+      .notNull()
+      .references(() => children.id, { onDelete: 'cascade' }),
+    occurrenceDate: text('occurrence_date'),
+    state: text('state', { enum: ['active', 'completed', 'abandoned'] })
+      .notNull()
+      .default('active'),
+    payload: text('payload', { mode: 'json' }).$type<Record<string, unknown> | null>(),
+    startedAt: text('started_at')
+      .notNull()
+      .default(sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`),
+    updatedAt: text('updated_at')
+      .notNull()
+      .default(sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`),
+    endedAt: text('ended_at'),
+  },
+  (table) => ({
+    taskChildIdx: index('task_sessions_task_child_idx').on(table.taskId, table.childId),
+    activeIdx: index('task_sessions_active_idx').on(table.state),
+  }),
+);
+export type TaskSessionRow = typeof taskSessions.$inferSelect;
+export type NewTaskSessionRow = typeof taskSessions.$inferInsert;
+
+// ── attachments ──────────────────────────────────────────────────────────
+// Uploads belonging to a task (or task completion). Files are stored on disk
+// under UPLOADS_PATH/<id>; this row owns the metadata + the relative path.
+export const attachments = sqliteTable(
+  'attachments',
+  {
+    id: text('id').primaryKey(),
+    taskId: text('task_id')
+      .notNull()
+      .references(() => tasks.id, { onDelete: 'cascade' }),
+    completionId: text('completion_id').references(() => completions.id, {
+      onDelete: 'set null',
+    }),
+    uploaderUserId: text('uploader_user_id'),
+    uploaderChildId: text('uploader_child_id'),
+    kind: text('kind', { enum: ['image', 'audio', 'video', 'document'] }).notNull(),
+    storagePath: text('storage_path').notNull(),
+    mimeType: text('mime_type').notNull(),
+    fileSizeBytes: integer('file_size_bytes').notNull(),
+    originalFilename: text('original_filename'),
+    createdAt: text('created_at')
+      .notNull()
+      .default(sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`),
+  },
+  (table) => ({
+    taskIdIdx: index('attachments_task_id_idx').on(table.taskId),
+    completionIdx: index('attachments_completion_idx').on(table.completionId),
+  }),
+);
+export type AttachmentRow = typeof attachments.$inferSelect;
+export type NewAttachmentRow = typeof attachments.$inferInsert;
