@@ -107,12 +107,12 @@ function Showcase() {
           exist but design rule forbids their use anywhere outside those two surfaces.
         </p>
         <div className="mt-3 grid grid-cols-5 gap-2">
-          {(['sunrise', 'forest', 'berry', 'ocean', 'citrus'] as const).map((g) => (
+          {GRADIENTS.map(({ name, className }) => (
             <div
-              key={g}
-              className={`h-16 rounded-2xl bg-kp-${g} shadow-soft`}
-              aria-label={g}
-              title={g}
+              key={name}
+              className={`h-16 rounded-2xl shadow-soft ${className}`}
+              aria-label={name}
+              title={name}
             />
           ))}
         </div>
@@ -120,3 +120,17 @@ function Showcase() {
     </div>
   );
 }
+
+/**
+ * Static map: Tailwind's JIT only generates CSS for class names it can see
+ * as complete literal strings in the source. A template-literal like
+ * `bg-kp-${g}` is invisible to the scanner — those classes never get
+ * emitted and the divs render with no background.
+ */
+const GRADIENTS = [
+  { name: 'sunrise', className: 'bg-kp-sunrise' },
+  { name: 'forest', className: 'bg-kp-forest' },
+  { name: 'berry', className: 'bg-kp-berry' },
+  { name: 'ocean', className: 'bg-kp-ocean' },
+  { name: 'citrus', className: 'bg-kp-citrus' },
+] as const;
