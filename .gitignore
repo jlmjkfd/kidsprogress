@@ -78,9 +78,10 @@ apps/web/src/styles/tailwind.theme.json
 # Local secrets that lived at root in v1 — keep ignored
 config.ini
 
+# AI-tooling artifacts — never tracked in this repo
+.claude/
+CLAUDE.md
+
 *.md
 !/README.md
 !docs/**/*.md
-!.claude/skills/**/*.md
-!.claude/commands/**/*.md
-!CLAUDE.md
