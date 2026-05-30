@@ -1,0 +1,45 @@
+/* Globals — element resets keyed off KPDS tokens. */
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: var(--kp-color-bg);
+  color: var(--kp-color-text);
+  font-family: var(--kp-type-fontFamilySans);
+  font-size: var(--kp-type-sizeBase);
+  line-height: var(--kp-type-lineNormal);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--kp-type-fontFamilyDisplay);
+  font-weight: var(--kp-type-weightSemibold);
+  line-height: var(--kp-type-lineSnug);
+}
+
+:focus-visible {
+  outline: 2px solid var(--kp-color-focusRing);
+  outline-offset: 2px;
+}
+
+/**
+ * Honor the user's reduced-motion preference. Spring + slow durations
+ * collapse to base. Hard rule from design panel: never animate failure.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0ms !important;
+    transition-duration: var(--kp-motion-durationFast) !important;
+  }
+}
