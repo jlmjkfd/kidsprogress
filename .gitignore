@@ -76,3 +76,4 @@ config.ini
 
 *.md
 !/README.md
+!docs/**/*.md
