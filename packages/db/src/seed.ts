@@ -1,31 +1,10 @@
-import { v7 as uuidv7 } from 'uuid';
-import { createDb } from './client.js';
-import { users, children } from './schema/index.js';
-
-async function main() {
-  const db = createDb();
-  const parentId = uuidv7();
-  await db.insert(users).values({
-    id: parentId,
-    email: 'dev@kidsprogress.local',
-    // argon2 hash of "devpassword" — placeholder, real hashing happens in apps/api
-    passwordHash: '$argon2id$placeholder',
-    displayName: 'Dev Parent',
-    role: 'parent',
-  });
-
-  await db.insert(children).values({
-    id: uuidv7(),
-    parentId,
-    displayName: 'Demo Child',
-    birthDate: '2017-05-12',
-    grade: '2',
-  });
-
-  console.log('seeded dev data: dev@kidsprogress.local + 1 child');
-}
-
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+/**
+ * Phase 1a: schema-only seed.
+ *
+ * The previous seed inserted a parent + child with placeholder hashes that
+ * couldn't actually log in. The real dev seed re-lands in Phase 1e once the
+ * argon2id hasher + per-child PIN flow exist in the API layer.
+ *
+ * For now this is a no-op so `pnpm db:seed` doesn't crash.
+ */
+console.log('seed: phase 1a — schema only. real seed lands with Phase 1e auth endpoints.');
