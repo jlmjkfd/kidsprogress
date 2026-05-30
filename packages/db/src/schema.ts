@@ -55,9 +55,14 @@ export const children = sqliteTable(
   'children',
   {
     id: text('id').primaryKey(),
-    familyId: text('family_id')
-      .notNull()
-      .references(() => users.familyId, { onDelete: 'cascade' }),
+    /**
+     * familyId scoping is enforced at the service layer (every read/write
+     * checks `child.familyId === currentUser.familyId`). We don't declare a
+     * FK to `users.familyId` here because that column isn't unique — SQLite
+     * rejects FKs whose parent column isn't unique or a PK, and a unique
+     * constraint would forbid future multi-parent families.
+     */
+    familyId: text('family_id').notNull(),
     displayName: text('display_name').notNull(),
     /** One of `avatar-01` … `avatar-12` (PII-light, no uploaded photo at launch). */
     avatarKey: text('avatar_key').notNull().default('avatar-01'),

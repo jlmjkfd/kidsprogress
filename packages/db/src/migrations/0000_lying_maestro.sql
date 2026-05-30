@@ -29,8 +29,7 @@ CREATE TABLE `children` (
 	`streak_opt_in` integer DEFAULT false NOT NULL,
 	`archived_at` text,
 	`created_at` text DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')) NOT NULL,
-	`updated_at` text DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')) NOT NULL,
-	FOREIGN KEY (`family_id`) REFERENCES `users`(`family_id`) ON UPDATE no action ON DELETE cascade
+	`updated_at` text DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')) NOT NULL
 );
 --> statement-breakpoint
 CREATE INDEX `children_family_idx` ON `children` (`family_id`);--> statement-breakpoint

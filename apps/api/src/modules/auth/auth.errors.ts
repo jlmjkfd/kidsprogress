@@ -4,27 +4,32 @@
  * an email exists or which credential was wrong.
  */
 
-export class EmailAlreadyRegisteredError extends Error {
+abstract class AuthError extends Error {
+  abstract readonly kind: string;
+  abstract readonly statusCode: number;
+}
+
+export class EmailAlreadyRegisteredError extends AuthError {
   readonly kind = 'EmailAlreadyRegistered';
-  readonly status = 409;
+  readonly statusCode = 409;
 }
 
-export class InvalidCredentialsError extends Error {
+export class InvalidCredentialsError extends AuthError {
   readonly kind = 'InvalidCredentials';
-  readonly status = 401;
+  readonly statusCode = 401;
 }
 
-export class InvalidRefreshTokenError extends Error {
+export class InvalidRefreshTokenError extends AuthError {
   readonly kind = 'InvalidRefreshToken';
-  readonly status = 401;
+  readonly statusCode = 401;
 }
 
-export class PinNotSetError extends Error {
+export class PinNotSetError extends AuthError {
   readonly kind = 'PinNotSet';
-  readonly status = 409;
+  readonly statusCode = 409;
 }
 
-export class InvalidPinError extends Error {
+export class InvalidPinError extends AuthError {
   readonly kind = 'InvalidPin';
-  readonly status = 401;
+  readonly statusCode = 401;
 }

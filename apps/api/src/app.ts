@@ -1,4 +1,5 @@
 import Fastify from 'fastify';
+import fastifyCookie from '@fastify/cookie';
 import fastifyCors from '@fastify/cors';
 import fastifyHelmet from '@fastify/helmet';
 import fastifyRateLimit from '@fastify/rate-limit';
@@ -14,6 +15,7 @@ import { getLoggerOptions } from './lib/logger.js';
 import { authPlugin } from './plugins/auth.js';
 import { errorHandlerPlugin } from './plugins/error-handler.js';
 import { registerHealthRoutes } from './modules/health/health.routes.js';
+import { registerAuthRoutes } from './modules/auth/auth.routes.js';
 
 export interface AppDeps {
   config: AppConfig;
@@ -36,6 +38,7 @@ export async function buildApp(deps: AppDeps) {
 
   await app.register(errorHandlerPlugin);
   await app.register(fastifySensible);
+  await app.register(fastifyCookie);
   await app.register(fastifyCors, {
     origin: config.CORS_ORIGINS,
     credentials: true,
@@ -53,6 +56,12 @@ export async function buildApp(deps: AppDeps) {
   await app.register(authPlugin, { config });
 
   await registerHealthRoutes(app, { db });
+  await app.register(
+    async function authScope(scope) {
+      await registerAuthRoutes(scope.withTypeProvider<ZodTypeProvider>(), { db, config });
+    },
+    { prefix: '/api/auth' },
+  );
 
   return app;
 }

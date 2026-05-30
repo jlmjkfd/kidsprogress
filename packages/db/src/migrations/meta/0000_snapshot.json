@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "099a9e1c-d9a4-4a1f-a15b-83b5a3d81982",
+  "id": "a03f2855-455a-47e2-8cde-80735b05c792",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "auth_events": {
@@ -232,21 +232,7 @@
           "isUnique": false
         }
       },
-      "foreignKeys": {
-        "children_family_id_users_family_id_fk": {
-          "name": "children_family_id_users_family_id_fk",
-          "tableFrom": "children",
-          "tableTo": "users",
-          "columnsFrom": [
-            "family_id"
-          ],
-          "columnsTo": [
-            "family_id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}

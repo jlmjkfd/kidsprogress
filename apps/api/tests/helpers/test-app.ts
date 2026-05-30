@@ -19,7 +19,7 @@ export async function buildTestApp(): Promise<{
   process.env.JWT_SECRET = 'test-secret-with-enough-length-1234567890';
   process.env.NODE_ENV = 'test';
   process.env.SQLITE_PATH = join(dir, 'test.sqlite');
-  process.env.LOG_LEVEL = 'fatal';
+  process.env.LOG_LEVEL = process.env.TEST_LOG_LEVEL ?? 'fatal';
 
   const db = createDb();
   migrate(db, { migrationsFolder: MIGRATIONS });
