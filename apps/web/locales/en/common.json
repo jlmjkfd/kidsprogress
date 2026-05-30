@@ -47,6 +47,23 @@
   },
   "parent_home": {
     "placeholder_title": "Parent home",
-    "placeholder_body": "Calendar + child selector arrives in Phase 3."
+    "placeholder_body": "Calendar + child selector arrives in Phase 3.",
+    "go_to_templates": "Manage task templates"
+  },
+  "templates": {
+    "list_title": "Task templates",
+    "new_button": "New",
+    "new_title": "New task template",
+    "empty": "No templates yet. Create one to get started.",
+    "list_failed": "Couldn't load your templates.",
+    "archived_badge": "archived",
+    "archive_button": "Archive",
+    "restore_button": "Restore",
+    "field_name": "Name",
+    "field_instructions": "Instructions",
+    "field_instructions_hint": "Shown to the kid above any checklist steps. Optional.",
+    "create_submit": "Create template",
+    "create_cancel": "Cancel",
+    "create_failed": "Couldn't create that template. Check the inputs and try again."
   }
 }

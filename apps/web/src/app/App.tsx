@@ -2,6 +2,8 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { SelectionPage } from '@/features/auth/pages/SelectionPage';
 import { SetupDevicePage } from '@/features/auth/pages/SetupDevicePage';
 import { ParentLoginPage } from '@/features/auth/pages/ParentLoginPage';
+import { TemplatesListPage } from '@/features/templates/pages/TemplatesListPage';
+import { NewTemplatePage } from '@/features/templates/pages/NewTemplatePage';
 import { TodayPlaceholder } from './pages/TodayPlaceholder';
 import { ParentHomePlaceholder } from './pages/ParentHomePlaceholder';
 
@@ -19,6 +21,8 @@ export function App() {
         <Route path="/parent-login" element={<ParentLoginPage />} />
         <Route path="/today" element={<TodayPlaceholder />} />
         <Route path="/parent" element={<ParentHomePlaceholder />} />
+        <Route path="/parent/templates" element={<TemplatesListPage />} />
+        <Route path="/parent/templates/new" element={<NewTemplatePage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

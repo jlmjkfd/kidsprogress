@@ -47,6 +47,23 @@
   },
   "parent_home": {
     "placeholder_title": "家长主页",
-    "placeholder_body": "日历与子女切换器将在第 3 阶段上线。"
+    "placeholder_body": "日历与子女切换器将在第 3 阶段上线。",
+    "go_to_templates": "管理任务模板"
+  },
+  "templates": {
+    "list_title": "任务模板",
+    "new_button": "新建",
+    "new_title": "新建任务模板",
+    "empty": "还没有模板，立即创建一个吧。",
+    "list_failed": "加载模板失败。",
+    "archived_badge": "已归档",
+    "archive_button": "归档",
+    "restore_button": "恢复",
+    "field_name": "名称",
+    "field_instructions": "说明",
+    "field_instructions_hint": "在任务清单上方展示给孩子的说明，可选。",
+    "create_submit": "创建模板",
+    "create_cancel": "取消",
+    "create_failed": "创建失败，请检查输入后重试。"
   }
 }
