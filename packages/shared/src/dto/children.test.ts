@@ -47,17 +47,21 @@ describe('children DTOs', () => {
     expect(ok.success).toBe(true);
   });
 
-  it('update: omits `pin` (must use setChildPin), allows archivedAt', () => {
-    const tryWithPin = updateChildRequestSchema.safeParse({ pin: '1234' });
-    // Zod by default strips unknown keys silently — assert by checking the
-    // parsed shape DOES NOT carry pin through.
-    if (tryWithPin.success) {
-      expect((tryWithPin.data as Record<string, unknown>)['pin']).toBeUndefined();
-    }
-    const archive = updateChildRequestSchema.safeParse({
+  it('update: drops pin / pinRequired / archivedAt (use dedicated endpoints)', () => {
+    const tryRichPatch = updateChildRequestSchema.safeParse({
+      pin: '1234',
+      pinRequired: true,
       archivedAt: '2026-05-31T10:00:00.000Z',
+      displayName: 'kept',
     });
-    expect(archive.success).toBe(true);
+    expect(tryRichPatch.success).toBe(true);
+    if (tryRichPatch.success) {
+      const data = tryRichPatch.data as Record<string, unknown>;
+      expect(data['pin']).toBeUndefined();
+      expect(data['pinRequired']).toBeUndefined();
+      expect(data['archivedAt']).toBeUndefined();
+      expect(data['displayName']).toBe('kept');
+    }
   });
 
   it('setChildPin: only takes a PIN', () => {

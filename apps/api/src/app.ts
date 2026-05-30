@@ -16,6 +16,8 @@ import { authPlugin } from './plugins/auth.js';
 import { errorHandlerPlugin } from './plugins/error-handler.js';
 import { registerHealthRoutes } from './modules/health/health.routes.js';
 import { registerAuthRoutes } from './modules/auth/auth.routes.js';
+import { registerChildrenRoutes } from './modules/children/children.routes.js';
+import { registerDevicesRoutes } from './modules/devices/devices.routes.js';
 
 export interface AppDeps {
   config: AppConfig;
@@ -61,6 +63,18 @@ export async function buildApp(deps: AppDeps) {
       await registerAuthRoutes(scope.withTypeProvider<ZodTypeProvider>(), { db, config });
     },
     { prefix: '/api/auth' },
+  );
+  await app.register(
+    async function childrenScope(scope) {
+      await registerChildrenRoutes(scope.withTypeProvider<ZodTypeProvider>(), { db, config });
+    },
+    { prefix: '/api/children' },
+  );
+  await app.register(
+    async function devicesScope(scope) {
+      await registerDevicesRoutes(scope.withTypeProvider<ZodTypeProvider>(), { db, config });
+    },
+    { prefix: '/api/devices' },
   );
 
   return app;

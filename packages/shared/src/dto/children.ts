@@ -51,12 +51,16 @@ export const createChildRequestSchema = z.object({
 });
 export type CreateChildRequest = z.infer<typeof createChildRequestSchema>;
 
+/**
+ * PATCH body. Deliberately drops `pin`, `pinRequired`, and `archivedAt` —
+ * these are mutated only via the dedicated endpoints (`POST /:id/pin`,
+ * `DELETE /:id/pin`, `POST /:id/archive`, `POST /:id/restore`). Funnelling
+ * them through PATCH would (a) emit the wrong audit-event kind and (b)
+ * allow `pinRequired=true && pinHash=null`, which soft-bricks the child.
+ */
 export const updateChildRequestSchema = createChildRequestSchema
-  .omit({ pin: true })
-  .partial()
-  .extend({
-    archivedAt: z.string().datetime().nullable().optional(),
-  });
+  .omit({ pin: true, pinRequired: true })
+  .partial();
 export type UpdateChildRequest = z.infer<typeof updateChildRequestSchema>;
 
 // ── PIN management ──────────────────────────────────────────────────────
