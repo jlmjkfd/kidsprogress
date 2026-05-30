@@ -42,8 +42,13 @@
     "locked_caption": "Locked"
   },
   "today": {
-    "placeholder_title": "Today",
-    "placeholder_body": "Your task list lands here in Phase 9."
+    "greeting": "Today, {{name}}!",
+    "load_failed": "Couldn't load your tasks.",
+    "empty": "No tasks today — go play!",
+    "task_at": "Task at {{time}}",
+    "start": "Start",
+    "complete": "Done",
+    "done": "Done"
   },
   "parent_home": {
     "placeholder_title": "Parent home",
@@ -64,6 +69,20 @@
     "field_instructions_hint": "Shown to the kid above any checklist steps. Optional.",
     "create_submit": "Create template",
     "create_cancel": "Cancel",
-    "create_failed": "Couldn't create that template. Check the inputs and try again."
+    "create_failed": "Couldn't create that template. Check the inputs and try again.",
+    "assign_button": "Assign to a child"
+  },
+  "assign": {
+    "title": "Assign \"{{name}}\"",
+    "child_label": "Child",
+    "child_placeholder": "Pick a child…",
+    "child_required": "Pick a child first.",
+    "start_date_label": "Start date",
+    "repeat_label": "Repeat for N days",
+    "repeat_hint": "0 = one-shot. Otherwise daily recurrence starting on the start date.",
+    "submit": "Assign",
+    "cancel": "Cancel",
+    "load_failed": "Couldn't load the template or your kids list.",
+    "failed": "Couldn't create the assignment. Check the inputs and try again."
   }
 }

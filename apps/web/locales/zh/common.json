@@ -42,8 +42,13 @@
     "locked_caption": "已锁定"
   },
   "today": {
-    "placeholder_title": "今日任务",
-    "placeholder_body": "任务列表将在第 9 阶段上线。"
+    "greeting": "{{name}}，今天的任务！",
+    "load_failed": "无法加载任务。",
+    "empty": "今天没有任务，去玩吧！",
+    "task_at": "{{time}} 的任务",
+    "start": "开始",
+    "complete": "完成",
+    "done": "已完成"
   },
   "parent_home": {
     "placeholder_title": "家长主页",
@@ -64,6 +69,20 @@
     "field_instructions_hint": "在任务清单上方展示给孩子的说明，可选。",
     "create_submit": "创建模板",
     "create_cancel": "取消",
-    "create_failed": "创建失败，请检查输入后重试。"
+    "create_failed": "创建失败，请检查输入后重试。",
+    "assign_button": "分配给孩子"
+  },
+  "assign": {
+    "title": "分配 \"{{name}}\"",
+    "child_label": "孩子",
+    "child_placeholder": "选择孩子…",
+    "child_required": "请先选择孩子。",
+    "start_date_label": "开始日期",
+    "repeat_label": "重复 N 天",
+    "repeat_hint": "0 表示一次性。否则从开始日期起按天重复。",
+    "submit": "分配",
+    "cancel": "取消",
+    "load_failed": "无法加载模板或孩子列表。",
+    "failed": "分配失败，请检查输入后重试。"
   }
 }

@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import { IconArchive, IconArchiveOff, IconPlus } from '@tabler/icons-react';
+import { IconArchive, IconArchiveOff, IconPlus, IconUserPlus } from '@tabler/icons-react';
 import { ParentShell } from '@/app/layouts/ParentShell';
 import { useArchiveTemplate, useRestoreTemplate, useTemplates } from '../hooks';
 
@@ -51,6 +51,15 @@ export function TemplatesListPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
+                  {!tpl.isArchived && (
+                    <Link
+                      to={`/parent/templates/${tpl.id}/assign`}
+                      aria-label={t('templates.assign_button')}
+                      className="p-2 rounded-full hover:bg-surface-muted min-h-touch min-w-touch"
+                    >
+                      <IconUserPlus size={18} aria-hidden />
+                    </Link>
+                  )}
                   {tpl.isArchived ? (
                     <button
                       type="button"

@@ -4,7 +4,8 @@ import { SetupDevicePage } from '@/features/auth/pages/SetupDevicePage';
 import { ParentLoginPage } from '@/features/auth/pages/ParentLoginPage';
 import { TemplatesListPage } from '@/features/templates/pages/TemplatesListPage';
 import { NewTemplatePage } from '@/features/templates/pages/NewTemplatePage';
-import { TodayPlaceholder } from './pages/TodayPlaceholder';
+import { AssignTemplatePage } from '@/features/assignments/pages/AssignTemplatePage';
+import { TodayPage } from '@/features/today/pages/TodayPage';
 import { ParentHomePlaceholder } from './pages/ParentHomePlaceholder';
 
 /**
@@ -19,9 +20,13 @@ export function App() {
         <Route path="/" element={<SelectionPage />} />
         <Route path="/setup-device" element={<SetupDevicePage />} />
         <Route path="/parent-login" element={<ParentLoginPage />} />
-        <Route path="/today" element={<TodayPlaceholder />} />
+        <Route path="/today" element={<TodayPage />} />
         <Route path="/parent" element={<ParentHomePlaceholder />} />
         <Route path="/parent/templates" element={<TemplatesListPage />} />
+        <Route
+          path="/parent/templates/:templateId/assign"
+          element={<AssignTemplatePage />}
+        />
         <Route path="/parent/templates/new" element={<NewTemplatePage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

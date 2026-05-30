@@ -30,10 +30,18 @@ export function useDeviceLookup(deviceToken: string | null) {
 
 export function useChildLogin() {
   const setChildAccess = useAuthStore((s) => s.setChildAccess);
+  const setCurrentChild = useAuthStore((s) => s.setCurrentChild);
   return useMutation<ChildLoginResponse, Error, ChildLoginRequest>({
     mutationFn: (req) => authApi.childLogin(req),
     onSuccess: (res) => {
       setChildAccess(res.tokens.accessToken, res.tokens.expiresAt);
+      setCurrentChild({
+        id: res.child.id,
+        familyId: res.child.familyId,
+        displayName: res.child.displayName,
+        avatarKey: res.child.avatarKey,
+        ageBand: res.child.ageBand,
+      });
     },
   });
 }
