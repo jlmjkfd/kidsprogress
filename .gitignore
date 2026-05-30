@@ -81,3 +81,6 @@ config.ini
 *.md
 !/README.md
 !docs/**/*.md
+!.claude/skills/**/*.md
+!.claude/commands/**/*.md
+!CLAUDE.md
