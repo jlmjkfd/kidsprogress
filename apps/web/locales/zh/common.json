@@ -1,11 +1,52 @@
 {
   "app_title": "KidsProgress",
-  "phase0_placeholder": "v2 脚手架 — 阶段 0",
-  "api_status": "API 状态",
-  "loading": "加载中…",
-  "api_unreachable": "API 不可达",
-  "status": "状态",
-  "db": "数据库",
-  "version": "版本",
-  "uptime_seconds": "运行时长（秒）"
+  "common": {
+    "loading": "加载中…"
+  },
+  "selection": {
+    "greeting": "{{family}}，你好 👋",
+    "parent_button": "家长设置",
+    "enter_pin": "{{name}}，请输入密码",
+    "wrong_pin": "密码错误，请重试",
+    "back": "返回",
+    "no_children_on_device": "这台设备还没有小朋友。请家长添加。",
+    "lookup_failed": "无法连接到服务器。",
+    "re_register_device": "重新设置此设备"
+  },
+  "setup": {
+    "title": "设置此设备",
+    "subtitle": "请粘贴家长那里得到的一次性设备码。",
+    "token_label": "设备码",
+    "token_placeholder": "在此粘贴…",
+    "submit": "完成设置",
+    "invalid_token": "此码无效，请家长重新生成。"
+  },
+  "parent_login": {
+    "title": "家长登录",
+    "email": "邮箱",
+    "password": "密码",
+    "submit": "登录",
+    "back_to_kids": "返回小朋友界面",
+    "invalid_credentials": "邮箱或密码错误。"
+  },
+  "pin": {
+    "dots_label": "已输入的密码位数",
+    "digit_label": "数字 {{digit}}",
+    "backspace_label": "删除上一位",
+    "submit_label": "提交密码",
+    "submit": "确定"
+  },
+  "roster": {
+    "tile_aria": "以 {{name}} 身份登录",
+    "locked_aria": "{{name}} 已被锁定",
+    "locked_caption": "已锁定"
+  },
+  "today": {
+    "placeholder_title": "今日任务",
+    "placeholder_body": "任务列表将在第 9 阶段上线。"
+  },
+  "parent_home": {
+    "placeholder_title": "家长主页",
+    "placeholder_body": "日历与子女切换器将在第 3 阶段上线。"
+  }
 }

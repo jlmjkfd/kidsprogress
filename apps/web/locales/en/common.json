@@ -1,11 +1,52 @@
 {
   "app_title": "KidsProgress",
-  "phase0_placeholder": "v2 scaffold — Phase 0",
-  "api_status": "API status",
-  "loading": "Loading…",
-  "api_unreachable": "API unreachable",
-  "status": "Status",
-  "db": "Database",
-  "version": "Version",
-  "uptime_seconds": "Uptime (s)"
+  "common": {
+    "loading": "Loading…"
+  },
+  "selection": {
+    "greeting": "Hi, {{family}} 👋",
+    "parent_button": "Parent settings",
+    "enter_pin": "Enter your PIN, {{name}}",
+    "wrong_pin": "Wrong PIN — try again",
+    "back": "Back",
+    "no_children_on_device": "No children on this device yet. Ask a grown-up to add some.",
+    "lookup_failed": "We couldn't reach the server.",
+    "re_register_device": "Set up this device again"
+  },
+  "setup": {
+    "title": "Set up this device",
+    "subtitle": "Paste the one-time device code from your parent's screen.",
+    "token_label": "Device code",
+    "token_placeholder": "Paste here…",
+    "submit": "Set up device",
+    "invalid_token": "That code didn't work. Ask the parent to issue a new one."
+  },
+  "parent_login": {
+    "title": "Parent sign-in",
+    "email": "Email",
+    "password": "Password",
+    "submit": "Sign in",
+    "back_to_kids": "Back to kids' screen",
+    "invalid_credentials": "Email or password is wrong."
+  },
+  "pin": {
+    "dots_label": "PIN digits entered",
+    "digit_label": "Digit {{digit}}",
+    "backspace_label": "Delete last digit",
+    "submit_label": "Submit PIN",
+    "submit": "OK"
+  },
+  "roster": {
+    "tile_aria": "Sign in as {{name}}",
+    "locked_aria": "{{name}} is locked",
+    "locked_caption": "Locked"
+  },
+  "today": {
+    "placeholder_title": "Today",
+    "placeholder_body": "Your task list lands here in Phase 9."
+  },
+  "parent_home": {
+    "placeholder_title": "Parent home",
+    "placeholder_body": "Calendar + child selector arrives in Phase 3."
+  }
 }
