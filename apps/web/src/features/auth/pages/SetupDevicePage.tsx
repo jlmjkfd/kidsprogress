@@ -54,7 +54,7 @@ export function SetupDevicePage() {
             required
           />
           {error && (
-            <p role="alert" className="text-status-danger text-sm">
+            <p role="alert" className="text-danger text-sm">
               {t(error)}
             </p>
           )}

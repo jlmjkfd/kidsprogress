@@ -62,7 +62,7 @@ export function ParentLoginPage() {
             />
           </div>
           {error && (
-            <p role="alert" className="text-status-danger text-sm">
+            <p role="alert" className="text-danger text-sm">
               {t(error)}
             </p>
           )}

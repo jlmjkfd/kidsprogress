@@ -18,6 +18,9 @@ import { registerHealthRoutes } from './modules/health/health.routes.js';
 import { registerAuthRoutes } from './modules/auth/auth.routes.js';
 import { registerChildrenRoutes } from './modules/children/children.routes.js';
 import { registerDevicesRoutes } from './modules/devices/devices.routes.js';
+import { registerTemplatesRoutes } from './modules/templates/templates.routes.js';
+import { createTemplatesRepo } from './modules/templates/templates.repo.js';
+import { assertAllPersistedVersionsRegistered } from '@kidsprogress/shared';
 
 export interface AppDeps {
   config: AppConfig;
@@ -76,6 +79,18 @@ export async function buildApp(deps: AppDeps) {
     },
     { prefix: '/api/devices' },
   );
+  await app.register(
+    async function templatesScope(scope) {
+      await registerTemplatesRoutes(scope.withTypeProvider<ZodTypeProvider>(), { db });
+    },
+    { prefix: '/api/templates' },
+  );
+
+  // Boot invariant: every (handlerId, schemaVersion) pair persisted in
+  // task_templates must be covered by a registered handler module. Refuses
+  // to start an API that can't validate its own data.
+  const persisted = await createTemplatesRepo(db).listPersistedHandlerVersions();
+  assertAllPersistedVersionsRegistered(persisted);
 
   return app;
 }

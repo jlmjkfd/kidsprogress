@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { IconSettings } from '@tabler/icons-react';
 import type { ChildRosterCard } from '@kidsprogress/shared';
@@ -24,9 +24,11 @@ export function SelectionPage() {
   const [pinError, setPinError] = useState<string | undefined>(undefined);
 
   // No device token yet — send to the first-run setup screen.
+  // Use <Navigate /> (declarative) instead of calling navigate() during
+  // render — that triggers a React warning + can blank the page in strict
+  // mode because React re-runs renders before the side-effect commits.
   if (!deviceToken) {
-    navigate('/setup-device', { replace: true });
-    return null;
+    return <Navigate to="/setup-device" replace />;
   }
 
   if (lookup.isPending) {
@@ -40,7 +42,7 @@ export function SelectionPage() {
     return (
       <ChildShell>
         <div className="text-center space-y-4">
-          <p role="alert" className="text-status-danger">
+          <p role="alert" className="text-danger">
             {t('selection.lookup_failed')}
           </p>
           <button

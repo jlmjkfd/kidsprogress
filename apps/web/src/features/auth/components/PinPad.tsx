@@ -46,7 +46,7 @@ export function PinPad({ onSubmit, errorKey, busy = false }: PinPadProps) {
         <div className="flex gap-2">{dots}</div>
       </div>
       {errorKey && (
-        <p role="alert" className="text-status-danger text-sm">
+        <p role="alert" className="text-danger text-sm">
           {t(errorKey)}
         </p>
       )}
@@ -57,7 +57,7 @@ export function PinPad({ onSubmit, errorKey, busy = false }: PinPadProps) {
             type="button"
             onClick={() => tap(d)}
             disabled={busy}
-            className="w-16 h-16 rounded-2xl text-2xl font-medium bg-surface hover:bg-surface-hover active:bg-surface-pressed disabled:opacity-50 min-h-touch"
+            className="w-16 h-16 rounded-2xl text-2xl font-medium bg-surface hover:bg-surface-muted active:opacity-80 disabled:opacity-50 min-h-touch"
             aria-label={t('pin.digit_label', { digit: d })}
           >
             {d}
@@ -67,7 +67,7 @@ export function PinPad({ onSubmit, errorKey, busy = false }: PinPadProps) {
           type="button"
           onClick={back}
           disabled={busy || pin.length === 0}
-          className="w-16 h-16 rounded-2xl bg-surface hover:bg-surface-hover active:bg-surface-pressed disabled:opacity-50 flex items-center justify-center min-h-touch"
+          className="w-16 h-16 rounded-2xl bg-surface hover:bg-surface-muted active:opacity-80 disabled:opacity-50 flex items-center justify-center min-h-touch"
           aria-label={t('pin.backspace_label')}
         >
           <IconBackspace size={28} />
@@ -76,7 +76,7 @@ export function PinPad({ onSubmit, errorKey, busy = false }: PinPadProps) {
           type="button"
           onClick={() => tap('0')}
           disabled={busy}
-          className="w-16 h-16 rounded-2xl text-2xl font-medium bg-surface hover:bg-surface-hover active:bg-surface-pressed disabled:opacity-50 min-h-touch"
+          className="w-16 h-16 rounded-2xl text-2xl font-medium bg-surface hover:bg-surface-muted active:opacity-80 disabled:opacity-50 min-h-touch"
           aria-label={t('pin.digit_label', { digit: '0' })}
         >
           0

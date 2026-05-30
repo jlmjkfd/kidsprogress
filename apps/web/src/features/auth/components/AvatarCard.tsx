@@ -29,7 +29,7 @@ export function AvatarCard({
       disabled={isLocked}
       className={
         'flex flex-col items-center gap-2 p-3 rounded-3xl bg-surface ' +
-        'hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-accent ' +
+        'hover:bg-surface-muted focus-visible:ring-2 focus-visible:ring-accent ' +
         'disabled:opacity-40 disabled:cursor-not-allowed transition-colors ' +
         'min-h-touch min-w-touch'
       }
@@ -57,7 +57,7 @@ export function AvatarCard({
       </div>
       <span className="text-base font-medium truncate max-w-[8rem]">{displayName}</span>
       {isLocked && (
-        <span className="text-xs text-status-danger" role="status">
+        <span className="text-xs text-danger" role="status">
           {t('roster.locked_caption')}
         </span>
       )}

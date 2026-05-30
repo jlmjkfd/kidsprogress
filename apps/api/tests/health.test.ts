@@ -1,21 +1,19 @@
 import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import type { FastifyInstance } from 'fastify';
-import { buildApp } from '../src/app.js';
-import { loadConfig } from '../src/config.js';
+import { buildTestApp } from './helpers/test-app.js';
 
 describe('GET /health', () => {
   let app: FastifyInstance;
+  let cleanup: () => Promise<void>;
 
   beforeAll(async () => {
-    process.env.JWT_SECRET = 'test-secret-with-enough-length-1234';
-    process.env.NODE_ENV = 'test';
-    process.env.SQLITE_PATH = ':memory:';
-    const config = loadConfig();
-    app = await buildApp({ config });
+    const built = await buildTestApp();
+    app = built.app;
+    cleanup = built.cleanup;
   });
 
   afterAll(async () => {
-    await app.close();
+    await cleanup();
   });
 
   it('returns 200 with status fields', async () => {
