@@ -21,6 +21,7 @@ import { registerDevicesRoutes } from './modules/devices/devices.routes.js';
 import { registerTemplatesRoutes } from './modules/templates/templates.routes.js';
 import { registerAssignmentsRoutes } from './modules/assignments/assignments.routes.js';
 import { registerSchedulingRoutes } from './modules/scheduling/scheduling.routes.js';
+import { registerInstancesRoutes } from './modules/instances/instances.routes.js';
 import { createTemplatesRepo } from './modules/templates/templates.repo.js';
 import { assertAllPersistedVersionsRegistered } from '@kidsprogress/shared';
 
@@ -98,6 +99,12 @@ export async function buildApp(deps: AppDeps) {
       await registerSchedulingRoutes(scope.withTypeProvider<ZodTypeProvider>(), { db });
     },
     { prefix: '/api/scheduling' },
+  );
+  await app.register(
+    async function instancesScope(scope) {
+      await registerInstancesRoutes(scope.withTypeProvider<ZodTypeProvider>(), { db });
+    },
+    { prefix: '/api/instances' },
   );
 
   // Boot invariant: every (handlerId, schemaVersion) pair persisted in
