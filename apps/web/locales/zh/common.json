@@ -10,16 +10,72 @@
     "parent_home": "主页",
     "children": "孩子",
     "templates": "模板",
+    "assignments": "任务安排",
     "devices": "设备",
+    "settings": "设置",
     "sign_out": "退出登录",
     "sign_in": "登录"
+  },
+  "parent_signup": {
+    "title": "创建家长账号",
+    "subtitle": "每个家庭一个账号，可在注册后添加孩子和设备。",
+    "display_name": "您的名字",
+    "email": "邮箱",
+    "password": "密码",
+    "password_hint": "至少 8 个字符。",
+    "password_too_short": "密码至少 8 个字符。",
+    "submit": "创建账号",
+    "have_account": "已有账号？登录",
+    "email_taken": "该邮箱已注册。",
+    "invalid_input": "请检查输入后重试。",
+    "failed": "创建失败，请稍后重试。"
+  },
+  "settings": {
+    "title": "设置",
+    "account_title": "账号",
+    "name_label": "名字",
+    "email_label": "邮箱",
+    "pin_title": "家长入口密码",
+    "pin_already_set": "已设置家长入口密码，提交新密码将替换。",
+    "pin_not_set": "设置 4–6 位密码，用于敏感家长操作（如以孩子身份查看）的二次校验。",
+    "pin_new_label": "新密码",
+    "pin_confirm_label": "确认密码",
+    "pin_invalid": "密码必须是 4–6 位数字。",
+    "pin_mismatch": "两次输入的密码不一致。",
+    "pin_save": "保存密码",
+    "pin_saved": "密码已保存。",
+    "pin_failed": "保存密码失败。"
+  },
+  "assignments": {
+    "list_title": "任务安排",
+    "filter_by_child": "按孩子过滤",
+    "all_children": "全部孩子",
+    "empty": "还没有任务安排。",
+    "load_failed": "加载失败。",
+    "from_label": "起",
+    "until_label": "至",
+    "delete_button": "删除安排"
+  },
+  "pin_reset": {
+    "title": "使用重置码",
+    "intro": "家长会给你一个 6 位重置码，输入后设置新密码。",
+    "code_label": "重置码",
+    "new_pin_label": "新密码（4–6 位）",
+    "new_pin_hint": "下次登录使用此密码。",
+    "submit": "设置新密码",
+    "cancel": "取消",
+    "code_invalid": "重置码必须是 6 位数字。",
+    "pin_invalid": "密码必须是 4–6 位数字。",
+    "failed": "无效，请向家长申请新的重置码。"
   },
   "selection": {
     "greeting": "{{family}}，你好 👋",
     "parent_button": "家长设置",
     "enter_pin": "{{name}}，请输入密码",
     "wrong_pin": "密码错误，请重试",
+    "pin_reset_ok": "密码已重置，请输入新密码登录。",
     "back": "返回",
+    "forgot_pin": "忘记密码？",
     "no_children_on_device": "这台设备还没有小朋友。请家长添加。",
     "lookup_failed": "无法连接到服务器。",
     "re_register_device": "重新设置此设备"
@@ -38,6 +94,7 @@
     "password": "密码",
     "submit": "登录",
     "back_to_kids": "返回小朋友界面",
+    "no_account": "还没有账号？立即创建",
     "invalid_credentials": "邮箱或密码错误。"
   },
   "pin": {
@@ -110,7 +167,12 @@
     "reset_title": "一次性密码重置码",
     "reset_warning": "请将此重置码告诉孩子，他们在设备上配合新密码使用。服务器不会再次显示此码。",
     "reset_expires_at": "过期时间：{{at}}",
-    "reset_dismiss": "完成"
+    "reset_dismiss": "完成",
+    "view_as_button": "以 {{name}} 身份查看",
+    "view_as_title": "以 {{name}} 身份查看",
+    "view_as_hint": "请输入家长入口密码以获得只读访问。",
+    "view_as_submit": "查看",
+    "view_as_failed": "无法开始查看。可能是密码错误，或尚未在设置中创建家长入口密码。"
   },
   "devices": {
     "list_title": "设备",
@@ -133,7 +195,10 @@
     "token_hash_prefix": "id：{{prefix}}",
     "children_count": "{{count}} 名孩子",
     "revoked_badge": "已撤销",
-    "revoke_button": "撤销"
+    "revoke_button": "撤销",
+    "roster_inline_label": "在此设备上显示的孩子",
+    "attach_aria": "在此设备上显示 {{name}}",
+    "detach_aria": "在此设备上隐藏 {{name}}"
   },
   "templates": {
     "list_title": "任务模板",

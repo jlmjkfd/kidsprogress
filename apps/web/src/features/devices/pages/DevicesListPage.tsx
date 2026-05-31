@@ -1,7 +1,14 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { IconCopy, IconDeviceTablet, IconPlus, IconTrash } from '@tabler/icons-react';
+import {
+  IconCopy,
+  IconDeviceTablet,
+  IconPlus,
+  IconTrash,
+  IconUserMinus,
+  IconUserPlus,
+} from '@tabler/icons-react';
 import { ParentShell } from '@/app/layouts/ParentShell';
 import { childrenApi } from '@/features/children/api';
 import { devicesApi } from '../api';
@@ -51,6 +58,20 @@ export function DevicesListPage() {
 
   const revoke = useMutation({
     mutationFn: (id: string) => devicesApi.revoke(id),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['devices', 'list'] });
+    },
+  });
+  const attach = useMutation({
+    mutationFn: (vars: { deviceId: string; childId: string }) =>
+      devicesApi.attachChild(vars.deviceId, vars.childId),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['devices', 'list'] });
+    },
+  });
+  const detach = useMutation({
+    mutationFn: (vars: { deviceId: string; childId: string }) =>
+      devicesApi.detachChild(vars.deviceId, vars.childId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['devices', 'list'] });
     },
@@ -222,39 +243,85 @@ export function DevicesListPage() {
         )}
         {devices.data && devices.data.length > 0 && (
           <ul className="space-y-3">
-            {devices.data.map((d) => (
-              <li
-                key={d.id}
-                className={
-                  'flex items-center justify-between gap-4 p-4 rounded-2xl bg-surface ' +
-                  (d.revokedAt ? 'opacity-60' : '')
-                }
-              >
-                <div className="min-w-0">
-                  <p className="font-medium truncate flex items-center gap-2">
-                    <IconDeviceTablet size={18} aria-hidden />
-                    {d.label}
-                  </p>
-                  <p className="text-xs text-text-muted">
-                    {t('devices.token_hash_prefix', { prefix: d.tokenHashPrefix })}
-                    {d.childIds.length > 0 &&
-                      ` · ${t('devices.children_count', { count: d.childIds.length })}`}
-                    {d.revokedAt && ` · ${t('devices.revoked_badge')}`}
-                  </p>
-                </div>
-                {!d.revokedAt && (
-                  <button
-                    type="button"
-                    onClick={() => revoke.mutate(d.id)}
-                    disabled={revoke.isPending}
-                    aria-label={t('devices.revoke_button')}
-                    className="p-2 rounded-full hover:bg-surface-muted min-h-touch min-w-touch text-danger"
-                  >
-                    <IconTrash size={18} aria-hidden />
-                  </button>
-                )}
-              </li>
-            ))}
+            {devices.data.map((d) => {
+              const attachedSet = new Set(d.childIds);
+              return (
+                <li
+                  key={d.id}
+                  className={
+                    'p-4 rounded-2xl bg-surface space-y-3 ' +
+                    (d.revokedAt ? 'opacity-60' : '')
+                  }
+                >
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="min-w-0">
+                      <p className="font-medium truncate flex items-center gap-2">
+                        <IconDeviceTablet size={18} aria-hidden />
+                        {d.label}
+                      </p>
+                      <p className="text-xs text-text-muted">
+                        {t('devices.token_hash_prefix', { prefix: d.tokenHashPrefix })}
+                        {' · '}
+                        {t('devices.children_count', { count: d.childIds.length })}
+                        {d.revokedAt && ` · ${t('devices.revoked_badge')}`}
+                      </p>
+                    </div>
+                    {!d.revokedAt && (
+                      <button
+                        type="button"
+                        onClick={() => revoke.mutate(d.id)}
+                        disabled={revoke.isPending}
+                        aria-label={t('devices.revoke_button')}
+                        className="p-2 rounded-full hover:bg-surface-muted min-h-touch min-w-touch text-danger"
+                      >
+                        <IconTrash size={18} aria-hidden />
+                      </button>
+                    )}
+                  </div>
+                  {!d.revokedAt && children.data && children.data.length > 0 && (
+                    <div>
+                      <p className="text-xs text-text-muted mb-2">
+                        {t('devices.roster_inline_label')}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {children.data.map((c) => {
+                          const on = attachedSet.has(c.id);
+                          const mut = on ? detach : attach;
+                          return (
+                            <button
+                              key={c.id}
+                              type="button"
+                              onClick={() =>
+                                mut.mutate({ deviceId: d.id, childId: c.id })
+                              }
+                              disabled={mut.isPending}
+                              aria-label={
+                                on
+                                  ? t('devices.detach_aria', { name: c.displayName })
+                                  : t('devices.attach_aria', { name: c.displayName })
+                              }
+                              className={
+                                'inline-flex items-center gap-1 px-3 py-2 rounded-full text-sm min-h-touch ' +
+                                (on
+                                  ? 'bg-accent text-white'
+                                  : 'bg-bg border border-text-muted/30')
+                              }
+                            >
+                              {on ? (
+                                <IconUserMinus size={14} aria-hidden />
+                              ) : (
+                                <IconUserPlus size={14} aria-hidden />
+                              )}
+                              <span>{c.displayName}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>

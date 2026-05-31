@@ -3,9 +3,11 @@ import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   IconCalendar,
+  IconClipboardList,
   IconDeviceTablet,
   IconLogout,
   IconMenu2,
+  IconSettings,
   IconUsers,
   IconX,
 } from '@tabler/icons-react';
@@ -39,8 +41,10 @@ export function ParentShell({ children }: { children: ReactNode }) {
   const navItems = [
     { to: '/parent', label: t('nav.parent_home'), icon: IconCalendar },
     { to: '/parent/children', label: t('nav.children'), icon: IconUsers },
-    { to: '/parent/templates', label: t('nav.templates'), icon: IconCalendar },
+    { to: '/parent/templates', label: t('nav.templates'), icon: IconClipboardList },
+    { to: '/parent/assignments', label: t('nav.assignments'), icon: IconCalendar },
     { to: '/parent/devices', label: t('nav.devices'), icon: IconDeviceTablet },
+    { to: '/parent/settings', label: t('nav.settings'), icon: IconSettings },
   ];
 
   const railLinkClass = (isActive: boolean): string =>

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ParentShell } from '@/app/layouts/ParentShell';
 import { useParentLogin } from '../hooks';
 
@@ -73,6 +73,11 @@ export function ParentLoginPage() {
           >
             {login.isPending ? t('common.loading') : t('parent_login.submit')}
           </button>
+          <p className="text-sm text-center">
+            <Link to="/parent-signup" className="text-accent underline">
+              {t('parent_login.no_account')}
+            </Link>
+          </p>
           <button
             type="button"
             onClick={() => navigate('/')}

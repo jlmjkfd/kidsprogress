@@ -4,6 +4,8 @@ import type {
   ChildLoginResponse,
   DeviceLookupResponse,
   LoginRequest,
+  LoginResponse,
+  RegisterRequest,
 } from '@kidsprogress/shared';
 import { authApi } from './api';
 import { useAuthStore } from './store';
@@ -48,8 +50,18 @@ export function useChildLogin() {
 
 export function useParentLogin() {
   const setParentAccess = useAuthStore((s) => s.setParentAccess);
-  return useMutation({
-    mutationFn: (req: LoginRequest) => authApi.parentLogin(req),
+  return useMutation<LoginResponse, Error, LoginRequest>({
+    mutationFn: (req) => authApi.parentLogin(req),
+    onSuccess: (res) => {
+      setParentAccess(res.tokens.accessToken, res.tokens.expiresAt);
+    },
+  });
+}
+
+export function useParentRegister() {
+  const setParentAccess = useAuthStore((s) => s.setParentAccess);
+  return useMutation<LoginResponse, Error, RegisterRequest>({
+    mutationFn: (req) => authApi.parentRegister(req),
     onSuccess: (res) => {
       setParentAccess(res.tokens.accessToken, res.tokens.expiresAt);
     },

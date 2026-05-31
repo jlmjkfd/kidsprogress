@@ -8,6 +8,7 @@ import { useChildLogin, useDeviceLookup } from '../hooks';
 import { useAuthStore } from '../store';
 import { AvatarCard } from '../components/AvatarCard';
 import { PinPad } from '../components/PinPad';
+import { PinResetForm } from '../components/PinResetForm';
 
 /**
  * Kid-portal landing screen. Looks up the family roster from the device
@@ -22,6 +23,7 @@ export function SelectionPage() {
   const login = useChildLogin();
   const [pinChild, setPinChild] = useState<ChildRosterCard | null>(null);
   const [pinError, setPinError] = useState<string | undefined>(undefined);
+  const [resetMode, setResetMode] = useState(false);
 
   // No device token yet — send to the first-run setup screen.
   // Use <Navigate /> (declarative) instead of calling navigate() during
@@ -105,21 +107,50 @@ export function SelectionPage() {
 
       {pinChild ? (
         <section className="max-w-sm mx-auto">
-          <h2 className="text-center text-xl mb-4">
-            {t('selection.enter_pin', { name: pinChild.displayName })}
-          </h2>
-          <PinPad
-            onSubmit={onPinSubmit}
-            {...(pinError ? { errorKey: pinError } : {})}
-            busy={login.isPending}
-          />
-          <button
-            type="button"
-            onClick={() => setPinChild(null)}
-            className="mt-6 mx-auto block text-accent underline"
-          >
-            {t('selection.back')}
-          </button>
+          {resetMode ? (
+            <PinResetForm
+              childId={pinChild.id}
+              onSuccess={() => {
+                setResetMode(false);
+                setPinError('selection.pin_reset_ok');
+                lookup.refetch();
+              }}
+              onCancel={() => setResetMode(false)}
+            />
+          ) : (
+            <>
+              <h2 className="text-center text-xl mb-4">
+                {t('selection.enter_pin', { name: pinChild.displayName })}
+              </h2>
+              <PinPad
+                onSubmit={onPinSubmit}
+                {...(pinError ? { errorKey: pinError } : {})}
+                busy={login.isPending}
+              />
+              <div className="flex flex-col items-center gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPinError(undefined);
+                    setResetMode(true);
+                  }}
+                  className="text-accent underline text-sm"
+                >
+                  {t('selection.forgot_pin')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPinChild(null);
+                    setPinError(undefined);
+                  }}
+                  className="text-accent underline"
+                >
+                  {t('selection.back')}
+                </button>
+              </div>
+            </>
+          )}
         </section>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">

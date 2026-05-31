@@ -1,14 +1,19 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
+import { useMutation } from '@tanstack/react-query';
 import {
   IconArchive,
   IconArchiveOff,
+  IconEye,
   IconKey,
   IconKeyOff,
   IconPlus,
   IconRefresh,
 } from '@tabler/icons-react';
 import { ParentShell } from '@/app/layouts/ParentShell';
+import { authApi } from '@/features/auth/api';
+import { useAuthStore } from '@/features/auth/store';
 import {
   useArchiveChild,
   useChildrenList,
@@ -27,6 +32,9 @@ type ResetCodeInfo = {
 
 export function ChildrenListPage() {
   const { t } = useTranslation('common');
+  const navigate = useNavigate();
+  const setChildAccess = useAuthStore((s) => s.setChildAccess);
+  const setCurrentChild = useAuthStore((s) => s.setCurrentChild);
   const list = useChildrenList();
   const create = useCreateChild();
   const archive = useArchiveChild();
@@ -47,6 +55,28 @@ export function ChildrenListPage() {
   const [pinError, setPinError] = useState<string | undefined>();
 
   const [resetInfo, setResetInfo] = useState<ResetCodeInfo | null>(null);
+
+  const [viewAsFor, setViewAsFor] = useState<{ id: string; name: string } | null>(
+    null,
+  );
+  const [viewAsPin, setViewAsPin] = useState('');
+  const [viewAsError, setViewAsError] = useState<string | undefined>();
+
+  const viewAs = useMutation({
+    mutationFn: () => authApi.viewAsChild(viewAsFor!.id, viewAsPin),
+    onSuccess: (res) => {
+      setChildAccess(res.tokens.accessToken, res.tokens.expiresAt);
+      setCurrentChild({
+        id: res.child.id,
+        familyId: res.child.familyId,
+        displayName: res.child.displayName,
+        avatarKey: res.child.avatarKey,
+        ageBand: res.child.ageBand,
+      });
+      navigate('/today');
+    },
+    onError: () => setViewAsError('children.view_as_failed'),
+  });
 
   const submitNew = (e: React.FormEvent) => {
     e.preventDefault();
@@ -237,6 +267,64 @@ export function ChildrenListPage() {
           </section>
         )}
 
+        {viewAsFor && (
+          <section className="p-4 rounded-3xl bg-surface space-y-3">
+            <h2 className="font-display text-lg">
+              {t('children.view_as_title', { name: viewAsFor.name })}
+            </h2>
+            <p className="text-sm text-text-muted">{t('children.view_as_hint')}</p>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                setViewAsError(undefined);
+                if (!/^\d{4,6}$/.test(viewAsPin)) {
+                  setViewAsError('children.pin_invalid');
+                  return;
+                }
+                viewAs.mutate();
+              }}
+              className="space-y-3"
+            >
+              <input
+                type="password"
+                inputMode="numeric"
+                pattern="\d{4,6}"
+                value={viewAsPin}
+                onChange={(e) =>
+                  setViewAsPin(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))
+                }
+                placeholder={t('settings.pin_new_label')}
+                autoFocus
+                className="w-full min-h-touch rounded-2xl border border-text-muted/30 bg-bg p-3 font-mono text-center text-xl tracking-widest"
+              />
+              {viewAsError && (
+                <p role="alert" className="text-danger text-sm">
+                  {t(viewAsError)}
+                </p>
+              )}
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  disabled={viewAs.isPending}
+                  className="flex-1 min-h-touch rounded-2xl bg-accent text-white py-3 disabled:opacity-40"
+                >
+                  {viewAs.isPending ? t('common.loading') : t('children.view_as_submit')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setViewAsFor(null);
+                    setViewAsPin('');
+                  }}
+                  className="px-6 min-h-touch rounded-2xl border border-text-muted/30"
+                >
+                  {t('children.cancel')}
+                </button>
+              </div>
+            </form>
+          </section>
+        )}
+
         {pinEntryFor && (
           <section className="p-4 rounded-3xl bg-surface space-y-3">
             <h2 className="font-display text-lg">{t('children.set_pin_title')}</h2>
@@ -310,6 +398,20 @@ export function ChildrenListPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
+                  {!c.archivedAt && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setViewAsError(undefined);
+                        setViewAsPin('');
+                        setViewAsFor({ id: c.id, name: c.displayName });
+                      }}
+                      aria-label={t('children.view_as_button', { name: c.displayName })}
+                      className="p-2 rounded-full hover:bg-surface-muted min-h-touch min-w-touch"
+                    >
+                      <IconEye size={18} aria-hidden />
+                    </button>
+                  )}
                   {!c.archivedAt && !c.pinRequired && (
                     <button
                       type="button"

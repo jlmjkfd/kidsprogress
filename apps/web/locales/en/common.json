@@ -10,16 +10,72 @@
     "parent_home": "Home",
     "children": "Children",
     "templates": "Templates",
+    "assignments": "Assignments",
     "devices": "Devices",
+    "settings": "Settings",
     "sign_out": "Sign out",
     "sign_in": "Sign in"
+  },
+  "parent_signup": {
+    "title": "Create a parent account",
+    "subtitle": "One account per family. You can add kids and devices after sign-up.",
+    "display_name": "Your name",
+    "email": "Email",
+    "password": "Password",
+    "password_hint": "At least 8 characters.",
+    "password_too_short": "Password must be at least 8 characters.",
+    "submit": "Create account",
+    "have_account": "Already have an account? Sign in",
+    "email_taken": "That email is already registered.",
+    "invalid_input": "Check the inputs and try again.",
+    "failed": "Couldn't create the account. Try again in a moment."
+  },
+  "settings": {
+    "title": "Settings",
+    "account_title": "Account",
+    "name_label": "Name",
+    "email_label": "Email",
+    "pin_title": "Parent portal PIN",
+    "pin_already_set": "You have a portal PIN set. Submitting a new one replaces it.",
+    "pin_not_set": "Set a 4–6 digit PIN to gate sensitive parent actions (like view-as-child).",
+    "pin_new_label": "New PIN",
+    "pin_confirm_label": "Confirm PIN",
+    "pin_invalid": "PIN must be 4–6 digits.",
+    "pin_mismatch": "The two PINs don't match.",
+    "pin_save": "Save PIN",
+    "pin_saved": "PIN saved.",
+    "pin_failed": "Couldn't save the PIN."
+  },
+  "assignments": {
+    "list_title": "Assignments",
+    "filter_by_child": "Filter by child",
+    "all_children": "All children",
+    "empty": "No assignments yet.",
+    "load_failed": "Couldn't load assignments.",
+    "from_label": "from",
+    "until_label": "until",
+    "delete_button": "Delete assignment"
+  },
+  "pin_reset": {
+    "title": "Use your reset code",
+    "intro": "Your grown-up gave you a 6-digit code. Type it here, then pick a new PIN.",
+    "code_label": "Reset code",
+    "new_pin_label": "New PIN (4–6 digits)",
+    "new_pin_hint": "You'll use this PIN next time.",
+    "submit": "Set new PIN",
+    "cancel": "Cancel",
+    "code_invalid": "The reset code must be 6 digits.",
+    "pin_invalid": "PIN must be 4–6 digits.",
+    "failed": "That didn't work. Ask your grown-up for a new reset code."
   },
   "selection": {
     "greeting": "Hi, {{family}} 👋",
     "parent_button": "Parent settings",
     "enter_pin": "Enter your PIN, {{name}}",
     "wrong_pin": "Wrong PIN — try again",
+    "pin_reset_ok": "PIN reset — enter your new PIN to sign in.",
     "back": "Back",
+    "forgot_pin": "Forgot PIN?",
     "no_children_on_device": "No children on this device yet. Ask a grown-up to add some.",
     "lookup_failed": "We couldn't reach the server.",
     "re_register_device": "Set up this device again"
@@ -38,6 +94,7 @@
     "password": "Password",
     "submit": "Sign in",
     "back_to_kids": "Back to kids' screen",
+    "no_account": "No account? Create one",
     "invalid_credentials": "Email or password is wrong."
   },
   "pin": {
@@ -110,7 +167,12 @@
     "reset_title": "One-time PIN reset code",
     "reset_warning": "Read this code aloud to the kid. They enter it on the device along with a new PIN. Server never shows it again.",
     "reset_expires_at": "Expires {{at}}",
-    "reset_dismiss": "Done"
+    "reset_dismiss": "Done",
+    "view_as_button": "View as {{name}}",
+    "view_as_title": "View as {{name}}",
+    "view_as_hint": "Enter your parent portal PIN to mint a read-only token for this child's view.",
+    "view_as_submit": "View",
+    "view_as_failed": "Couldn't start view-as. Wrong PIN, or no portal PIN set yet (set one in Settings)."
   },
   "devices": {
     "list_title": "Devices",
@@ -133,7 +195,10 @@
     "token_hash_prefix": "id: {{prefix}}",
     "children_count": "{{count}} child(ren)",
     "revoked_badge": "revoked",
-    "revoke_button": "Revoke"
+    "revoke_button": "Revoke",
+    "roster_inline_label": "Children visible on this device",
+    "attach_aria": "Show {{name}} on this device",
+    "detach_aria": "Hide {{name}} on this device"
   },
   "templates": {
     "list_title": "Task templates",
