@@ -45,8 +45,15 @@ export const parentMeSchema = z.object({
   locale: localeSchema,
   /** True when the parent has set a parent-portal PIN re-gate. */
   hasParentPortalPin: z.boolean(),
+  /** Family-level AI features kill switch — closed by default. */
+  aiFeaturesEnabled: z.boolean(),
 });
 export type ParentMe = z.infer<typeof parentMeSchema>;
+
+export const setAiFeaturesRequestSchema = z.object({
+  enabled: z.boolean(),
+});
+export type SetAiFeaturesRequest = z.infer<typeof setAiFeaturesRequestSchema>;
 
 export const childMeSchema = z.object({
   id: z.string().uuid(),

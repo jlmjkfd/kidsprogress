@@ -87,7 +87,13 @@
     "pin_mismatch": "The two PINs don't match.",
     "pin_save": "Save PIN",
     "pin_saved": "PIN saved.",
-    "pin_failed": "Couldn't save the PIN."
+    "pin_failed": "Couldn't save the PIN.",
+    "ai_title": "AI features",
+    "ai_description": "Closed by default. Turn this on to let your kids' writing tasks get AI feedback (and other AI features). Each task template still has its own AI checkbox — both must be on for a call to happen.",
+    "ai_toggle_label": "Enable AI features for this account",
+    "ai_currently_on": "Currently on",
+    "ai_currently_off": "Currently off",
+    "ai_no_key": "Server has no Gemini API key configured — calls will return AI_KEY_NOT_CONFIGURED."
   },
   "assignments": {
     "list_title": "Assignments",
@@ -178,6 +184,14 @@
     "writing_placeholder": "Start typing…",
     "writing_word_count": "{{current}} / {{min}}–{{max}} words",
     "writing_save_draft": "Save",
+    "ai_get_feedback": "Get feedback",
+    "ai_evaluating": "Reading…",
+    "ai_feedback_title": "Feedback",
+    "ai_disabled": "Ask a grown-up to turn on AI features in Settings.",
+    "ai_cap_exceeded": "AI is taking a rest for today — you've used your daily limit.",
+    "ai_no_key": "AI isn't set up on this server yet. Ask the grown-up to add a Gemini API key.",
+    "ai_template_disabled": "This task doesn't use AI feedback.",
+    "ai_failed": "Couldn't get feedback right now. Try again later.",
     "reading_book_title_label": "Book title",
     "reading_minutes_label": "Minutes read (need at least {{min}})",
     "reading_summary_label": "Short summary"
@@ -280,6 +294,8 @@
     "field_writing_prompt": "Writing prompt",
     "field_writing_min": "Min words",
     "field_writing_max": "Max words",
+    "field_writing_ai_eval": "Ask AI for friendly feedback on submit",
+    "field_writing_ai_eval_hint": "Requires the account-level AI toggle (Settings → AI features) and a configured server key. Closed by default.",
     "field_reading_min_minutes": "Min minutes",
     "field_reading_require_summary": "Require a short summary",
     "field_name": "Name",

@@ -51,6 +51,9 @@
 | `/api/scheduling/calendar` | GET | ✅ | `/today` (child), `/parent/calendar` (parent month + week) |
 | `/api/scheduling/materialize` | POST | n/a | superseded by `/api/instances/transition` |
 | `/api/scheduling/exceptions` | POST / DELETE | ✅ | Skip + Reschedule + Undo on `/parent/calendar` day-detail panel |
+| `/api/auth/me/ai-features` | POST | ✅ | AI toggle on `/parent/settings` |
+| `/api/ai/status` | GET | ✅ | Used by `/parent/settings` + executor branching |
+| `/api/ai/writing-eval` | POST | ✅ | "Get feedback" button on the kid's WritingExecutor |
 | `/api/instances/transition` | POST | ✅ | `/today` Start + Done; `/today/execute/:id` Done |
 | `/api/instances/:id/run` | GET | ✅ | `/today/execute/:id` |
 | `/api/instances/:id/session` | GET / PUT | ✅ | `/today/execute/:id` save-progress + resume |

@@ -24,6 +24,16 @@ import { execSync } from 'node:child_process';
 
 const MIGRATION_PATH_PREFIX = 'packages/db/src/migrations/';
 
+/**
+ * Paths that legitimately change each time `pnpm db:generate` runs.
+ * Drizzle's journal is the index of every applied migration — it MUST
+ * be appended to when a new `NNNN_*.sql` lands. Skip these from the
+ * frozen-files check.
+ */
+const ALLOWED_TO_CHANGE: ReadonlyArray<string> = [
+  'packages/db/src/migrations/meta/_journal.json',
+];
+
 function listStagedChanges(): { modified: string[]; deleted: string[] } {
   const raw = execSync('git diff --cached --name-status --no-renames', {
     encoding: 'utf8',
@@ -39,6 +49,7 @@ function listStagedChanges(): { modified: string[]; deleted: string[] } {
     const path = pathParts.join('\t');
     if (!path) continue;
     if (!path.startsWith(MIGRATION_PATH_PREFIX)) continue;
+    if (ALLOWED_TO_CHANGE.includes(path)) continue;
     if (status === 'M' || status === 'R') modified.push(path);
     else if (status === 'D') deleted.push(path);
   }

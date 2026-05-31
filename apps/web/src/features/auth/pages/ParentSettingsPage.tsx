@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ParentShell } from '@/app/layouts/ParentShell';
 import { authApi } from '../api';
+import { aiApi } from '@/features/ai/api';
 
 /**
  * Parent account settings. v2.5 scope:
@@ -12,9 +13,21 @@ import { authApi } from '../api';
  */
 export function ParentSettingsPage() {
   const { t } = useTranslation('common');
+  const qc = useQueryClient();
   const me = useQuery({
     queryKey: ['parent', 'me'],
     queryFn: () => authApi.parentMe(),
+  });
+  const aiStatus = useQuery({
+    queryKey: ['ai', 'status'],
+    queryFn: () => aiApi.status(),
+  });
+  const setAi = useMutation({
+    mutationFn: (enabled: boolean) => aiApi.setAccountToggle(enabled),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['parent', 'me'] });
+      void qc.invalidateQueries({ queryKey: ['ai', 'status'] });
+    },
   });
   const [pin, setPin] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -125,6 +138,51 @@ export function ParentSettingsPage() {
               {setPinMut.isPending ? t('common.loading') : t('settings.pin_save')}
             </button>
           </form>
+        </section>
+
+        <section className="p-4 rounded-3xl bg-surface space-y-3">
+          <h2 className="font-display text-lg">{t('settings.ai_title')}</h2>
+          <p className="text-sm text-text-muted">{t('settings.ai_description')}</p>
+          <div className="flex items-center justify-between gap-3 p-3 rounded-2xl bg-bg">
+            <div className="min-w-0">
+              <p className="font-medium">{t('settings.ai_toggle_label')}</p>
+              <p className="text-xs text-text-muted">
+                {aiStatus.data?.accountEnabled
+                  ? t('settings.ai_currently_on')
+                  : t('settings.ai_currently_off')}
+                {aiStatus.data && !aiStatus.data.serverKeyConfigured && (
+                  <>
+                    {' '}
+                    · <span className="text-danger">{t('settings.ai_no_key')}</span>
+                  </>
+                )}
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={me.data?.aiFeaturesEnabled ?? false}
+              onClick={() => setAi.mutate(!(me.data?.aiFeaturesEnabled ?? false))}
+              disabled={setAi.isPending || !me.data}
+              className={
+                'relative inline-flex h-7 w-12 items-center rounded-full transition-colors ' +
+                (me.data?.aiFeaturesEnabled
+                  ? 'bg-accent'
+                  : 'bg-text-muted/30') +
+                ' disabled:opacity-40'
+              }
+            >
+              <span
+                aria-hidden
+                className={
+                  'inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform ' +
+                  (me.data?.aiFeaturesEnabled
+                    ? 'translate-x-6'
+                    : 'translate-x-1')
+                }
+              />
+            </button>
+          </div>
         </section>
       </div>
     </ParentShell>

@@ -23,6 +23,7 @@ import {
   parentMeSchema,
   refreshResponseSchema,
   registerRequestSchema,
+  setAiFeaturesRequestSchema,
   setParentPinRequestSchema,
   verifyParentPinRequestSchema,
   viewAsChildRequestSchema,
@@ -78,6 +79,7 @@ function toParentMe(u: UserRow): z.infer<typeof parentMeSchema> {
     displayName: u.displayName,
     locale: u.locale === 'zh' ? 'zh' : 'en',
     hasParentPortalPin: u.parentPortalPinHash !== null,
+    aiFeaturesEnabled: u.aiFeaturesEnabled,
   };
 }
 
@@ -214,6 +216,30 @@ export async function registerAuthRoutes(
     async (req, reply) => {
       await service.verifyParentPin(req.currentUser!.id, req.body.pin, ctxOf(req));
       return reply.code(204).send(null);
+    },
+  );
+
+  /**
+   * Flip the family-level AI features kill switch. Closed by default; the
+   * parent has to explicitly opt in before any AI route can hit Gemini.
+   */
+  app.post(
+    '/me/ai-features',
+    {
+      schema: { body: setAiFeaturesRequestSchema, response: { 200: parentMeSchema } },
+      config: { role: 'parent' },
+    },
+    async (req, reply) => {
+      const [updated] = await deps.db
+        .update(usersTable)
+        .set({
+          aiFeaturesEnabled: req.body.enabled,
+          updatedAt: new Date().toISOString(),
+        })
+        .where(eq(usersTable.id, req.currentUser!.id))
+        .returning();
+      if (!updated) throw app.httpErrors.notFound('User not found');
+      return reply.send(toParentMe(updated));
     },
   );
 

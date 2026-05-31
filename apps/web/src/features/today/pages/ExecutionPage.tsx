@@ -121,6 +121,7 @@ export function ExecutionPage() {
         {run.data.template.handlerId === 'writing' && (
           <WritingExecutor
             templateConfig={run.data.template.config}
+            instanceId={run.data.instance.id}
             initialState={session.data?.progressState ?? null}
             onSave={(s) => save.mutate(s)}
             onComplete={() => complete.mutate()}
@@ -366,6 +367,7 @@ interface WritingTemplateData {
 
 function WritingExecutor(props: {
   templateConfig: Record<string, unknown>;
+  instanceId: string;
   initialState: ProgressState | null;
   onSave: (s: ProgressState) => void;
   onComplete: () => void;
@@ -391,6 +393,9 @@ function WritingExecutor(props: {
   }, [props.initialState]);
 
   const [body, setBody] = useState(initial.body);
+  const [aiFeedback, setAiFeedback] = useState<string | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [evalPending, setEvalPending] = useState(false);
   const wc = countWords(body);
   const tooShort = wc < config.minWords;
   const tooLong = wc > config.maxWords;
@@ -401,6 +406,53 @@ function WritingExecutor(props: {
       templateData: { body } as unknown as Record<string, unknown>,
       toolStates: props.initialState?.toolStates ?? {},
     });
+
+  const runAiEval = async (): Promise<void> => {
+    setAiError(null);
+    setEvalPending(true);
+    try {
+      const { aiApi } = await import('@/features/ai/api');
+      const res = await aiApi.writingEval({
+        instanceId: props.instanceId,
+        text: body,
+      });
+      setAiFeedback(res.feedback);
+    } catch (err) {
+      const { ApiError } = await import('@/lib/apiClient');
+      if (err instanceof ApiError) {
+        const code = (err.body as { code?: string } | undefined)?.code;
+        switch (code) {
+          case 'AI_DISABLED':
+            setAiError('execution.ai_disabled');
+            break;
+          case 'AI_TOKEN_CAP_EXCEEDED':
+            setAiError('execution.ai_cap_exceeded');
+            break;
+          case 'AI_KEY_NOT_CONFIGURED':
+            setAiError('execution.ai_no_key');
+            break;
+          case 'AI_TEMPLATE_DISABLED':
+            setAiError('execution.ai_template_disabled');
+            break;
+          default:
+            setAiError('execution.ai_failed');
+        }
+      } else {
+        setAiError('execution.ai_failed');
+      }
+    } finally {
+      setEvalPending(false);
+    }
+  };
+
+  const onDone = async () => {
+    saveDraft();
+    if (config.aiEvalEnabled && !aiFeedback) {
+      await runAiEval();
+      return; // Let the kid read the feedback; second Done press completes.
+    }
+    props.onComplete();
+  };
 
   return (
     <section className="space-y-4">
@@ -430,6 +482,21 @@ function WritingExecutor(props: {
           max: config.maxWords,
         })}
       </p>
+      {aiFeedback && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="p-4 rounded-2xl bg-accent-soft border border-accent-border"
+        >
+          <p className="font-medium mb-1">{t('execution.ai_feedback_title')}</p>
+          <p className="text-sm whitespace-pre-wrap">{aiFeedback}</p>
+        </div>
+      )}
+      {aiError && (
+        <p role="alert" className="text-sm text-danger text-center">
+          {t(aiError)}
+        </p>
+      )}
       <div className="flex gap-3">
         <button
           type="button"
@@ -447,14 +514,15 @@ function WritingExecutor(props: {
         </button>
         <button
           type="button"
-          onClick={() => {
-            saveDraft();
-            props.onComplete();
-          }}
-          disabled={!canSubmit || props.completing}
+          onClick={() => void onDone()}
+          disabled={!canSubmit || props.completing || evalPending}
           className="flex-1 min-h-touch rounded-2xl bg-success text-white py-3 disabled:opacity-40 text-lg"
         >
-          {t('execution.done')}
+          {evalPending
+            ? t('execution.ai_evaluating')
+            : config.aiEvalEnabled && !aiFeedback
+              ? t('execution.ai_get_feedback')
+              : t('execution.done')}
         </button>
       </div>
     </section>

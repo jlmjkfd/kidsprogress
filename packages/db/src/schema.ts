@@ -41,6 +41,15 @@ export const users = sqliteTable(
     parentPortalPinHash: text('parent_portal_pin_hash'),
     /** UI / i18n preference. 'en' | 'zh' at launch. */
     locale: text('locale').notNull().default('en'),
+    /**
+     * Family-level AI-features kill switch. CLOSED BY DEFAULT — the parent
+     * must explicitly opt in via the settings page before any handler can
+     * call Gemini. When false, every AI route returns 403 with the code
+     * `AI_DISABLED`.
+     */
+    aiFeaturesEnabled: integer('ai_features_enabled', { mode: 'boolean' })
+      .notNull()
+      .default(false),
     createdAt: text('created_at').notNull().default(ISO_NOW),
     updatedAt: text('updated_at').notNull().default(ISO_NOW),
   },
@@ -476,6 +485,49 @@ export const taskSessions = sqliteTable(
   }),
 );
 
+// ── LLM call log (token-cap accounting + audit) ─────────────────────────
+
+/**
+ * One row per LLM call. The Gemini wrapper writes here BEFORE each call
+ * sums-on-read of `totalTokens` for `(childId, dateInChildTz)` enforces
+ * the per-child daily cap declared on `children.dailyAiTokenCap`.
+ *
+ * Never store the user-typed prompt or the model response here — only
+ * counts. The audit log lives in `auth_events` for separate concerns.
+ */
+export const llmLogs = sqliteTable(
+  'llm_logs',
+  {
+    id: text('id').primaryKey(),
+    /** Family scope. */
+    familyId: text('family_id').notNull(),
+    /** Which child the call was attributed to (drives the daily cap). */
+    childId: text('child_id')
+      .notNull()
+      .references(() => children.id, { onDelete: 'cascade' }),
+    /** Optional — task_instance the call originated from. */
+    instanceId: text('instance_id'),
+    /** Coarse purpose — drives separate per-feature quotas later. */
+    feature: text('feature', {
+      enum: ['writing_eval', 'recommendation', 'math_hint', 'other'],
+    }).notNull(),
+    provider: text('provider').notNull(),
+    model: text('model').notNull(),
+    promptTokens: integer('prompt_tokens').notNull(),
+    completionTokens: integer('completion_tokens').notNull(),
+    totalTokens: integer('total_tokens').notNull(),
+    latencyMs: integer('latency_ms'),
+    finishReason: text('finish_reason'),
+    /** Populated on failure; null on success. */
+    error: text('error'),
+    createdAt: text('created_at').notNull().default(ISO_NOW),
+  },
+  (t) => ({
+    childAtIdx: index('llm_logs_child_at_idx').on(t.childId, t.createdAt),
+    familyIdx: index('llm_logs_family_idx').on(t.familyId),
+  }),
+);
+
 // ── row type exports ─────────────────────────────────────────────────────
 export type UserRow = typeof users.$inferSelect;
 export type NewUserRow = typeof users.$inferInsert;
@@ -499,3 +551,5 @@ export type RecurrenceExceptionRow = typeof recurrenceExceptions.$inferSelect;
 export type NewRecurrenceExceptionRow = typeof recurrenceExceptions.$inferInsert;
 export type TaskSessionRow = typeof taskSessions.$inferSelect;
 export type NewTaskSessionRow = typeof taskSessions.$inferInsert;
+export type LlmLogRow = typeof llmLogs.$inferSelect;
+export type NewLlmLogRow = typeof llmLogs.$inferInsert;

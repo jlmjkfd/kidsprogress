@@ -85,7 +85,13 @@
     "pin_mismatch": "两次输入的密码不一致。",
     "pin_save": "保存密码",
     "pin_saved": "密码已保存。",
-    "pin_failed": "保存密码失败。"
+    "pin_failed": "保存密码失败。",
+    "ai_title": "AI 功能",
+    "ai_description": "默认关闭。开启后，写作任务等可获取 AI 反馈。每个任务模板仍有独立的 AI 开关，两者都需开启才会真正调用。",
+    "ai_toggle_label": "为此账号启用 AI 功能",
+    "ai_currently_on": "当前已开启",
+    "ai_currently_off": "当前已关闭",
+    "ai_no_key": "服务器未配置 Gemini API 密钥，相关调用将返回 AI_KEY_NOT_CONFIGURED。"
   },
   "assignments": {
     "list_title": "任务安排",
@@ -176,6 +182,14 @@
     "writing_placeholder": "开始写吧…",
     "writing_word_count": "{{current}} / {{min}}–{{max}} 字",
     "writing_save_draft": "保存",
+    "ai_get_feedback": "获取反馈",
+    "ai_evaluating": "正在阅读…",
+    "ai_feedback_title": "反馈",
+    "ai_disabled": "请让大人在设置中开启 AI 功能。",
+    "ai_cap_exceeded": "今天的 AI 额度已用完，明天再来吧。",
+    "ai_no_key": "服务器尚未配置 AI 密钥，请大人添加 Gemini API 密钥。",
+    "ai_template_disabled": "此任务未开启 AI 反馈。",
+    "ai_failed": "暂时无法获取反馈，请稍后再试。",
     "reading_book_title_label": "书名",
     "reading_minutes_label": "阅读分钟数（至少 {{min}} 分钟）",
     "reading_summary_label": "简短摘要"
@@ -278,6 +292,8 @@
     "field_writing_prompt": "写作提示",
     "field_writing_min": "最少字数",
     "field_writing_max": "最多字数",
+    "field_writing_ai_eval": "提交后请 AI 给出友好反馈",
+    "field_writing_ai_eval_hint": "需要先在「设置 → AI 功能」开启账号级开关，且服务器已配置密钥。默认关闭。",
     "field_reading_min_minutes": "最少阅读分钟",
     "field_reading_require_summary": "需要简短摘要",
     "field_name": "名称",

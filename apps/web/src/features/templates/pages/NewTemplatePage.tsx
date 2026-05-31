@@ -28,6 +28,7 @@ export function NewTemplatePage() {
   const [writingPrompt, setWritingPrompt] = useState('');
   const [writingMin, setWritingMin] = useState(30);
   const [writingMax, setWritingMax] = useState(150);
+  const [writingAiEval, setWritingAiEval] = useState(false);
   // reading-log
   const [readingMinMinutes, setReadingMinMinutes] = useState(15);
   const [readingRequireSummary, setReadingRequireSummary] = useState(false);
@@ -59,7 +60,7 @@ export function NewTemplatePage() {
             prompt: writingPrompt.trim(),
             minWords: writingMin,
             maxWords: writingMax,
-            aiEvalEnabled: false,
+            aiEvalEnabled: writingAiEval,
           };
         case 'reading-log':
           return {
@@ -181,6 +182,20 @@ export function NewTemplatePage() {
                   />
                 </div>
               </div>
+              <label className="flex items-start gap-2 min-h-touch">
+                <input
+                  type="checkbox"
+                  checked={writingAiEval}
+                  onChange={(e) => setWritingAiEval(e.target.checked)}
+                  className="mt-1"
+                />
+                <span>
+                  <span className="block">{t('templates.field_writing_ai_eval')}</span>
+                  <span className="block text-xs text-text-muted">
+                    {t('templates.field_writing_ai_eval_hint')}
+                  </span>
+                </span>
+              </label>
             </div>
           )}
 
