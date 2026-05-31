@@ -38,6 +38,11 @@
     "no_children": "暂无孩子",
     "previous_month": "上一个月",
     "next_month": "下一个月",
+    "previous_week": "上一周",
+    "next_week": "下一周",
+    "view_month": "月",
+    "view_week": "周",
+    "view_switcher": "视图",
     "load_failed": "无法加载本月日历。",
     "count_tasks": "{{count}} 项任务",
     "day_empty": "当日无任务。",
@@ -45,7 +50,12 @@
     "status_in_progress": "进行中",
     "status_completed": "已完成",
     "status_skipped": "已跳过",
-    "status_abandoned": "已放弃"
+    "status_abandoned": "已放弃",
+    "rescheduled_badge": "已改期",
+    "reschedule_button": "改期",
+    "reschedule_prompt": "改到哪一天？(YYYY-MM-DD)",
+    "skip_button": "跳过",
+    "undo_button": "撤销"
   },
   "parent_signup": {
     "title": "创建家长账号",

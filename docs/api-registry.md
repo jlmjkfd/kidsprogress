@@ -48,8 +48,9 @@
 
 | Endpoint | Method | UI? | Surface |
 |---|---|---|---|
-| `/api/scheduling/calendar` | GET | ✅ | `/today` (child) |
+| `/api/scheduling/calendar` | GET | ✅ | `/today` (child), `/parent/calendar` (parent month + week) |
 | `/api/scheduling/materialize` | POST | n/a | superseded by `/api/instances/transition` |
+| `/api/scheduling/exceptions` | POST / DELETE | ✅ | Skip + Reschedule + Undo on `/parent/calendar` day-detail panel |
 | `/api/instances/transition` | POST | ✅ | `/today` Start + Done; `/today/execute/:id` Done |
 | `/api/instances/:id/run` | GET | ✅ | `/today/execute/:id` |
 | `/api/instances/:id/session` | GET / PUT | ✅ | `/today/execute/:id` save-progress + resume |

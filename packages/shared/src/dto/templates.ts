@@ -153,6 +153,8 @@ export const instanceKeySchema = z.union([
     kind: z.literal('virtual'),
     assignmentId: z.string().uuid(),
     originalDate: z.string(),
+    /** When the parent has rescheduled the occurrence, the new render date. */
+    rescheduledTo: z.string().optional(),
   }),
 ]);
 export type InstanceKey = z.infer<typeof instanceKeySchema>;

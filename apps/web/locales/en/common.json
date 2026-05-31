@@ -38,6 +38,11 @@
     "no_children": "No children yet",
     "previous_month": "Previous month",
     "next_month": "Next month",
+    "previous_week": "Previous week",
+    "next_week": "Next week",
+    "view_month": "Month",
+    "view_week": "Week",
+    "view_switcher": "View",
     "load_failed": "Couldn't load this month.",
     "count_tasks_one": "{{count}} task",
     "count_tasks_other": "{{count}} tasks",
@@ -47,7 +52,12 @@
     "status_in_progress": "In progress",
     "status_completed": "Completed",
     "status_skipped": "Skipped",
-    "status_abandoned": "Abandoned"
+    "status_abandoned": "Abandoned",
+    "rescheduled_badge": "Rescheduled",
+    "reschedule_button": "Reschedule",
+    "reschedule_prompt": "Move this task to which date? (YYYY-MM-DD)",
+    "skip_button": "Skip",
+    "undo_button": "Undo"
   },
   "parent_signup": {
     "title": "Create a parent account",

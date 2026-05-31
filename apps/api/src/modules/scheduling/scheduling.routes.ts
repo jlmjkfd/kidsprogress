@@ -16,6 +16,7 @@ import {
 import { createAssignmentsRepo } from '../assignments/assignments.repo.js';
 import { expandOccurrences } from './expander.js';
 import { materialize } from './materialize.js';
+import { createExceptionsRepo } from './exceptions.repo.js';
 
 type ZodFastify = FastifyInstance<
   RawServerDefault,
@@ -52,8 +53,36 @@ const calendarItemSchema = z.union([
     assignmentId: z.string().uuid(),
     childId: z.string().uuid(),
     originalDate: z.string(),
+    /** When the parent has rescheduled the occurrence, the new render date. */
+    rescheduledTo: z.string().optional(),
   }),
 ]);
+
+const exceptionBodySchema = z.union([
+  z.object({
+    assignmentId: z.string().uuid(),
+    originalDate: z.string().datetime(),
+    action: z.literal('skip'),
+  }),
+  z.object({
+    assignmentId: z.string().uuid(),
+    originalDate: z.string().datetime(),
+    action: z.literal('reschedule'),
+    rescheduledTo: z.string().datetime(),
+  }),
+]);
+
+const exceptionResponseSchema = z.object({
+  assignmentId: z.string().uuid(),
+  occurrenceDate: z.string(),
+  action: z.enum(['skip', 'reschedule', 'override', 'materialized']),
+  rescheduledTo: z.string().nullable(),
+});
+
+const exceptionDeleteQuerySchema = z.object({
+  assignmentId: z.string().uuid(),
+  originalDate: z.string().datetime(),
+});
 
 const calendarResponseSchema = z.object({
   items: z.array(calendarItemSchema),
@@ -75,6 +104,7 @@ export async function registerSchedulingRoutes(
   deps: SchedulingRoutesDeps,
 ): Promise<void> {
   const assignmentsRepo = createAssignmentsRepo(deps.db);
+  const exceptionsRepo = createExceptionsRepo(deps.db);
 
   /**
    * Calendar read. Returns the union of (a) every materialized instance
@@ -111,11 +141,30 @@ export async function registerSchedulingRoutes(
       }
 
       const assignments = await assignmentsRepo.listByChild(child.id);
+      // Pre-fetch exceptions in the window — widened by 14 days so a
+      // reschedule that pulls an occurrence INTO the window still resolves.
+      const wideLo = new Date(req.query.from);
+      wideLo.setDate(wideLo.getDate() - 14);
+      const wideHi = new Date(req.query.to);
+      wideHi.setDate(wideHi.getDate() + 14);
+      const exceptions = await exceptionsRepo.listForAssignments(
+        assignments.map((a) => a.id),
+        wideLo.toISOString(),
+        wideHi.toISOString(),
+      );
+      const byAssignment = new Map<string, typeof exceptions>();
+      for (const ex of exceptions) {
+        const list = byAssignment.get(ex.assignmentId) ?? [];
+        list.push(ex);
+        byAssignment.set(ex.assignmentId, list);
+      }
+
       const virtualKeys = assignments.flatMap((a) =>
-        expandOccurrences(a, { from: req.query.from, to: req.query.to }).map((k) => ({
-          ...k,
-          childId: child.id,
-        })),
+        expandOccurrences(
+          a,
+          { from: req.query.from, to: req.query.to },
+          byAssignment.get(a.id) ?? [],
+        ).map((k) => ({ ...k, childId: child.id })),
       );
 
       // Materialized rows already in the range.
@@ -145,12 +194,23 @@ export async function registerSchedulingRoutes(
         })),
         ...virtualKeys
           .filter((k) => !materializedKeys.has(`${k.assignmentId}|${k.originalDate}`))
-          .map((k) => ({
-            kind: 'virtual' as const,
-            assignmentId: k.assignmentId,
-            childId: k.childId,
-            originalDate: k.originalDate,
-          })),
+          .map((k) => {
+            // k is the InstanceKey shape from the expander; it may carry a
+            // rescheduledTo when an exception moved the occurrence.
+            const rk = k as unknown as {
+              kind: 'virtual';
+              assignmentId: string;
+              originalDate: string;
+              rescheduledTo?: string;
+            };
+            return {
+              kind: 'virtual' as const,
+              assignmentId: rk.assignmentId,
+              childId: k.childId,
+              originalDate: rk.originalDate,
+              ...(rk.rescheduledTo ? { rescheduledTo: rk.rescheduledTo } : {}),
+            };
+          }),
       ];
 
       return reply.send({ items });
@@ -194,6 +254,75 @@ export async function registerSchedulingRoutes(
         originalDate: row.originalDate,
         occurrenceDate: row.occurrenceDate,
       });
+    },
+  );
+
+  /**
+   * Apply a recurrence exception — skip or reschedule. Parent-only.
+   * Upsert by `(assignmentId, originalDate)` so flipping between skip and
+   * reschedule keeps a single row.
+   */
+  app.post(
+    '/exceptions',
+    {
+      schema: {
+        body: exceptionBodySchema,
+        response: { 201: exceptionResponseSchema },
+      },
+      config: { role: 'parent' },
+    },
+    async (req, reply) => {
+      const { taskAssignments } = await import('@kidsprogress/db');
+      const [assignment] = await deps.db
+        .select()
+        .from(taskAssignments)
+        .where(eq(taskAssignments.id, req.body.assignmentId))
+        .limit(1);
+      if (!assignment || assignment.parentId !== req.currentUser!.familyId) {
+        throw app.httpErrors.notFound('Assignment not found');
+      }
+
+      const { v7: uuidv7 } = await import('uuid');
+      const row = await exceptionsRepo.upsert({
+        id: uuidv7(),
+        assignmentId: req.body.assignmentId,
+        occurrenceDate: req.body.originalDate,
+        action: req.body.action,
+        ...(req.body.action === 'reschedule'
+          ? { rescheduledTo: req.body.rescheduledTo }
+          : {}),
+      });
+      return reply.code(201).send({
+        assignmentId: row.assignmentId,
+        occurrenceDate: row.occurrenceDate,
+        action: row.action,
+        rescheduledTo: row.rescheduledTo,
+      });
+    },
+  );
+
+  /** Remove an exception — restores the rrule default for that date. */
+  app.delete(
+    '/exceptions',
+    {
+      schema: {
+        querystring: exceptionDeleteQuerySchema,
+        response: { 204: z.null() },
+      },
+      config: { role: 'parent' },
+    },
+    async (req, reply) => {
+      const { taskAssignments } = await import('@kidsprogress/db');
+      const [assignment] = await deps.db
+        .select()
+        .from(taskAssignments)
+        .where(eq(taskAssignments.id, req.query.assignmentId))
+        .limit(1);
+      if (!assignment || assignment.parentId !== req.currentUser!.familyId) {
+        throw app.httpErrors.notFound('Assignment not found');
+      }
+      await exceptionsRepo.delete(req.query.assignmentId, req.query.originalDate);
+      return reply.code(204).send(null);
     },
   );
 }
