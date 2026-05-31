@@ -11,6 +11,8 @@ import {
 } from '@tabler/icons-react';
 import { ParentShell } from '@/app/layouts/ParentShell';
 import { childrenApi } from '@/features/children/api';
+import { useParentMe } from '@/features/auth/hooks-me';
+import { PinGateDialog } from '@/features/auth/components/PinGateDialog';
 import { devicesApi } from '../api';
 
 /**
@@ -56,12 +58,27 @@ export function DevicesListPage() {
     onError: () => setError('devices.register_failed'),
   });
 
+  const me = useParentMe();
+  const [revokeFor, setRevokeFor] = useState<{ id: string; label: string } | null>(
+    null,
+  );
   const revoke = useMutation({
     mutationFn: (id: string) => devicesApi.revoke(id),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['devices', 'list'] });
+      setRevokeFor(null);
     },
   });
+  const startRevoke = (id: string, label: string) => {
+    // If the parent has a portal PIN set, gate the revoke behind a PIN
+    // re-check. Otherwise (no PIN configured), proceed immediately — same
+    // pattern as view-as-child.
+    if (me.data?.hasParentPortalPin) {
+      setRevokeFor({ id, label });
+    } else {
+      revoke.mutate(id);
+    }
+  };
   const attach = useMutation({
     mutationFn: (vars: { deviceId: string; childId: string }) =>
       devicesApi.attachChild(vars.deviceId, vars.childId),
@@ -114,6 +131,16 @@ export function DevicesListPage() {
             </button>
           )}
         </header>
+
+        {revokeFor && (
+          <PinGateDialog
+            title={t('devices.revoke_confirm_title', { label: revokeFor.label })}
+            description={t('devices.revoke_confirm_desc')}
+            confirmLabel={t('devices.revoke_confirm_button')}
+            onConfirmed={() => revoke.mutate(revokeFor.id)}
+            onCancel={() => setRevokeFor(null)}
+          />
+        )}
 
         {issuedToken && (
           <section
@@ -269,7 +296,7 @@ export function DevicesListPage() {
                     {!d.revokedAt && (
                       <button
                         type="button"
-                        onClick={() => revoke.mutate(d.id)}
+                        onClick={() => startRevoke(d.id, d.label)}
                         disabled={revoke.isPending}
                         aria-label={t('devices.revoke_button')}
                         className="p-2 rounded-full hover:bg-surface-muted min-h-touch min-w-touch text-danger"

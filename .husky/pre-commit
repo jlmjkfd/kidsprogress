@@ -1,0 +1,3 @@
+#!/usr/bin/env sh
+# Reject edits to applied migration files. See scripts/check-migrations.ts.
+pnpm exec tsx scripts/check-migrations.ts

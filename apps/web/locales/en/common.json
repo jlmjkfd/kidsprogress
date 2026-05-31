@@ -242,7 +242,16 @@
     "revoke_button": "Revoke",
     "roster_inline_label": "Children visible on this device",
     "attach_aria": "Show {{name}} on this device",
-    "detach_aria": "Hide {{name}} on this device"
+    "detach_aria": "Hide {{name}} on this device",
+    "revoke_confirm_title": "Revoke \"{{label}}\"?",
+    "revoke_confirm_desc": "All sessions on this device will end. The kid will need a new device code to set it up again.",
+    "revoke_confirm_button": "Revoke"
+  },
+  "pin_gate": {
+    "placeholder": "PIN",
+    "confirm": "Confirm",
+    "invalid_pin": "PIN must be 4–6 digits.",
+    "wrong_pin": "Wrong PIN."
   },
   "templates": {
     "list_title": "Task templates",

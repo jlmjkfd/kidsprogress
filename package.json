@@ -20,11 +20,15 @@
     "db:migrate": "pnpm --filter @kidsprogress/db run migrate",
     "db:seed": "pnpm --filter @kidsprogress/db run seed",
     "api:dev": "pnpm --filter @kidsprogress/api run dev",
-    "web:dev": "pnpm --filter @kidsprogress/web run dev"
+    "web:dev": "pnpm --filter @kidsprogress/web run dev",
+    "check:migrations": "tsx scripts/check-migrations.ts",
+    "rotate:jwt-secret": "tsx scripts/rotate-jwt-secret.ts",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@kidsprogress/shared": "workspace:*",
     "@types/node": "^22.10.0",
+    "husky": "^9.1.7",
     "prettier": "^3.4.2",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3"
