@@ -7,22 +7,46 @@ export const todayKeys = {
     [...todayKeys.all, 'calendar', childId, from, to] as const,
 };
 
-/** Calendar window for the kid's "today" — start-of-day → end-of-day local. */
-export function dayRange(now: Date = new Date()): { from: string; to: string } {
-  const start = new Date(now);
+/** Calendar window covering one local calendar day. */
+export function dayRange(day: Date = new Date()): { from: string; to: string } {
+  const start = new Date(day);
   start.setHours(0, 0, 0, 0);
-  const end = new Date(now);
+  const end = new Date(day);
   end.setHours(23, 59, 59, 999);
   return { from: start.toISOString(), to: end.toISOString() };
 }
 
-export function useTodayCalendar(childId: string | null) {
-  const { from, to } = dayRange();
+/** Inclusive multi-day range — used by the parent MonthView. */
+export function rangeFor(from: Date, to: Date): { from: string; to: string } {
+  const lo = new Date(from);
+  lo.setHours(0, 0, 0, 0);
+  const hi = new Date(to);
+  hi.setHours(23, 59, 59, 999);
+  return { from: lo.toISOString(), to: hi.toISOString() };
+}
+
+export function useTodayCalendar(childId: string | null, day: Date = new Date()) {
+  const { from, to } = dayRange(day);
   return useQuery({
     queryKey: todayKeys.calendar(childId ?? '', from, to),
     queryFn: () => todayApi.calendar(childId!, from, to).then((r) => r.items),
     enabled: childId !== null,
     staleTime: 30_000,
+  });
+}
+
+export function useCalendarRange(
+  childId: string | null,
+  from: Date,
+  to: Date,
+) {
+  const range = rangeFor(from, to);
+  return useQuery({
+    queryKey: todayKeys.calendar(childId ?? '', range.from, range.to),
+    queryFn: () =>
+      todayApi.calendar(childId!, range.from, range.to).then((r) => r.items),
+    enabled: childId !== null,
+    staleTime: 60_000,
   });
 }
 

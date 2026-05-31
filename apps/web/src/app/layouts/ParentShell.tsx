@@ -40,9 +40,10 @@ export function ParentShell({ children }: { children: ReactNode }) {
 
   const navItems = [
     { to: '/parent', label: t('nav.parent_home'), icon: IconCalendar },
+    { to: '/parent/calendar', label: t('nav.calendar'), icon: IconCalendar },
     { to: '/parent/children', label: t('nav.children'), icon: IconUsers },
     { to: '/parent/templates', label: t('nav.templates'), icon: IconClipboardList },
-    { to: '/parent/assignments', label: t('nav.assignments'), icon: IconCalendar },
+    { to: '/parent/assignments', label: t('nav.assignments'), icon: IconClipboardList },
     { to: '/parent/devices', label: t('nav.devices'), icon: IconDeviceTablet },
     { to: '/parent/settings', label: t('nav.settings'), icon: IconSettings },
   ];

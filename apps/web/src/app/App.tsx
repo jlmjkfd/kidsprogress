@@ -5,6 +5,7 @@ import { ParentLoginPage } from '@/features/auth/pages/ParentLoginPage';
 import { ParentSignUpPage } from '@/features/auth/pages/ParentSignUpPage';
 import { ParentSettingsPage } from '@/features/auth/pages/ParentSettingsPage';
 import { AssignmentsListPage } from '@/features/assignments/pages/AssignmentsListPage';
+import { CalendarPage } from '@/features/calendar/pages/CalendarPage';
 import { TemplatesListPage } from '@/features/templates/pages/TemplatesListPage';
 import { NewTemplatePage } from '@/features/templates/pages/NewTemplatePage';
 import { AssignTemplatePage } from '@/features/assignments/pages/AssignTemplatePage';
@@ -31,6 +32,7 @@ export function App() {
         <Route path="/parent-signup" element={<ParentSignUpPage />} />
         <Route path="/parent/settings" element={<ParentSettingsPage />} />
         <Route path="/parent/assignments" element={<AssignmentsListPage />} />
+        <Route path="/parent/calendar" element={<CalendarPage />} />
         <Route path="/today/execute/:instanceId" element={<ExecutionPage />} />
         <Route path="/today" element={<TodayPage />} />
         <Route path="/parent" element={<ParentHomePlaceholder />} />

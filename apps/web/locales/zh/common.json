@@ -23,6 +23,7 @@
     "open_menu": "打开菜单",
     "close_menu": "关闭菜单",
     "parent_home": "主页",
+    "calendar": "日历",
     "children": "孩子",
     "templates": "模板",
     "assignments": "任务安排",
@@ -30,6 +31,21 @@
     "settings": "设置",
     "sign_out": "退出登录",
     "sign_in": "登录"
+  },
+  "calendar": {
+    "title": "日历",
+    "child_picker": "选择孩子",
+    "no_children": "暂无孩子",
+    "previous_month": "上一个月",
+    "next_month": "下一个月",
+    "load_failed": "无法加载本月日历。",
+    "count_tasks": "{{count}} 项任务",
+    "day_empty": "当日无任务。",
+    "status_pending": "待开始",
+    "status_in_progress": "进行中",
+    "status_completed": "已完成",
+    "status_skipped": "已跳过",
+    "status_abandoned": "已放弃"
   },
   "parent_signup": {
     "title": "创建家长账号",
@@ -156,7 +172,8 @@
   },
   "parent_home": {
     "placeholder_title": "家长主页",
-    "placeholder_body": "日历与子女切换器将在第 3 阶段上线。",
+    "placeholder_body": "从左侧菜单进入相应模块，或直接打开日历。",
+    "go_to_calendar": "打开日历",
     "go_to_children": "管理孩子",
     "go_to_templates": "管理任务模板",
     "go_to_devices": "管理设备"

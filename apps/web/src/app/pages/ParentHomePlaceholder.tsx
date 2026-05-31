@@ -15,8 +15,14 @@ export function ParentHomePlaceholder() {
         <p className="text-text-muted">{t('parent_home.placeholder_body')}</p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2 flex-wrap">
           <Link
-            to="/parent/children"
+            to="/parent/calendar"
             className="inline-block min-h-touch rounded-2xl bg-accent text-white px-6 py-3"
+          >
+            {t('parent_home.go_to_calendar')}
+          </Link>
+          <Link
+            to="/parent/children"
+            className="inline-block min-h-touch rounded-2xl border border-text-muted/30 px-6 py-3"
           >
             {t('parent_home.go_to_children')}
           </Link>

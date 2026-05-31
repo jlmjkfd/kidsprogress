@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { IconCheck, IconPlayerPlay } from '@tabler/icons-react';
 import { ChildShell } from '@/app/layouts/ChildShell';
 import { useAuthStore } from '@/features/auth/store';
 import { itemStatus, useTodayCalendar, useTransition } from '../hooks';
+import { WeekStrip } from '../components/WeekStrip';
 
 /**
  * Kid's "Today" — shows the calendar items materialized + virtual for the
@@ -11,12 +13,25 @@ import { itemStatus, useTodayCalendar, useTransition } from '../hooks';
  * again to mark complete.
  */
 export function TodayPage() {
-  const { t } = useTranslation('common');
+  const { t, i18n } = useTranslation('common');
   const navigate = useNavigate();
   const currentChild = useAuthStore((s) => s.currentChild);
   const childId = currentChild?.id ?? null;
-  const cal = useTodayCalendar(childId);
+  const [selectedDay, setSelectedDay] = useState(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  });
+  const cal = useTodayCalendar(childId, selectedDay);
   const transition = useTransition(childId);
+
+  const todayMidnight = new Date();
+  todayMidnight.setHours(0, 0, 0, 0);
+  const isToday = selectedDay.getTime() === todayMidnight.getTime();
+  const dayLabel = new Intl.DateTimeFormat(
+    i18n.language === 'zh' ? 'zh-CN' : 'en-US',
+    { weekday: 'long', month: 'long', day: 'numeric' },
+  ).format(selectedDay);
 
   if (!currentChild) {
     return <Navigate to="/" replace />;
@@ -39,6 +54,15 @@ export function TodayPage() {
   return (
     <ChildShell age={currentChild.ageBand}>
       <div className="max-w-2xl mx-auto py-6 px-4 space-y-6">
+        <WeekStrip selected={selectedDay} onSelect={setSelectedDay} />
+        {!isToday && (
+          <p
+            className="text-center text-text-muted text-sm"
+            aria-live="polite"
+          >
+            {dayLabel}
+          </p>
+        )}
         {cal.isPending && <p className="text-text-muted">{t('common.loading')}</p>}
         {cal.isError && (
           <p role="alert" className="text-danger">

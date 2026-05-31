@@ -23,6 +23,7 @@
     "open_menu": "Open menu",
     "close_menu": "Close menu",
     "parent_home": "Home",
+    "calendar": "Calendar",
     "children": "Children",
     "templates": "Templates",
     "assignments": "Assignments",
@@ -30,6 +31,23 @@
     "settings": "Settings",
     "sign_out": "Sign out",
     "sign_in": "Sign in"
+  },
+  "calendar": {
+    "title": "Calendar",
+    "child_picker": "Pick a child",
+    "no_children": "No children yet",
+    "previous_month": "Previous month",
+    "next_month": "Next month",
+    "load_failed": "Couldn't load this month.",
+    "count_tasks_one": "{{count}} task",
+    "count_tasks_other": "{{count}} tasks",
+    "count_tasks": "{{count}} tasks",
+    "day_empty": "No tasks on this day.",
+    "status_pending": "Pending",
+    "status_in_progress": "In progress",
+    "status_completed": "Completed",
+    "status_skipped": "Skipped",
+    "status_abandoned": "Abandoned"
   },
   "parent_signup": {
     "title": "Create a parent account",
@@ -156,7 +174,8 @@
   },
   "parent_home": {
     "placeholder_title": "Parent home",
-    "placeholder_body": "Calendar + child selector arrives in Phase 3.",
+    "placeholder_body": "Pick a surface from the rail, or start with the calendar.",
+    "go_to_calendar": "Open the calendar",
     "go_to_children": "Manage children",
     "go_to_templates": "Manage task templates",
     "go_to_devices": "Manage devices"
