@@ -59,7 +59,20 @@
     "task_at": "{{time}} 的任务",
     "start": "开始",
     "complete": "完成",
-    "done": "已完成"
+    "done": "已完成",
+    "resume": "继续"
+  },
+  "execution": {
+    "back": "返回",
+    "done": "完成",
+    "unsupported_handler": "此类型任务（{{id}}）暂不支持。",
+    "math_progress": "第 {{current}} / {{total}} 题",
+    "math_answer_label": "你的答案",
+    "math_submit": "提交",
+    "math_correct": "答对了！",
+    "math_wrong": "再试一次",
+    "math_all_done": "全部完成！",
+    "math_score": "{{total}} 题对了 {{correct}} 题。"
   },
   "parent_home": {
     "placeholder_title": "家长主页",

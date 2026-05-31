@@ -59,7 +59,20 @@
     "task_at": "Task at {{time}}",
     "start": "Start",
     "complete": "Done",
-    "done": "Done"
+    "done": "Done",
+    "resume": "Keep going"
+  },
+  "execution": {
+    "back": "Back",
+    "done": "Done",
+    "unsupported_handler": "This kind of task ({{id}}) isn't supported on this device yet.",
+    "math_progress": "Question {{current}} of {{total}}",
+    "math_answer_label": "Your answer",
+    "math_submit": "Check",
+    "math_correct": "Nice!",
+    "math_wrong": "Try again",
+    "math_all_done": "All done!",
+    "math_score": "You got {{correct}} of {{total}} right."
   },
   "parent_home": {
     "placeholder_title": "Parent home",

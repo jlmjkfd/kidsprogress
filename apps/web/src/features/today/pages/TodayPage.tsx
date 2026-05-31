@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { IconCheck, IconPlayerPlay } from '@tabler/icons-react';
 import { ChildShell } from '@/app/layouts/ChildShell';
 import { useAuthStore } from '@/features/auth/store';
@@ -12,6 +12,7 @@ import { itemStatus, useTodayCalendar, useTransition } from '../hooks';
  */
 export function TodayPage() {
   const { t } = useTranslation('common');
+  const navigate = useNavigate();
   const currentChild = useAuthStore((s) => s.currentChild);
   const childId = currentChild?.id ?? null;
   const cal = useTodayCalendar(childId);
@@ -22,7 +23,16 @@ export function TodayPage() {
   }
 
   const onStart = (assignmentId: string, originalDate: string) =>
-    transition.mutate({ assignmentId, originalDate, action: 'start' });
+    transition.mutate(
+      { assignmentId, originalDate, action: 'start' },
+      {
+        onSuccess: (row) => {
+          const r = row as { id: string };
+          navigate(`/today/execute/${r.id}`);
+        },
+      },
+    );
+  const onResume = (instanceId: string) => navigate(`/today/execute/${instanceId}`);
   const onComplete = (assignmentId: string, originalDate: string) =>
     transition.mutate({ assignmentId, originalDate, action: 'complete' });
 
@@ -81,17 +91,26 @@ export function TodayPage() {
                       {t('today.start')}
                     </button>
                   )}
-                  {status === 'in_progress' && (
-                    <button
-                      type="button"
-                      onClick={() => onComplete(item.assignmentId, item.originalDate)}
-                      disabled={transition.isPending}
-                      aria-label={t('today.complete')}
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-success text-white min-h-touch"
-                    >
-                      <IconCheck size={18} aria-hidden />
-                      {t('today.complete')}
-                    </button>
+                  {status === 'in_progress' && item.kind === 'materialized' && (
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => onResume(item.instanceId)}
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl border border-text-muted/30 min-h-touch"
+                      >
+                        {t('today.resume')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onComplete(item.assignmentId, item.originalDate)}
+                        disabled={transition.isPending}
+                        aria-label={t('today.complete')}
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-success text-white min-h-touch"
+                      >
+                        <IconCheck size={18} aria-hidden />
+                        {t('today.complete')}
+                      </button>
+                    </div>
                   )}
                   {status === 'completed' && (
                     <span className="text-success font-medium" aria-label={t('today.done')}>

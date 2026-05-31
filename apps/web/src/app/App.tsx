@@ -8,6 +8,7 @@ import { AssignTemplatePage } from '@/features/assignments/pages/AssignTemplateP
 import { DevicesListPage } from '@/features/devices/pages/DevicesListPage';
 import { ChildrenListPage } from '@/features/children/pages/ChildrenListPage';
 import { TodayPage } from '@/features/today/pages/TodayPage';
+import { ExecutionPage } from '@/features/today/pages/ExecutionPage';
 import { ParentHomePlaceholder } from './pages/ParentHomePlaceholder';
 
 /**
@@ -22,6 +23,7 @@ export function App() {
         <Route path="/" element={<SelectionPage />} />
         <Route path="/setup-device" element={<SetupDevicePage />} />
         <Route path="/parent-login" element={<ParentLoginPage />} />
+        <Route path="/today/execute/:instanceId" element={<ExecutionPage />} />
         <Route path="/today" element={<TodayPage />} />
         <Route path="/parent" element={<ParentHomePlaceholder />} />
         <Route path="/parent/children" element={<ChildrenListPage />} />

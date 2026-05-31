@@ -1,4 +1,5 @@
 import { apiClient } from '@/lib/apiClient';
+import type { ProgressState, TaskSession } from '@kidsprogress/shared';
 
 /**
  * One item on the calendar list. Returned by GET /api/scheduling/calendar.
@@ -38,6 +39,21 @@ interface TransitionResponse {
   completedAt: string | null;
 }
 
+export interface InstanceRunPayload {
+  instance: TransitionResponse & {
+    effectiveTitle: string;
+    effectiveDescription: string | null;
+  };
+  template: {
+    id: string;
+    handlerId: string;
+    schemaVersion: number;
+    pluginVersion: number;
+    name: string;
+    config: Record<string, unknown>;
+  };
+}
+
 export const todayApi = {
   calendar: (childId: string, from: string, to: string) =>
     apiClient.get<CalendarResponse>(
@@ -52,4 +68,22 @@ export const todayApi = {
     occurrenceDate?: string;
     action: 'start' | 'complete' | 'skip' | 'abandon';
   }) => apiClient.post<TransitionResponse>('/api/instances/transition', req),
+
+  /** Composite read for the kid's execution surface. */
+  run: (instanceId: string) =>
+    apiClient.get<InstanceRunPayload>(`/api/instances/${instanceId}/run`),
+
+  /** Read the active session (resume). Returns null if there's none. */
+  getSession: (instanceId: string) =>
+    apiClient.get<TaskSession | null>(`/api/instances/${instanceId}/session`),
+
+  saveSession: (
+    instanceId: string,
+    pluginVersion: number,
+    progressState: ProgressState,
+  ) =>
+    apiClient.put<TaskSession>(`/api/instances/${instanceId}/session`, {
+      pluginVersion,
+      progressState,
+    }),
 };
