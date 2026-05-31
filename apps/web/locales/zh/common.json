@@ -53,7 +53,31 @@
   "parent_home": {
     "placeholder_title": "家长主页",
     "placeholder_body": "日历与子女切换器将在第 3 阶段上线。",
-    "go_to_templates": "管理任务模板"
+    "go_to_templates": "管理任务模板",
+    "go_to_devices": "管理设备"
+  },
+  "devices": {
+    "list_title": "设备",
+    "new_button": "新增设备",
+    "form_title": "注册新设备",
+    "label_label": "名称",
+    "label_placeholder": "例：客厅 iPad",
+    "roster_label": "哪些孩子出现在此设备上？",
+    "roster_hint": "不选表示显示所有现有孩子，可随时修改。",
+    "create": "创建设备",
+    "cancel": "取消",
+    "token_title": "一次性设备码",
+    "token_warning": "请立即复制此设备码并粘贴到孩子的平板上。该码不会再次显示——遗失请重新创建。",
+    "copy_button": "复制",
+    "copied": "已复制！",
+    "dismiss": "已保存",
+    "register_failed": "注册失败，请检查输入后重试。",
+    "list_failed": "加载设备失败。",
+    "empty": "暂无设备，请新增一个以设置孩子的平板。",
+    "token_hash_prefix": "id：{{prefix}}",
+    "children_count": "{{count}} 名孩子",
+    "revoked_badge": "已撤销",
+    "revoke_button": "撤销"
   },
   "templates": {
     "list_title": "任务模板",

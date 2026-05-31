@@ -53,7 +53,31 @@
   "parent_home": {
     "placeholder_title": "Parent home",
     "placeholder_body": "Calendar + child selector arrives in Phase 3.",
-    "go_to_templates": "Manage task templates"
+    "go_to_templates": "Manage task templates",
+    "go_to_devices": "Manage devices"
+  },
+  "devices": {
+    "list_title": "Devices",
+    "new_button": "Add a device",
+    "form_title": "Register a new device",
+    "label_label": "Label",
+    "label_placeholder": "e.g. Living-room iPad",
+    "roster_label": "Which children appear on this device?",
+    "roster_hint": "Pick none to show every current child. You can change this later.",
+    "create": "Create device",
+    "cancel": "Cancel",
+    "token_title": "Your one-time device code",
+    "token_warning": "Copy this code and paste it on the kid's tablet now. It is NOT shown again — if you lose it, just create a new device.",
+    "copy_button": "Copy",
+    "copied": "Copied!",
+    "dismiss": "I've saved it",
+    "register_failed": "Couldn't register that device. Check the inputs and try again.",
+    "list_failed": "Couldn't load your devices.",
+    "empty": "No devices yet. Register one to set up a kid's tablet.",
+    "token_hash_prefix": "id: {{prefix}}",
+    "children_count": "{{count}} child(ren)",
+    "revoked_badge": "revoked",
+    "revoke_button": "Revoke"
   },
   "templates": {
     "list_title": "Task templates",
