@@ -3,6 +3,17 @@
   "common": {
     "loading": "加载中…"
   },
+  "nav": {
+    "aria_main": "主导航",
+    "open_menu": "打开菜单",
+    "close_menu": "关闭菜单",
+    "parent_home": "主页",
+    "children": "孩子",
+    "templates": "模板",
+    "devices": "设备",
+    "sign_out": "退出登录",
+    "sign_in": "登录"
+  },
   "selection": {
     "greeting": "{{family}}，你好 👋",
     "parent_button": "家长设置",

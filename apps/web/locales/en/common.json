@@ -3,6 +3,17 @@
   "common": {
     "loading": "Loading…"
   },
+  "nav": {
+    "aria_main": "Main navigation",
+    "open_menu": "Open menu",
+    "close_menu": "Close menu",
+    "parent_home": "Home",
+    "children": "Children",
+    "templates": "Templates",
+    "devices": "Devices",
+    "sign_out": "Sign out",
+    "sign_in": "Sign in"
+  },
   "selection": {
     "greeting": "Hi, {{family}} 👋",
     "parent_button": "Parent settings",
