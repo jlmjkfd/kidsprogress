@@ -156,3 +156,40 @@ export const instanceKeySchema = z.union([
   }),
 ]);
 export type InstanceKey = z.infer<typeof instanceKeySchema>;
+
+// ── progress state (task_sessions.progressState) ─────────────────────────
+/**
+ * Per-attempt progress blob. Split into two namespaces:
+ *   - `templateData`: handler-owned (math: which problem, what answers).
+ *   - `toolStates`: host-owned (timer elapsed, note body, calc tape).
+ *
+ * Both halves are `z.record(z.unknown())` at the boundary — the handler
+ * and tool registries enforce internal shape when they read it. This keeps
+ * the persistence chokepoint dumb and version-agnostic.
+ */
+export const progressStateSchema = z.object({
+  templateData: z.record(z.unknown()),
+  toolStates: z.record(z.unknown()),
+});
+export type ProgressState = z.infer<typeof progressStateSchema>;
+
+export const taskSessionSchema = z.object({
+  id: z.string().uuid(),
+  instanceId: z.string().uuid(),
+  childId: z.string().uuid(),
+  pluginVersion: z.number().int().positive(),
+  progressState: progressStateSchema,
+  lastSavedAt: z.string().datetime(),
+  completedAt: z.string().datetime().nullable(),
+  createdAt: z.string().datetime(),
+});
+export type TaskSession = z.infer<typeof taskSessionSchema>;
+
+export const saveSessionProgressRequestSchema = z.object({
+  /** Plugin version the client built `templateData` against — must match the template's. */
+  pluginVersion: z.number().int().positive(),
+  progressState: progressStateSchema,
+});
+export type SaveSessionProgressRequest = z.infer<
+  typeof saveSessionProgressRequestSchema
+>;

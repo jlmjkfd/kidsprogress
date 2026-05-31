@@ -22,6 +22,7 @@ import { registerTemplatesRoutes } from './modules/templates/templates.routes.js
 import { registerAssignmentsRoutes } from './modules/assignments/assignments.routes.js';
 import { registerSchedulingRoutes } from './modules/scheduling/scheduling.routes.js';
 import { registerInstancesRoutes } from './modules/instances/instances.routes.js';
+import { registerSessionsRoutes } from './modules/sessions/sessions.routes.js';
 import { createTemplatesRepo } from './modules/templates/templates.repo.js';
 import { assertAllPersistedVersionsRegistered } from '@kidsprogress/shared';
 
@@ -103,6 +104,12 @@ export async function buildApp(deps: AppDeps) {
   await app.register(
     async function instancesScope(scope) {
       await registerInstancesRoutes(scope.withTypeProvider<ZodTypeProvider>(), { db });
+    },
+    { prefix: '/api/instances' },
+  );
+  await app.register(
+    async function sessionsScope(scope) {
+      await registerSessionsRoutes(scope.withTypeProvider<ZodTypeProvider>(), { db });
     },
     { prefix: '/api/instances' },
   );

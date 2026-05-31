@@ -2,6 +2,7 @@ import { and, eq } from 'drizzle-orm';
 import {
   taskAssignments,
   taskInstances,
+  taskSessions,
   type Database_,
   type TaskInstanceRow,
 } from '@kidsprogress/db';
@@ -79,6 +80,25 @@ export function createInstancesService(opts: { db: Database_ }) {
         .where(eq(taskInstances.id, row.id))
         .returning();
       if (!updated) throw new InstanceNotFoundError('Instance vanished mid-update');
+
+      // Burn any active session when the instance reaches a terminal state.
+      // The session blob stays on disk for history (`task_sessions` is not
+      // deleted), just flagged completed.
+      if (
+        updated.status === 'completed' ||
+        updated.status === 'skipped' ||
+        updated.status === 'abandoned'
+      ) {
+        await opts.db
+          .update(taskSessions)
+          .set({ completedAt: new Date().toISOString() })
+          .where(
+            and(
+              eq(taskSessions.instanceId, updated.id),
+              eq(taskSessions.childId, updated.childId),
+            ),
+          );
+      }
       return updated;
     },
 
