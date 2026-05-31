@@ -129,7 +129,13 @@
     "math_correct": "Nice!",
     "math_wrong": "Try again",
     "math_all_done": "All done!",
-    "math_score": "You got {{correct}} of {{total}} right."
+    "math_score": "You got {{correct}} of {{total}} right.",
+    "writing_placeholder": "Start typing…",
+    "writing_word_count": "{{current}} / {{min}}–{{max}} words",
+    "writing_save_draft": "Save",
+    "reading_book_title_label": "Book title",
+    "reading_minutes_label": "Minutes read (need at least {{min}})",
+    "reading_summary_label": "Short summary"
   },
   "parent_home": {
     "placeholder_title": "Parent home",
@@ -212,6 +218,13 @@
     "field_handler": "Type",
     "handler_generic": "Generic checklist / open-ended",
     "handler_math": "Math drills (addition / subtraction)",
+    "handler_writing": "Writing prompt",
+    "handler_reading_log": "Reading log",
+    "field_writing_prompt": "Writing prompt",
+    "field_writing_min": "Min words",
+    "field_writing_max": "Max words",
+    "field_reading_min_minutes": "Min minutes",
+    "field_reading_require_summary": "Require a short summary",
     "field_name": "Name",
     "field_instructions": "Instructions",
     "field_instructions_hint": "Shown to the kid above any checklist steps. Optional.",

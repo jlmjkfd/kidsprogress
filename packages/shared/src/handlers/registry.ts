@@ -1,6 +1,8 @@
 import type { AnyHandlerModule, HandlerVersion } from './types.js';
 import { genericHandler } from './generic.js';
 import { additionSubtractionHandler } from './addition-subtraction.js';
+import { writingHandler } from './writing.js';
+import { readingLogHandler } from './reading-log.js';
 
 /**
  * Registered handler modules. Add a new module here when implementing a
@@ -11,6 +13,8 @@ import { additionSubtractionHandler } from './addition-subtraction.js';
 const REGISTRY: ReadonlyArray<AnyHandlerModule> = [
   genericHandler as AnyHandlerModule,
   additionSubtractionHandler as AnyHandlerModule,
+  writingHandler as AnyHandlerModule,
+  readingLogHandler as AnyHandlerModule,
 ];
 
 const byId: ReadonlyMap<string, AnyHandlerModule> = new Map(

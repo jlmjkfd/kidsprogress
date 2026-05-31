@@ -42,8 +42,8 @@ describe('handler registry', () => {
     expect(() =>
       assertAllPersistedVersionsRegistered([
         { handlerId: 'generic', schemaVersion: 1 },
-        { handlerId: 'writing', schemaVersion: 1 },
+        { handlerId: 'totally-unknown-handler', schemaVersion: 1 },
       ]),
-    ).toThrowError(/writing@v1/);
+    ).toThrowError(/totally-unknown-handler@v1/);
   });
 });

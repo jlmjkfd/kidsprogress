@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { ParentShell } from '@/app/layouts/ParentShell';
 import { useCreateTemplate } from '../hooks';
 
-type HandlerChoice = 'generic' | 'addition-subtraction';
+type HandlerChoice = 'generic' | 'addition-subtraction' | 'writing' | 'reading-log';
 
 /**
  * Minimal handler-aware template creation form. v2.5 launch supports two
@@ -24,18 +24,27 @@ export function NewTemplatePage() {
   const [includeSubtraction, setIncludeSubtraction] = useState(false);
   const [questionsPerSlot, setQuestionsPerSlot] = useState(10);
   const [requiredSlots, setRequiredSlots] = useState(1);
+  // writing
+  const [writingPrompt, setWritingPrompt] = useState('');
+  const [writingMin, setWritingMin] = useState(30);
+  const [writingMax, setWritingMax] = useState(150);
+  // reading-log
+  const [readingMinMinutes, setReadingMinMinutes] = useState(15);
+  const [readingRequireSummary, setReadingRequireSummary] = useState(false);
   const [error, setError] = useState<string | undefined>();
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(undefined);
-    const config =
-      handlerId === 'generic'
-        ? {
+    const config = (() => {
+      switch (handlerId) {
+        case 'generic':
+          return {
             steps: [],
             ...(instructions.trim() ? { instructions: instructions.trim() } : {}),
-          }
-        : {
+          };
+        case 'addition-subtraction':
+          return {
             maxValue,
             operations: includeSubtraction
               ? ['addition', 'subtraction']
@@ -45,6 +54,20 @@ export function NewTemplatePage() {
             questionsPerSlot,
             requiredSlots,
           };
+        case 'writing':
+          return {
+            prompt: writingPrompt.trim(),
+            minWords: writingMin,
+            maxWords: writingMax,
+            aiEvalEnabled: false,
+          };
+        case 'reading-log':
+          return {
+            minMinutes: readingMinMinutes,
+            requireSummary: readingRequireSummary,
+          };
+      }
+    })();
     create.mutate(
       { handlerId, schemaVersion: 1, name: name.trim(), config },
       {
@@ -73,6 +96,8 @@ export function NewTemplatePage() {
               <option value="addition-subtraction">
                 {t('templates.handler_math')}
               </option>
+              <option value="writing">{t('templates.handler_writing')}</option>
+              <option value="reading-log">{t('templates.handler_reading_log')}</option>
             </select>
           </div>
           <div>
@@ -107,6 +132,82 @@ export function NewTemplatePage() {
               <p className="text-xs text-text-muted mt-1">
                 {t('templates.field_instructions_hint')}
               </p>
+            </div>
+          )}
+
+          {handlerId === 'writing' && (
+            <div className="space-y-3 p-3 rounded-2xl bg-surface">
+              <div>
+                <label htmlFor="wp" className="block text-sm mb-1">
+                  {t('templates.field_writing_prompt')}
+                </label>
+                <textarea
+                  id="wp"
+                  value={writingPrompt}
+                  onChange={(e) => setWritingPrompt(e.target.value)}
+                  maxLength={2000}
+                  rows={3}
+                  required
+                  className="w-full rounded-2xl border border-text-muted/30 bg-bg p-3"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="wmin" className="block text-sm mb-1">
+                    {t('templates.field_writing_min')}
+                  </label>
+                  <input
+                    id="wmin"
+                    type="number"
+                    min={0}
+                    max={2000}
+                    value={writingMin}
+                    onChange={(e) => setWritingMin(Number(e.target.value))}
+                    className="w-full min-h-touch rounded-2xl border border-text-muted/30 bg-bg p-3"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="wmax" className="block text-sm mb-1">
+                    {t('templates.field_writing_max')}
+                  </label>
+                  <input
+                    id="wmax"
+                    type="number"
+                    min={1}
+                    max={5000}
+                    value={writingMax}
+                    onChange={(e) => setWritingMax(Number(e.target.value))}
+                    className="w-full min-h-touch rounded-2xl border border-text-muted/30 bg-bg p-3"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {handlerId === 'reading-log' && (
+            <div className="space-y-3 p-3 rounded-2xl bg-surface">
+              <div>
+                <label htmlFor="rmm" className="block text-sm mb-1">
+                  {t('templates.field_reading_min_minutes')}
+                </label>
+                <input
+                  id="rmm"
+                  type="number"
+                  min={0}
+                  max={240}
+                  value={readingMinMinutes}
+                  onChange={(e) => setReadingMinMinutes(Number(e.target.value))}
+                  className="w-full min-h-touch rounded-2xl border border-text-muted/30 bg-bg p-3"
+                />
+              </div>
+              <label className="flex items-center gap-2 min-h-touch">
+                <input
+                  type="checkbox"
+                  checked={readingRequireSummary}
+                  onChange={(e) => setReadingRequireSummary(e.target.checked)}
+                />
+                {t('templates.field_reading_require_summary')}
+              </label>
             </div>
           )}
 

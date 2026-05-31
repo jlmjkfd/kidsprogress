@@ -44,12 +44,53 @@ function pickAuthHeader(path: string): Record<string, string> {
   return parentAccessToken ? { Authorization: `Bearer ${parentAccessToken}` } : {};
 }
 
+/**
+ * Silent refresh chokepoint. Multiple 401s racing for refresh share one
+ * in-flight promise — the second caller awaits the first's result. On
+ * success, every queued caller retries its original request with the
+ * fresh token; on failure, the cached promise is cleared and each caller
+ * surfaces the original 401.
+ */
+let refreshPromise: Promise<boolean> | null = null;
+
+async function tryRefreshParentToken(): Promise<boolean> {
+  if (refreshPromise) return refreshPromise;
+  refreshPromise = (async () => {
+    try {
+      const res = await fetch(`${env.VITE_API_BASE_URL}/api/auth/refresh`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!res.ok) return false;
+      const body = (await res.json()) as { accessToken: string; expiresAt: string };
+      useAuthStore
+        .getState()
+        .setParentAccess(body.accessToken, body.expiresAt);
+      return true;
+    } catch {
+      return false;
+    } finally {
+      // Allow a future failure to retry — but only after the current one resolves.
+      setTimeout(() => {
+        refreshPromise = null;
+      }, 0);
+    }
+  })();
+  return refreshPromise;
+}
+
+interface RequestInitExt extends RequestInit {
+  json?: unknown;
+  /** Internal: set true on the auto-retried request so we don't loop forever. */
+  _isRetry?: boolean;
+}
+
 async function request<T = unknown>(
   method: string,
   path: string,
-  init: RequestInit & { json?: unknown } = {},
+  init: RequestInitExt = {},
 ): Promise<T> {
-  const { json, headers, ...rest } = init;
+  const { json, headers, _isRetry, ...rest } = init;
   const res = await fetch(`${env.VITE_API_BASE_URL}${path}`, {
     method,
     credentials: 'include',
@@ -61,6 +102,24 @@ async function request<T = unknown>(
     ...(json !== undefined ? { body: JSON.stringify(json) } : {}),
     ...rest,
   });
+
+  // 401 on a protected path → one-shot silent refresh + retry.
+  if (
+    res.status === 401 &&
+    !_isRetry &&
+    !path.startsWith('/api/auth/refresh') &&
+    !path.startsWith('/api/auth/login') &&
+    !path.startsWith('/api/auth/register') &&
+    !path.startsWith('/api/auth/logout') &&
+    !path.startsWith('/api/devices/lookup') &&
+    !path.startsWith('/api/devices/child-login') &&
+    !path.startsWith('/api/children/pin/use-reset')
+  ) {
+    const refreshed = await tryRefreshParentToken();
+    if (refreshed) {
+      return request<T>(method, path, { ...init, _isRetry: true });
+    }
+  }
 
   const text = await res.text();
   const body: unknown = text ? safeJson(text) : undefined;

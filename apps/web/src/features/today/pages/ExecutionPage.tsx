@@ -4,10 +4,15 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   additionSubtractionConfigV1Schema,
+  countWords,
   generateProblems,
   mulberry32,
+  readingLogConfigV1Schema,
+  writingConfigV1Schema,
   type AdditionSubtractionConfigV1,
   type ProgressState,
+  type ReadingLogConfigV1,
+  type WritingConfigV1,
 } from '@kidsprogress/shared';
 import { ChildShell } from '@/app/layouts/ChildShell';
 import { useAuthStore } from '@/features/auth/store';
@@ -113,7 +118,31 @@ export function ExecutionPage() {
           />
         )}
 
-        {!['generic', 'addition-subtraction'].includes(run.data.template.handlerId) && (
+        {run.data.template.handlerId === 'writing' && (
+          <WritingExecutor
+            templateConfig={run.data.template.config}
+            initialState={session.data?.progressState ?? null}
+            onSave={(s) => save.mutate(s)}
+            onComplete={() => complete.mutate()}
+            completing={complete.isPending}
+            onBack={() => navigate('/today')}
+          />
+        )}
+
+        {run.data.template.handlerId === 'reading-log' && (
+          <ReadingLogExecutor
+            templateConfig={run.data.template.config}
+            initialState={session.data?.progressState ?? null}
+            onSave={(s) => save.mutate(s)}
+            onComplete={() => complete.mutate()}
+            completing={complete.isPending}
+            onBack={() => navigate('/today')}
+          />
+        )}
+
+        {!['generic', 'addition-subtraction', 'writing', 'reading-log'].includes(
+          run.data.template.handlerId,
+        ) && (
           <p className="text-text-muted">
             {t('execution.unsupported_handler', { id: run.data.template.handlerId })}
           </p>
@@ -326,6 +355,231 @@ function MathExecutor(props: {
           </button>
         </div>
       </form>
+    </section>
+  );
+}
+
+interface WritingTemplateData {
+  body: string;
+  submittedAt?: string;
+}
+
+function WritingExecutor(props: {
+  templateConfig: Record<string, unknown>;
+  initialState: ProgressState | null;
+  onSave: (s: ProgressState) => void;
+  onComplete: () => void;
+  completing: boolean;
+  onBack: () => void;
+}) {
+  const { t } = useTranslation('common');
+  const config: WritingConfigV1 = useMemo(() => {
+    const p = writingConfigV1Schema.safeParse(props.templateConfig);
+    return p.success
+      ? p.data
+      : {
+          prompt: '(prompt missing)',
+          minWords: 0,
+          maxWords: 500,
+          aiEvalEnabled: false,
+        };
+  }, [props.templateConfig]);
+
+  const initial: WritingTemplateData = useMemo(() => {
+    const td = props.initialState?.templateData as Partial<WritingTemplateData> | undefined;
+    return { body: typeof td?.body === 'string' ? td.body : '' };
+  }, [props.initialState]);
+
+  const [body, setBody] = useState(initial.body);
+  const wc = countWords(body);
+  const tooShort = wc < config.minWords;
+  const tooLong = wc > config.maxWords;
+  const canSubmit = !tooShort && !tooLong && body.trim().length > 0;
+
+  const saveDraft = () =>
+    props.onSave({
+      templateData: { body } as unknown as Record<string, unknown>,
+      toolStates: props.initialState?.toolStates ?? {},
+    });
+
+  return (
+    <section className="space-y-4">
+      <p className="p-4 rounded-2xl bg-surface">{config.prompt}</p>
+      <textarea
+        value={body}
+        onChange={(e) => setBody(e.target.value)}
+        rows={10}
+        maxLength={5000}
+        className="w-full rounded-2xl border border-text-muted/30 bg-surface p-3 text-lg"
+        placeholder={t('execution.writing_placeholder')}
+      />
+      <p
+        className={
+          'text-sm text-center ' +
+          (tooShort
+            ? 'text-text-muted'
+            : tooLong
+              ? 'text-danger'
+              : 'text-success')
+        }
+        aria-live="polite"
+      >
+        {t('execution.writing_word_count', {
+          current: wc,
+          min: config.minWords,
+          max: config.maxWords,
+        })}
+      </p>
+      <div className="flex gap-3">
+        <button
+          type="button"
+          onClick={props.onBack}
+          className="px-6 min-h-touch rounded-2xl border border-text-muted/30"
+        >
+          {t('execution.back')}
+        </button>
+        <button
+          type="button"
+          onClick={saveDraft}
+          className="px-6 min-h-touch rounded-2xl border border-text-muted/30"
+        >
+          {t('execution.writing_save_draft')}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            saveDraft();
+            props.onComplete();
+          }}
+          disabled={!canSubmit || props.completing}
+          className="flex-1 min-h-touch rounded-2xl bg-success text-white py-3 disabled:opacity-40 text-lg"
+        >
+          {t('execution.done')}
+        </button>
+      </div>
+    </section>
+  );
+}
+
+interface ReadingTemplateData {
+  bookTitle: string;
+  minutes: number;
+  summary: string;
+}
+
+function ReadingLogExecutor(props: {
+  templateConfig: Record<string, unknown>;
+  initialState: ProgressState | null;
+  onSave: (s: ProgressState) => void;
+  onComplete: () => void;
+  completing: boolean;
+  onBack: () => void;
+}) {
+  const { t } = useTranslation('common');
+  const config: ReadingLogConfigV1 = useMemo(() => {
+    const p = readingLogConfigV1Schema.safeParse(props.templateConfig);
+    return p.success ? p.data : { minMinutes: 10, requireSummary: false };
+  }, [props.templateConfig]);
+
+  const initial: ReadingTemplateData = useMemo(() => {
+    const td = props.initialState?.templateData as
+      | Partial<ReadingTemplateData>
+      | undefined;
+    return {
+      bookTitle: typeof td?.bookTitle === 'string' ? td.bookTitle : '',
+      minutes: typeof td?.minutes === 'number' ? td.minutes : 0,
+      summary: typeof td?.summary === 'string' ? td.summary : '',
+    };
+  }, [props.initialState]);
+
+  const [bookTitle, setBookTitle] = useState(initial.bookTitle);
+  const [minutes, setMinutes] = useState(initial.minutes);
+  const [summary, setSummary] = useState(initial.summary);
+
+  const enoughMinutes = minutes >= config.minMinutes;
+  const summaryOk = !config.requireSummary || summary.trim().length > 0;
+  const canSubmit = enoughMinutes && bookTitle.trim().length > 0 && summaryOk;
+
+  const save = () =>
+    props.onSave({
+      templateData: {
+        bookTitle,
+        minutes,
+        summary,
+      } as unknown as Record<string, unknown>,
+      toolStates: props.initialState?.toolStates ?? {},
+    });
+
+  return (
+    <section className="space-y-4">
+      <div>
+        <label htmlFor="bt" className="block text-sm mb-1">
+          {t('execution.reading_book_title_label')}
+        </label>
+        <input
+          id="bt"
+          type="text"
+          value={bookTitle}
+          onChange={(e) => setBookTitle(e.target.value)}
+          required
+          className="w-full min-h-touch rounded-2xl border border-text-muted/30 bg-surface p-3"
+        />
+      </div>
+      <div>
+        <label htmlFor="mn" className="block text-sm mb-1">
+          {t('execution.reading_minutes_label', { min: config.minMinutes })}
+        </label>
+        <input
+          id="mn"
+          type="number"
+          min={0}
+          max={240}
+          value={minutes}
+          onChange={(e) => setMinutes(Number(e.target.value))}
+          className="w-full min-h-touch rounded-2xl border border-text-muted/30 bg-surface p-3"
+        />
+      </div>
+      {config.requireSummary && (
+        <div>
+          <label htmlFor="sm" className="block text-sm mb-1">
+            {t('execution.reading_summary_label')}
+          </label>
+          <textarea
+            id="sm"
+            value={summary}
+            onChange={(e) => setSummary(e.target.value)}
+            rows={4}
+            className="w-full rounded-2xl border border-text-muted/30 bg-surface p-3"
+          />
+        </div>
+      )}
+      <div className="flex gap-3">
+        <button
+          type="button"
+          onClick={props.onBack}
+          className="px-6 min-h-touch rounded-2xl border border-text-muted/30"
+        >
+          {t('execution.back')}
+        </button>
+        <button
+          type="button"
+          onClick={save}
+          className="px-6 min-h-touch rounded-2xl border border-text-muted/30"
+        >
+          {t('execution.writing_save_draft')}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            save();
+            props.onComplete();
+          }}
+          disabled={!canSubmit || props.completing}
+          className="flex-1 min-h-touch rounded-2xl bg-success text-white py-3 disabled:opacity-40 text-lg"
+        >
+          {t('execution.done')}
+        </button>
+      </div>
     </section>
   );
 }

@@ -129,7 +129,13 @@
     "math_correct": "答对了！",
     "math_wrong": "再试一次",
     "math_all_done": "全部完成！",
-    "math_score": "{{total}} 题对了 {{correct}} 题。"
+    "math_score": "{{total}} 题对了 {{correct}} 题。",
+    "writing_placeholder": "开始写吧…",
+    "writing_word_count": "{{current}} / {{min}}–{{max}} 字",
+    "writing_save_draft": "保存",
+    "reading_book_title_label": "书名",
+    "reading_minutes_label": "阅读分钟数（至少 {{min}} 分钟）",
+    "reading_summary_label": "简短摘要"
   },
   "parent_home": {
     "placeholder_title": "家长主页",
@@ -212,6 +218,13 @@
     "field_handler": "类型",
     "handler_generic": "通用清单 / 开放式",
     "handler_math": "数学练习（加减法）",
+    "handler_writing": "写作提示",
+    "handler_reading_log": "阅读记录",
+    "field_writing_prompt": "写作提示",
+    "field_writing_min": "最少字数",
+    "field_writing_max": "最多字数",
+    "field_reading_min_minutes": "最少阅读分钟",
+    "field_reading_require_summary": "需要简短摘要",
     "field_name": "名称",
     "field_instructions": "说明",
     "field_instructions_hint": "在任务清单上方展示给孩子的说明，可选。",
