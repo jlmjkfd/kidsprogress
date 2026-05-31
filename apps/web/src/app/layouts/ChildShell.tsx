@@ -48,7 +48,7 @@ export function ChildShell({ age = 'younger', hideHero = false, children }: Prop
                 </h1>
               </div>
               <Link
-                to="/"
+                to="/kids"
                 aria-label={t('shell.switch_profile')}
                 className="p-3 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-sm min-h-touch min-w-touch shrink-0"
               >

@@ -13,6 +13,7 @@ import { ChildrenListPage } from '@/features/children/pages/ChildrenListPage';
 import { TodayPage } from '@/features/today/pages/TodayPage';
 import { ExecutionPage } from '@/features/today/pages/ExecutionPage';
 import { ParentHomePlaceholder } from './pages/ParentHomePlaceholder';
+import { WelcomePage } from './pages/WelcomePage';
 
 /**
  * Phase 1 router. Real parent / child home screens land in Phase 3 / 9.
@@ -23,7 +24,8 @@ export function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<SelectionPage />} />
+        <Route path="/" element={<WelcomePage />} />
+        <Route path="/kids" element={<SelectionPage />} />
         <Route path="/setup-device" element={<SetupDevicePage />} />
         <Route path="/parent-login" element={<ParentLoginPage />} />
         <Route path="/parent-signup" element={<ParentSignUpPage />} />

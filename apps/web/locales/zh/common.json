@@ -8,6 +8,16 @@
   "shell": {
     "switch_profile": "切换账户"
   },
+  "welcome": {
+    "title": "欢迎使用 KidsProgress",
+    "subtitle": "选择您要进入的入口。",
+    "signin_title": "家长登录",
+    "signin_desc": "已有账号？管理孩子、模板和设备。",
+    "signup_title": "创建家长账号",
+    "signup_desc": "首次使用？两分钟完成家庭设置。",
+    "device_title": "设置孩子的平板",
+    "device_desc": "粘贴家长给你的一次性设备码。"
+  },
   "nav": {
     "aria_main": "主导航",
     "open_menu": "打开菜单",

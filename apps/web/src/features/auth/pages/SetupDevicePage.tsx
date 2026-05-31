@@ -26,7 +26,7 @@ export function SetupDevicePage() {
       // Round-trip the token to confirm it's valid before persisting it.
       await authApi.deviceLookup({ deviceToken: token.trim() });
       setDeviceToken(token.trim());
-      navigate('/', { replace: true });
+      navigate('/kids', { replace: true });
     } catch {
       setError('setup.invalid_token');
     } finally {

@@ -25,12 +25,11 @@ export function SelectionPage() {
   const [pinError, setPinError] = useState<string | undefined>(undefined);
   const [resetMode, setResetMode] = useState(false);
 
-  // No device token yet — send to the first-run setup screen.
-  // Use <Navigate /> (declarative) instead of calling navigate() during
-  // render — that triggers a React warning + can blank the page in strict
-  // mode because React re-runs renders before the side-effect commits.
+  // No device token → bounce back to the welcome screen so the visitor
+  // can pick their flow (sign-in / sign-up / paste a device code) instead
+  // of being dumped straight into the setup form.
   if (!deviceToken) {
-    return <Navigate to="/setup-device" replace />;
+    return <Navigate to="/" replace />;
   }
 
   if (lookup.isPending) {

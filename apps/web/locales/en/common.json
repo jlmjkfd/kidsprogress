@@ -8,6 +8,16 @@
   "shell": {
     "switch_profile": "Switch profile"
   },
+  "welcome": {
+    "title": "Welcome to KidsProgress",
+    "subtitle": "Pick how you'd like to start.",
+    "signin_title": "Parent sign-in",
+    "signin_desc": "Already have an account? Manage children, templates, and devices.",
+    "signup_title": "Create a parent account",
+    "signup_desc": "First time? Set up your family in two minutes.",
+    "device_title": "Set up a kid's tablet",
+    "device_desc": "Paste the one-time device code your parent gave you."
+  },
   "nav": {
     "aria_main": "Main navigation",
     "open_menu": "Open menu",
