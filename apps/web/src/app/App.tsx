@@ -6,6 +6,7 @@ import { TemplatesListPage } from '@/features/templates/pages/TemplatesListPage'
 import { NewTemplatePage } from '@/features/templates/pages/NewTemplatePage';
 import { AssignTemplatePage } from '@/features/assignments/pages/AssignTemplatePage';
 import { DevicesListPage } from '@/features/devices/pages/DevicesListPage';
+import { ChildrenListPage } from '@/features/children/pages/ChildrenListPage';
 import { TodayPage } from '@/features/today/pages/TodayPage';
 import { ParentHomePlaceholder } from './pages/ParentHomePlaceholder';
 
@@ -23,6 +24,7 @@ export function App() {
         <Route path="/parent-login" element={<ParentLoginPage />} />
         <Route path="/today" element={<TodayPage />} />
         <Route path="/parent" element={<ParentHomePlaceholder />} />
+        <Route path="/parent/children" element={<ChildrenListPage />} />
         <Route path="/parent/devices" element={<DevicesListPage />} />
         <Route path="/parent/templates" element={<TemplatesListPage />} />
         <Route
