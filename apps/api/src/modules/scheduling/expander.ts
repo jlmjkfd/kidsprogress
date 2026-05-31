@@ -1,6 +1,15 @@
-import { RRule, RRuleSet, rrulestr } from 'rrule';
+// rrule@2.x ships a CJS bundle with no `exports` map, so Node 22's
+// ESM-from-CJS interop can't find the named exports. Default-import the
+// whole module + destructure at runtime — the only shape that works
+// across both `tsx watch` (dev) and `node` (built).
+import rrulePkg from 'rrule';
+import type { RRule as RRuleType, RRuleSet as RRuleSetType } from 'rrule';
 import type { TaskAssignmentRow } from '@kidsprogress/db';
 import type { InstanceKey } from '@kidsprogress/shared';
+
+const { rrulestr } = rrulePkg as unknown as {
+  rrulestr: (s: string, opts?: { dtstart?: Date; cache?: boolean }) => RRuleType | RRuleSetType;
+};
 
 /**
  * Expand an assignment into virtual instance keys for a given date range.
@@ -51,7 +60,7 @@ export function expandOccurrences(
   const dtStart = new Date(assignment.effectiveFrom);
   const until = assignment.effectiveUntil ? new Date(assignment.effectiveUntil) : undefined;
 
-  let rule: RRule | RRuleSet;
+  let rule: RRuleType | RRuleSetType;
   try {
     // Accept either bare RRULE or full ICS-shaped strings (`DTSTART...\nRRULE...`).
     rule = rrulestr(assignment.rrule, { dtstart: dtStart, cache: true });
