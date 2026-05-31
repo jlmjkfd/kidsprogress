@@ -17,6 +17,7 @@
     "lint": "echo \"(shared) no lint configured\""
   },
   "dependencies": {
+    "mathjs": "^14.6.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {
