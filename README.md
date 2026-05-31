@@ -45,11 +45,26 @@ cp .env.example .env
 pnpm db:generate     # generates SQL from the Drizzle schema if needed
 pnpm db:migrate      # applies them
 
-# 4. Run dev (api on :8000, web on :5173)
+# 4. (Optional but recommended) Seed a working family so you can drive the UI immediately
+pnpm db:seed
+#   → prints: parent email + password + a one-time device token
+
+# 5. Run dev (api on :8000, web on :5173)
 pnpm dev
 ```
 
-Open <http://localhost:5173>. The placeholder page polls `/health` to confirm the API + DB are alive.
+Open <http://localhost:5173>.
+
+- **Kid portal** lives at `/`. First run: paste the device token from the
+  seed output into the setup screen, then tap a kid's tile (Mia is PIN-less;
+  Liam's PIN is `4242`).
+- **Parent portal** lives at `/parent-login`. Seed credentials:
+  `seed@kidsprogress.local` / `seed-password-12345`. Or create a new
+  account at `/parent-signup`.
+- **Wipe and restart**: stop the dev server, delete
+  `./data/kidsprogress.sqlite`, then re-run `pnpm db:migrate && pnpm db:seed`.
+
+See [`docs/api-registry.md`](docs/api-registry.md) for the full UI ↔ API wiring map.
 
 ## Common scripts
 
