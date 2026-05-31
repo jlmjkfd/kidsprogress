@@ -1,7 +1,12 @@
 {
   "app_title": "KidsProgress",
   "common": {
-    "loading": "加载中…"
+    "loading": "加载中…",
+    "save": "保存",
+    "cancel": "取消"
+  },
+  "shell": {
+    "switch_profile": "切换账户"
   },
   "nav": {
     "aria_main": "主导航",
@@ -161,6 +166,8 @@
     "empty": "还没有孩子，先添加一位吧。",
     "pin_on_label": "已设密码",
     "archived_badge": "已归档",
+    "edit_button": "编辑",
+    "edit_title": "编辑 {{name}}",
     "set_pin_title": "为此孩子设置密码",
     "set_pin_button": "设置密码",
     "set_pin_submit": "保存密码",
@@ -236,7 +243,10 @@
     "create_submit": "创建模板",
     "create_cancel": "取消",
     "create_failed": "创建失败，请检查输入后重试。",
-    "assign_button": "分配给孩子"
+    "assign_button": "分配给孩子",
+    "edit_button": "编辑",
+    "edit_title": "编辑 \"{{name}}\"",
+    "edit_handler_immutable": "处理器（{{handler}}）和版本不可更改。如需切换，请归档后新建模板。"
   },
   "assign": {
     "title": "分配 \"{{name}}\"",

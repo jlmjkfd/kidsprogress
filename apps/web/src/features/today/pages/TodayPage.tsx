@@ -39,12 +39,6 @@ export function TodayPage() {
   return (
     <ChildShell age={currentChild.ageBand}>
       <div className="max-w-2xl mx-auto py-6 px-4 space-y-6">
-        <header>
-          <h1 className="text-3xl font-display">
-            {t('today.greeting', { name: currentChild.displayName })}
-          </h1>
-        </header>
-
         {cal.isPending && <p className="text-text-muted">{t('common.loading')}</p>}
         {cal.isError && (
           <p role="alert" className="text-danger">

@@ -27,13 +27,13 @@
 | `/api/auth/me/parent-pin/verify` | POST | ⚠️ | view-as-child verifies inline; standalone gate not yet shipped |
 | `/api/auth/me/view-as-child` | POST | ✅ | Eye icon on `/parent/children` |
 | `/api/children` | GET / POST | ✅ | `/parent/children` |
-| `/api/children/:id` | GET / PATCH | ✅ / ⚠️ | GET used; PATCH not surfaced (workaround: archive + recreate) |
+| `/api/children/:id` | GET / PATCH | ✅ | GET + inline edit row on `/parent/children` |
 | `/api/children/:id/archive` | POST | ✅ | `/parent/children` |
 | `/api/children/:id/restore` | POST | ✅ | `/parent/children` |
 | `/api/children/:id/pin` | POST / DELETE | ✅ | `/parent/children` set + clear |
 | `/api/children/:id/pin/issue-reset` | POST | ✅ | `/parent/children` |
 | `/api/templates` | GET / POST | ✅ | `/parent/templates` + `/parent/templates/new` |
-| `/api/templates/:id` | GET / PATCH | ✅ / ⚠️ | GET used; PATCH not yet surfaced |
+| `/api/templates/:id` | GET / PATCH | ✅ | GET used; PATCH via inline edit row on `/parent/templates` (handler/version immutable) |
 | `/api/templates/:id/archive` | POST | ✅ | `/parent/templates` |
 | `/api/templates/:id/restore` | POST | ✅ | `/parent/templates` |
 | `/api/assignments` | GET / POST | ✅ | `/parent/assignments` (list) + `/parent/templates/:id/assign` (create) |
@@ -64,5 +64,5 @@
 - **Calendar read on `/parent/assignments`**: list shows the rule, not the
   expanded occurrences. A "preview next 14 days" view would help spot
   scheduling collisions.
-- **Template / child PATCH UI**: backend supports editing; the forms to
-  surface those aren't built yet (workaround: archive + recreate).
+- **Children / template PATCH**: ✅ shipped — inline edit row on both
+  `/parent/children` and `/parent/templates`.

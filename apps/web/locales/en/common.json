@@ -1,7 +1,12 @@
 {
   "app_title": "KidsProgress",
   "common": {
-    "loading": "Loading…"
+    "loading": "Loading…",
+    "save": "Save",
+    "cancel": "Cancel"
+  },
+  "shell": {
+    "switch_profile": "Switch profile"
   },
   "nav": {
     "aria_main": "Main navigation",
@@ -161,6 +166,8 @@
     "empty": "No kids on file yet. Add the first one.",
     "pin_on_label": "PIN on",
     "archived_badge": "archived",
+    "edit_button": "Edit",
+    "edit_title": "Edit {{name}}",
     "set_pin_title": "Set a PIN for this child",
     "set_pin_button": "Set PIN",
     "set_pin_submit": "Save PIN",
@@ -236,7 +243,10 @@
     "create_submit": "Create template",
     "create_cancel": "Cancel",
     "create_failed": "Couldn't create that template. Check the inputs and try again.",
-    "assign_button": "Assign to a child"
+    "assign_button": "Assign to a child",
+    "edit_button": "Edit",
+    "edit_title": "Edit \"{{name}}\"",
+    "edit_handler_immutable": "Handler ({{handler}}) and version are fixed. To switch, archive this one and create a new template."
   },
   "assign": {
     "title": "Assign \"{{name}}\"",

@@ -5,6 +5,7 @@ import { useMutation } from '@tanstack/react-query';
 import {
   IconArchive,
   IconArchiveOff,
+  IconEdit,
   IconEye,
   IconKey,
   IconKeyOff,
@@ -22,7 +23,107 @@ import {
   useIssuePinReset,
   useRestoreChild,
   useSetChildPin,
+  useUpdateChild,
 } from '../hooks';
+import type { Child } from '@kidsprogress/shared';
+
+function ChildEditRow(props: {
+  child: Child;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation('common');
+  const [name, setName] = useState(props.child.displayName);
+  const [year, setYear] = useState<string>(
+    props.child.birthYear ? String(props.child.birthYear) : '',
+  );
+  const [avatar, setAvatar] = useState(props.child.avatarKey);
+  const update = useUpdateChild(props.child.id);
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        update.mutate(
+          {
+            displayName: name.trim(),
+            avatarKey: avatar as `avatar-${string}`,
+            ...(year ? { birthYear: Number(year) } : {}),
+          },
+          { onSuccess: () => props.onClose() },
+        );
+      }}
+      className="p-4 rounded-2xl bg-surface space-y-3"
+    >
+      <h3 className="font-display text-lg">
+        {t('children.edit_title', { name: props.child.displayName })}
+      </h3>
+      <div>
+        <label htmlFor="edit-name" className="block text-sm mb-1">
+          {t('children.field_name')}
+        </label>
+        <input
+          id="edit-name"
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+          minLength={1}
+          maxLength={80}
+          className="w-full min-h-touch rounded-2xl border border-text-muted/30 bg-bg p-3"
+        />
+      </div>
+      <div>
+        <label htmlFor="edit-year" className="block text-sm mb-1">
+          {t('children.field_birth_year')}
+        </label>
+        <input
+          id="edit-year"
+          type="number"
+          min={2000}
+          max={2030}
+          value={year}
+          onChange={(e) => setYear(e.target.value)}
+          className="w-full min-h-touch rounded-2xl border border-text-muted/30 bg-bg p-3"
+        />
+      </div>
+      <div>
+        <label htmlFor="edit-avatar" className="block text-sm mb-1">
+          {t('children.field_avatar')}
+        </label>
+        <select
+          id="edit-avatar"
+          value={avatar}
+          onChange={(e) => setAvatar(e.target.value)}
+          className="w-full min-h-touch rounded-2xl border border-text-muted/30 bg-bg p-3"
+        >
+          {Array.from({ length: 12 }, (_, i) =>
+            `avatar-${String(i + 1).padStart(2, '0')}`,
+          ).map((k) => (
+            <option key={k} value={k}>
+              {k}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="flex gap-2">
+        <button
+          type="submit"
+          disabled={update.isPending || name.trim().length === 0}
+          className="flex-1 min-h-touch rounded-2xl bg-accent text-white py-3 disabled:opacity-40"
+        >
+          {update.isPending ? t('common.loading') : t('common.save')}
+        </button>
+        <button
+          type="button"
+          onClick={props.onClose}
+          className="px-6 min-h-touch rounded-2xl border border-text-muted/30"
+        >
+          {t('common.cancel')}
+        </button>
+      </div>
+    </form>
+  );
+}
 
 type ResetCodeInfo = {
   childId: string;
@@ -55,6 +156,8 @@ export function ChildrenListPage() {
   const [pinError, setPinError] = useState<string | undefined>();
 
   const [resetInfo, setResetInfo] = useState<ResetCodeInfo | null>(null);
+
+  const [editFor, setEditFor] = useState<string | null>(null);
 
   const [viewAsFor, setViewAsFor] = useState<{ id: string; name: string } | null>(
     null,
@@ -267,6 +370,15 @@ export function ChildrenListPage() {
           </section>
         )}
 
+        {editFor && list.data && (
+          (() => {
+            const child = list.data.find((c) => c.id === editFor);
+            return child ? (
+              <ChildEditRow child={child} onClose={() => setEditFor(null)} />
+            ) : null;
+          })()
+        )}
+
         {viewAsFor && (
           <section className="p-4 rounded-3xl bg-surface space-y-3">
             <h2 className="font-display text-lg">
@@ -398,6 +510,16 @@ export function ChildrenListPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
+                  {!c.archivedAt && (
+                    <button
+                      type="button"
+                      onClick={() => setEditFor(c.id)}
+                      aria-label={t('children.edit_button')}
+                      className="p-2 rounded-full hover:bg-surface-muted min-h-touch min-w-touch"
+                    >
+                      <IconEdit size={18} aria-hidden />
+                    </button>
+                  )}
                   {!c.archivedAt && (
                     <button
                       type="button"
