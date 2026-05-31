@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ChildShell } from '@/app/layouts/ChildShell';
 import { authApi } from '../api';
 import { useAuthStore } from '../store';
@@ -36,7 +36,7 @@ export function SetupDevicePage() {
 
   return (
     <ChildShell>
-      <div className="max-w-md mx-auto space-y-6">
+      <div className="max-w-md mx-auto py-12 px-4 space-y-6">
         <h1 className="text-2xl font-display text-center">{t('setup.title')}</h1>
         <p className="text-text-muted text-center">{t('setup.subtitle')}</p>
         <form onSubmit={submit} className="space-y-4">
@@ -66,6 +66,16 @@ export function SetupDevicePage() {
             {busy ? t('common.loading') : t('setup.submit')}
           </button>
         </form>
+
+        <div className="border-t border-text-muted/15 pt-6 space-y-2 text-center">
+          <p className="text-sm text-text-muted">{t('setup.parent_hint')}</p>
+          <Link
+            to="/parent-login"
+            className="inline-block min-h-touch py-2 text-accent underline"
+          >
+            {t('setup.go_to_parent_login')}
+          </Link>
+        </div>
       </div>
     </ChildShell>
   );

@@ -91,7 +91,9 @@
     "token_label": "设备码",
     "token_placeholder": "在此粘贴…",
     "submit": "完成设置",
-    "invalid_token": "此码无效，请家长重新生成。"
+    "invalid_token": "此码无效，请家长重新生成。",
+    "parent_hint": "你是首次设置的家长吗？",
+    "go_to_parent_login": "前往家长入口 →"
   },
   "parent_login": {
     "title": "家长登录",

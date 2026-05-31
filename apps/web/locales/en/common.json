@@ -91,7 +91,9 @@
     "token_label": "Device code",
     "token_placeholder": "Paste here…",
     "submit": "Set up device",
-    "invalid_token": "That code didn't work. Ask the parent to issue a new one."
+    "invalid_token": "That code didn't work. Ask the parent to issue a new one.",
+    "parent_hint": "Are you a parent setting up the family for the first time?",
+    "go_to_parent_login": "Go to the parent portal →"
   },
   "parent_login": {
     "title": "Parent sign-in",
