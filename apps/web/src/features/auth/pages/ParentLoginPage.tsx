@@ -80,7 +80,7 @@ export function ParentLoginPage() {
           </p>
           <button
             type="button"
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/kids')}
             className="w-full min-h-touch py-3 underline text-text-muted"
           >
             {t('parent_login.back_to_kids')}
